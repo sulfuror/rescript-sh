@@ -1,4 +1,4 @@
-# About restic.sh
+# About `restic.sh`
 
 This restic script was made using an example of a Restic Script found in
 the following link: https://pastebin.com/ydN9fJ4H
