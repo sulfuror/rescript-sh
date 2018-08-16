@@ -38,15 +38,18 @@ without at least a guide.
 
 # Possible problems with the script:
 I use to run this script hourly with a cron but with my repo increasing on size, the `prune` process was really slow and it causes errors because a cron job was in process and when it was the time to start the other hourly snapshot then it all crashed. So, the problems that I had were that after killing all processes or viewing the log files, the backups were there but the `prune` process was killed. That leads me to problems with the "trees not found" and runnin `check` was giving me problems. I solved this problems using:
-    * `restic rebuild-index`
-    * `restic check --read-data`
+* `restic rebuild-index`
+* `restic check --read-data`
+
 Before that I make sure that the system was not executing the cron job (just adding a # in the cron job file) and made my backups to run every two hours. You can setup a cronjob using:
-    * crontab -e
+* crontab -e
+
 Then you'll need to add a new cronjob like `10 */2 * * * /home/YOURUSERNAME/restic.sh`. This cron job will execute every two hours at the 10th minute. If you want to change it for every four hours, for example, at the 0 minute just write `0 */4 * * * /home/YOURUSERNAME/restic.sh`.
 
 Also, you can create a log file so the cron job can store the output in a plaintext file. You can do this using adding in the cron job file the following after the cron job you've just created:
-    * `>> /home/YOURUSERNAME/logs/restic-log_$(date +\%Y-\%m-\%d-\%H:00) 2>&1`
+* `>> /home/YOURUSERNAME/logs/restic-log_$(date +\%Y-\%m-\%d-\%H:00) 2>&1`
+
 If you do this your cron job will look like this:
-    * `0 */4 * * * /home/YOURUSERNAME/restic.sh >> /home/YOURUSERNAME/logs/restic-log_$(date +\%Y-\%m-\%d-\%H:00) 2>&1`
+* `0 */4 * * * /home/YOURUSERNAME/restic.sh >> /home/YOURUSERNAME/logs/restic-log_$(date +\%Y-\%m-\%d-\%H:00) 2>&1`
 
 That's it. If you want to change this feel free to do it.
