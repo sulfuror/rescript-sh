@@ -1,7 +1,8 @@
 # About `restic.sh`
 
-This restic script was made using an example of a Restic Script found in
-the following link: https://pastebin.com/ydN9fJ4H
+This script was made using an example of a Restic Script found in
+the following link: https://pastebin.com/ydN9fJ4H. The purpose of it is to
+automate the use of [Restic](https://restic.net/) (backup program).
 
 At the same time I have to give credit to the original script made
 for Borg at this site: https://blog.andrewkeech.com/posts/170718_borg.html
@@ -25,11 +26,14 @@ without at least a guide.
 7. stats
 
 # Possible changes you'll want to make:
-1. The `restic unlock` line. You don't really need to unlock the `restic` repo. In fact, `fd0` (restic developer) [doesn't advise to run `unlock` in a script](https://forum.restic.net/t/prune-error-tree-not-found/785/4); so keep in mind that if you use it, it will be at your own risk.
+1. The `restic unlock` line. You don't really need to unlock the `restic` repo.
+   In fact, `fd0` (restic developer) [doesn't advise to run `unlock` in a script](https://forum.restic.net/t/prune-error-tree-not-found/785/4);
+   so keep in mind that if you use it, it will be at your own risk.
 2. You need to change the `CHANGEME` passwords; both at the beginning and the end of the script.
 3. You need to set your repo path and change the `/PATH/TO/REPO` in the script.
     * If you're using a `rclone` backend make sure you set up this line with `rclone:yourremotename:yourremotefolder` so it can work as intended.
-    * The same for this first sub-point for `sftp` but with repo (from now on I'll assume you know how this work).
+    * The same for this first sub-point for `sftp` but with repo
+      (from now on I'll assume you know how this work).
 4. You need to hange the `tag` specified on the `backup` command. If you don't want to use any tag you can delete the `--tag YOURTAG` after the `backup` command. The script will work the same way but it will not have any tag. If you want to chose a tag, then change `YOURTAG` for whatever name you want.
 5. Exclude list:
     * The exclude list is pretty basic. I use this script for a `rclone` backup and my exclude list is extensive so I shrink it to the files most people don't want to backup like the `cache` folder, `downloads`, `dbus` and `trash`. Feel free to include any other folder or file you don't want on your backup adding another line with:
