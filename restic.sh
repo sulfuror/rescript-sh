@@ -18,7 +18,7 @@ restic unlock
 #Script backs all Home directory
 echo -e $YELLOW"[Taking a Snapshot]"$ENDCOLOR
 restic backup ~/ --tag YOURTAG --verbose	\
---exclude='~/Downloads'			        	\
+--exclude='~/Downloads'			        \
 --exclude='~/.local/share/Trash'		    \
 --exclude='~/.dbus'				            \
 --exclude='~/.cache'				        \
