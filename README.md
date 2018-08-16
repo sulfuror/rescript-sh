@@ -1,2 +1,52 @@
-# restic.sh
+# About restic.sh
 
+This restic script was made using an example of a Restic Script found in
+the following link: https://pastebin.com/ydN9fJ4H
+
+At the same time I have to give credit to the original script made
+for Borg at this site: https://blog.andrewkeech.com/posts/170718_borg.html
+
+My intentios is not to steal someone elses work so that's why I need to 
+disclose the original source. I foud all sources in this Reddit thread:
+https://www.reddit.com/r/ScriptSwap/comments/7v7vby/restic_backup_script/
+
+The account is deleted and the pastebin was made as a guest so I haven't found
+the person who did the restic original script to thank him because that was 
+the only script I found and I really couldn't found out how to do that before
+without at least a guide.
+
+# This `script` was made with the following commands on the same file:
+1. unlock
+2. backup
+3. check
+4. snapshots
+5. forget
+6. prune
+7. stats
+
+# Possible changes you'll want to make:
+1. The `restic unlock` line. You don't really need to unlock the `restic` repo. In fact, `fd0` (restic developer) [doesn't advise to run `unlock` in a script](https://forum.restic.net/t/prune-error-tree-not-found/785/4); so keep in mind that if you use it, it will be at your own risk.
+2. You need to change the `CHANGEME` passwords; both at the beginning and the end of the script.
+3. You need to set your repo path and change the `/PATH/TO/REPO` in the script.
+    * If you're using a `rclone` backend make sure you set up this line with `rclone:yourremotename:yourremotefolder` so it can work as intended.
+    * The same for this first sub-point for `sftp` but with repo (from now on I'll assume you know how this work).
+4. You need to hange the `tag` specified on the `backup` command. If you don't want to use any tag you can delete the `--tag YOURTAG` after the `backup` command. The script will work the same way but it will not have any tag. If you want to chose a tag, then change `YOURTAG` for whatever name you want.
+5. Exclude list:
+    * The exclude list is pretty basic. I use this script for a `rclone` backup and my exclude list is extensive so I shrink it to the files most people don't want to backup like the `cache` folder, `downloads`, `dbus` and `trash`. Feel free to include any other folder or file you don't want on your backup adding another line with:
+        * --exclude='/PATH/TO/UNWANTED/FILE/OR/FOLDER' including the '\' at the end.
+6. Feel free to change the forget rules to whatever number of days, hours, weeks, months or years you want to keep your snapshots.
+
+# Possible problems with the script:
+I use to run this script hourly with a cron but with my repo increasing on size, the `prune` process was really slow and it causes errors because a cron job was in process and when it was the time to start the other hourly snapshot then it all crashed. So, the problems that I had were that after killing all processes or viewing the log files, the backups were there but the `prune` process was killed. That leads me to problems with the "trees not found" and runnin `check` was giving me problems. I solved this problems using:
+    * `restic rebuild-index`
+    * `restic check --read-data`
+Before that I make sure that the system was not executing the cron job (just adding a # in the cron job file) and made my backups to run every two hours. You can setup a cronjob using:
+    * crontab -e
+Then you'll need to add a new cronjob like `10 */2 * * * /home/YOURUSERNAME/restic.sh`. This cron job will execute every two hours at the 10th minute. If you want to change it for every four hours, for example, at the 0 minute just write `0 */4 * * * /home/YOURUSERNAME/restic.sh`.
+
+Also, you can create a log file so the cron job can store the output in a plaintext file. You can do this using adding in the cron job file the following after the cron job you've just created:
+    * `>> /home/YOURUSERNAME/logs/restic-log_$(date +\%Y-\%m-\%d-\%H:00) 2>&1`
+If you do this your cron job will look like this:
+    * `0 */4 * * * /home/YOURUSERNAME/restic.sh >> /home/YOURUSERNAME/logs/restic-log_$(date +\%Y-\%m-\%d-\%H:00) 2>&1`
+
+That's it. If you want to change this feel free to do it.
