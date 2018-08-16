@@ -18,10 +18,10 @@ restic unlock
 #Script backs all Home directory
 echo -e $YELLOW"[Taking a Snapshot]"$ENDCOLOR
 restic backup ~/ --tag YOURTAG --verbose	\
---exclude='~/Downloads'			        \
---exclude='~/.local/share/Trash'		    \
---exclude='~/.dbus'				            \
---exclude='~/.cache'				        \
+--exclude='~/Downloads'                     \
+--exclude='~/.local/share/Trash'            \
+--exclude='~/.dbus'                         \
+--exclude='~/.cache'                        \
 
 #Check if data is correctly in repo
 echo -e $YELLOW"[Checking for Errors in Repo]"$ENDCOLOR
