@@ -7,7 +7,7 @@ At the same time I have to give credit to the original script made
 for Borg at this site: https://blog.andrewkeech.com/posts/170718_borg.html
 
 My intentios is not to steal someone elses work so that's why I need to 
-disclose the original source. I foud all sources in this Reddit thread:
+disclose the original source. I found all sources in this Reddit thread:
 https://www.reddit.com/r/ScriptSwap/comments/7v7vby/restic_backup_script/
 
 The account is deleted and the pastebin was made as a guest so I haven't found
