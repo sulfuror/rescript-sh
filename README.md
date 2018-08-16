@@ -41,8 +41,7 @@ I use to run this script hourly with a cron but with my repo increasing on size,
 * `restic rebuild-index`
 * `restic check --read-data`
 
-Before that I make sure that the system was not executing the cron job (just adding a # in the cron job file) and made my backups to run every two hours. You can setup a cronjob using:
-* crontab -e
+Before that I make sure that the system was not executing the cron job (just adding a # in the cron job file) and made my backups to run every two hours. You can setup a cronjob using `crontab -e` in your terminal emulator.
 
 Then you'll need to add a new cronjob like `10 */2 * * * /home/YOURUSERNAME/restic.sh`. This cron job will execute every two hours at the 10th minute. If you want to change it for every four hours, for example, at the 0 minute just write `0 */4 * * * /home/YOURUSERNAME/restic.sh`.
 
