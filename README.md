@@ -60,6 +60,12 @@ killed. That leads me to problems with the "trees not found" and runnin `check`
 was giving me problems. I solved this problems using:
 * `restic rebuild-index`
 * `restic check --read-data`
+* `restic prune`
+
+This problem is not because of this script. If you're having any problems
+with restic you should look at the [restic forum](https://forum.restic.net/)
+page to find answers or submit a question about your problem. I'm no whatsoever
+affiliated with the **restic** in any way.
 
 Before that I make sure that the system was not executing the cron job
 (just adding a # in the cron job file) and made my backups to run every two
