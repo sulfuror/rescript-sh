@@ -46,7 +46,7 @@ without at least a guide.
       don't want to backup like the `cache` folder, `downloads`, `dbus`
       and `trash`. Feel free to include any other folder or file you don't
       want on your backup adding another line with:
-        * --exclude='/PATH/TO/UNWANTED/FILE/OR/FOLDER' including the '\' at the end.
+        * `--exclude='/PATH/TO/UNWANTED/FILE/OR/FOLDER'` including the '\' at the end.
 6. Feel free to change the forget rules to whatever number of days, hours,
    weeks, months or years you want to keep your snapshots.
 
