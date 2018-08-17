@@ -51,9 +51,9 @@ restic stats
 echo -e $GREEN"[Deduplicated Size for All Snapshots]"$ENDCOLOR
 restic stats --mode raw-data
 
+echo -e $GREEN"[Finished!]"$ENDCOLOR
+
 #reset credentials
 export RESTIC_PASSWORD='CHANGEME'
-
-echo -e $GREEN"[Finished!]"$ENDCOLOR
 
 exit 0
