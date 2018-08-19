@@ -1,2 +1,1 @@
-8/18/2018 - Added "Bail if restic is already running" so if there's a previous
-job that is not finished it doesn't mess up it up and just let it finish.
+8/18/2018 - Added "Bail if restic is already running" so if there's a previous job that is not finished it doesn't mess up it up and just let it finish.
