@@ -39,10 +39,12 @@ without at least a guide.
    In fact, `fd0` (restic developer)
    [doesn't advise to run `unlock` in a script](https://forum.restic.net/t/prune-error-tree-not-found/785/4);
    so keep in mind that if you use it, it will be at your own risk. I've been
-   using `unlock` command because sometimes I totally forget about my computers
-   scripts running before shutting them down... so if `restic` was running,
-   when I turn on my computer again I need to unlock the repo so the script
-   could keep running regularly. 
+   using the `unlock` command because sometimes I totally forget about my
+   computers running a backup before shutting them down... so if `restic` was
+   running, when I turn on my computer again I need to unlock the repo so 
+   the script could keep running regularly. I haven't had any problems with it
+   and I don't really thing that it could cause any problem because that command
+   just remove lock files that it considers stale.
 2. You need to change the `CHANGEME` passwords; both at the beginning and the end of the script.
 3. You need to set your repo path and change the `/PATH/TO/REPO` in the script.
     * If you're using a `rclone` backend make sure you set up this line with
