@@ -99,4 +99,10 @@ after the cron job you've just created:
 If you do this your cron job will look like this:
 * `0 */4 * * * /home/YOURUSERNAME/restic.sh >> /home/YOURUSERNAME/logs/restic-log_$(date +\%Y-\%m-\%d-\%H:00) 2>&1`
 
+You could totally change the destination to your logs if you want. I made it 
+to  /home because it's just simple and you don't have to mix that with
+systems logs. You could also make the log folder hidden (that's my choice)
+and just use `ls` to list your logs and `cat` to display the output instead
+of opening file by file.
+
 That's it. If you want to make this script better feel free to do it here.
