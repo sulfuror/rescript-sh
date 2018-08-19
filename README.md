@@ -25,11 +25,24 @@ without at least a guide.
 6. prune
 7. stats
 
+# Keep in mind
+1. This script was made for Linux. You could use it for other systems but you'll
+   probably have to edit the commands depending on your system.
+2. I'm not a developer, programmer or anything related; I'm just a regular user
+   sharing my basics knowledge.
+3. This script was made with an external HDD in mind. If you need to backup
+   to a S3 cloud, or with `rclone` you must make sure that you add your
+   credentials or put your `rclone` repository correctly in order to function.
+
 # Possible changes you'll want to make:
 1. The `restic unlock` line. You don't really need to unlock the `restic` repo.
    In fact, `fd0` (restic developer)
    [doesn't advise to run `unlock` in a script](https://forum.restic.net/t/prune-error-tree-not-found/785/4);
-   so keep in mind that if you use it, it will be at your own risk.
+   so keep in mind that if you use it, it will be at your own risk. I've been
+   using `unlock` command because sometimes I totally forget about my computers
+   scripts running before shutting them down... so if `restic` was running,
+   when I turn on my computer again I need to unlock the repo so the script
+   could keep running regularly. 
 2. You need to change the `CHANGEME` passwords; both at the beginning and the end of the script.
 3. You need to set your repo path and change the `/PATH/TO/REPO` in the script.
     * If you're using a `rclone` backend make sure you set up this line with
@@ -57,7 +70,7 @@ in process and when it was the time to start the other hourly snapshot then it
 all crashed. So, the problems that I had were that after killing all processes
 or viewing the log files, the backups were there but the `prune` process was
 killed. That leads me to problems with the "trees not found" and runnin `check`
-was giving me problems. I solved this problems using:
+was giving me errors. I solved this problems using:
 * `restic rebuild-index`
 * `restic check --read-data`
 * `restic prune`
