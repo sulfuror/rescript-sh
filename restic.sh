@@ -10,6 +10,13 @@ export RESTIC_PASSWORD='CHANGEME'
 
 #Set repo path
 export RESTIC_REPOSITORY='/PATH/TO/REPO'
+
+#Bail if restic is already running
+if pidof -x restic >/dev/null; then
+    echo "Restic is already running"
+    exit
+fi
+
 echo -e $YELLOW"[Unlock Repo]"$ENDCOLOR
 restic unlock
 
