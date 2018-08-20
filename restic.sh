@@ -5,6 +5,10 @@ GREEN="\033[32m"
 RED="\033[31m"
 ENDCOLOR="\033[0m"
 
+echo -e $GREEN"Start: $(date)"$ENDCOLOR
+start=`date +%M`
+echo -e $RED"----------------------------------------------------------------------"$ENDCOLOR
+
 #Set repo password
 export RESTIC_PASSWORD='CHANGEME'
 
@@ -49,6 +53,7 @@ restic forget 		\
 #Prune removed snapshots
 echo -e $RED"[Prune Old Snapshots]"$ENDCOLOR
 restic prune
+echo -e $RED"----------------------------------------------------------------------"$ENDCOLOR
 echo -e $GREEN"[Latest Snapshots Size]"$ENDCOLOR
 restic stats latest
 echo -e $GREEN"[Deduplicated Size for Latest Snapshot]"$ENDCOLOR
@@ -57,8 +62,13 @@ echo -e $GREEN"[Original Files Size]"$ENDCOLOR
 restic stats
 echo -e $GREEN"[Deduplicated Size for All Snapshots]"$ENDCOLOR
 restic stats --mode raw-data
-
-echo -e $GREEN"[Finished!]"$ENDCOLOR
+#Time and Runtime
+echo -e $RED"----------------------------------------------------------------------"$ENDCOLOR
+end=`date +%M`
+echo -e $GREEN"End: $(date)"$ENDCOLOR
+runtime=$((end-start))
+echo -e $GREEN"Runtime: $runtime minutes"$ENDCOLOR
+echo -e $GREEN"[Script Finished!]"$ENDCOLOR
 
 #reset credentials
 export RESTIC_PASSWORD='CHANGEME'
