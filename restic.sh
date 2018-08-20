@@ -6,8 +6,8 @@ RED="\033[31m"
 ENDCOLOR="\033[0m"
 
 echo -e $GREEN"Start: $(date)"$ENDCOLOR
-start=`date +%M`
-echo -e $RED"----------------------------------------------------------------------"$ENDCOLOR
+SECONDS=0
+echo -e "----------------------------------------------------------------------"
 
 #Set repo password
 export RESTIC_PASSWORD='CHANGEME'
@@ -42,7 +42,7 @@ echo -e $YELLOW"[Snapshots List]"$ENDCOLOR
 restic snapshots
 
 #Remove old repos based on backup strategy
-echo -e $RED"[Forget Old Snapshots]"$ENDCOLOR
+echo -e $YELLOW"[Forget Old Snapshots]"$ENDCOLOR
 restic forget 		\
 --keep-hourly 8		\
 --keep-daily 7 		\
@@ -51,9 +51,9 @@ restic forget 		\
 --keep-yearly 10	\
 
 #Prune removed snapshots
-echo -e $RED"[Prune Old Snapshots]"$ENDCOLOR
+echo -e $YELLOW"[Prune Old Snapshots]"$ENDCOLOR
 restic prune
-echo -e $RED"----------------------------------------------------------------------"$ENDCOLOR
+echo -e "----------------------------------------------------------------------"
 echo -e $GREEN"[Latest Snapshots Size]"$ENDCOLOR
 restic stats latest
 echo -e $GREEN"[Deduplicated Size for Latest Snapshot]"$ENDCOLOR
@@ -63,12 +63,10 @@ restic stats
 echo -e $GREEN"[Deduplicated Size for All Snapshots]"$ENDCOLOR
 restic stats --mode raw-data
 #Time and Runtime
-echo -e $RED"----------------------------------------------------------------------"$ENDCOLOR
-end=`date +%M`
+echo -e "----------------------------------------------------------------------"
 echo -e $GREEN"End: $(date)"$ENDCOLOR
-runtime=$((end-start))
-echo -e $GREEN"Runtime: $runtime minutes"$ENDCOLOR
-echo -e $GREEN"[Script Finished!]"$ENDCOLOR
+echo -e $GREEN"Duration: $(($SECONDS / 3600))hrs $((($SECONDS / 60) % 60))min $(($SECONDS % 60))sec"$ENDCOLOR
+echo -e $GREEN"Script Finished!]"$ENDCOLOR
 
 #reset credentials
 export RESTIC_PASSWORD='CHANGEME'
