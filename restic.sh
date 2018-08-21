@@ -47,7 +47,7 @@ restic forget 		\
 --keep-hourly 8		\
 --keep-daily 7 		\
 --keep-weekly 4		\
---keep-monthly 6   	\
+--keep-monthly 12  	\
 --keep-yearly 10	\
 
 #Prune removed snapshots
