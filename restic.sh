@@ -5,7 +5,10 @@ GREEN="\033[32m"
 RED="\033[31m"
 ENDCOLOR="\033[0m"
 
-echo -e $GREEN"Start: $(date)"$ENDCOLOR
+echo -e "======================================================================"
+echo -e "| - - - - - - - > [ S T A R T I N G    B A C K U P ] < - - - - - - - |"
+echo -e "======================================================================"
+echo -e $YELLOW"Start:"$ENDCOLOR "$(date)"
 SECONDS=0
 echo -e "----------------------------------------------------------------------"
 
@@ -47,26 +50,28 @@ restic forget 		\
 --keep-hourly 8		\
 --keep-daily 7 		\
 --keep-weekly 4		\
---keep-monthly 12  	\
+--keep-monthly 12   	\
 --keep-yearly 10	\
 
 #Prune removed snapshots
 echo -e $YELLOW"[Prune Old Snapshots]"$ENDCOLOR
 restic prune
+#Stats
 echo -e "----------------------------------------------------------------------"
 echo -e $GREEN"[Latest Snapshots Size]"$ENDCOLOR
 restic stats latest
-echo -e $GREEN"[Deduplicated Size for Latest Snapshot]"$ENDCOLOR
+echo -e $YELLOW"[Deduplicated Size for Latest Snapshot]"$ENDCOLOR
 restic stats --mode raw-data latest
-echo -e $GREEN"[Original Files Size]"$ENDCOLOR
+echo -e $YELLOW"[Original Files Size]"$ENDCOLOR
 restic stats
-echo -e $GREEN"[Deduplicated Size for All Snapshots]"$ENDCOLOR
+echo -e $YELLOW"[Deduplicated Size for All Snapshots]"$ENDCOLOR
 restic stats --mode raw-data
 #Time and Runtime
 echo -e "----------------------------------------------------------------------"
-echo -e $GREEN"End: $(date)"$ENDCOLOR
-echo -e $GREEN"Duration: $(($SECONDS / 3600))hrs $((($SECONDS / 60) % 60))min $(($SECONDS % 60))sec"$ENDCOLOR
-echo -e $GREEN"Script Finished!]"$ENDCOLOR
+echo -e $YELLOW"End:"$ENDCOLOR "$(date)" "         " $YELLOW"Duration:"$ENDCOLOR "$(($SECONDS / 3600))hrs $((($SECONDS / 60) % 60))min $(($SECONDS % 60))sec"
+echo -e "======================================================================"
+echo -e "| - - - - - - - - > [ B A C K U P      E N D E D ] < - - - - - - - - |"
+echo -e "======================================================================"
 
 #reset credentials
 export RESTIC_PASSWORD='CHANGEME'
