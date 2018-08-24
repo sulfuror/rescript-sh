@@ -7,7 +7,7 @@ automate the use of [Restic](https://restic.net/) (backup program).
 At the same time I have to give credit to the original script made
 for Borg at this site: https://blog.andrewkeech.com/posts/170718_borg.html
 
-My intentios is not to steal someone elses work so that's why I need to 
+My intention is not to steal someone elses work so that's why I need to 
 disclose the original source. I found all sources in this Reddit thread:
 https://www.reddit.com/r/ScriptSwap/comments/7v7vby/restic_backup_script/
 
