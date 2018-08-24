@@ -58,7 +58,7 @@ echo -e $YELLOW"[Prune Old Snapshots]"$ENDCOLOR
 restic prune
 #Stats
 echo -e "----------------------------------------------------------------------"
-echo -e $GREEN"[Latest Snapshots Size]"$ENDCOLOR
+echo -e $YELLOW"[Latest Snapshots Size]"$ENDCOLOR
 restic stats latest
 echo -e $YELLOW"[Deduplicated Size for Latest Snapshot]"$ENDCOLOR
 restic stats --mode raw-data latest
