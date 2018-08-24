@@ -29,7 +29,7 @@ without at least a guide (noob).
 1. This script was made for GNU/Linux use. You could use it for other systems but you'll
    probably have to edit the commands depending on your system.
 2. I'm not a developer, programmer or anything related; I'm just a regular user
-   sharing my basics knowledge.
+   sharing my basic knowledge.
 3. This script was made with an external HDD in mind. If you need to backup
    to a S3 cloud, or with `rclone` you must make sure that you add your
    credentials or put your `rclone` repository correctly in order to function.
