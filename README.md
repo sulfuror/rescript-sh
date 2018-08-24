@@ -26,7 +26,7 @@ without at least a guide (noob).
 7. stats
 
 # Keep in mind
-1. This script was made for GNU/Linux. You could use it for other systems but you'll
+1. This script was made for GNU/Linux use. You could use it for other systems but you'll
    probably have to edit the commands depending on your system.
 2. I'm not a developer, programmer or anything related; I'm just a regular user
    sharing my basics knowledge.
