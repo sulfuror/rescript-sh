@@ -26,12 +26,15 @@ without at least a guide (noob).
 7. stats
 
 # Keep in mind
-1. You need `restic` installed to use this script.
-2. This script was made for GNU/Linux use. You could use it for other systems but you'll
+1. Use this script at your own risk. If you do something wrong, that's on you.
+   You should take the time to study the script and see if it could help you
+   for what you need; if you use it without knowing what you're doing, that's on you too.
+2. You need `restic` installed to use this script.
+3. This script was made for GNU/Linux use. You could use it for other systems but you'll
    probably have to edit the commands depending on your system.
-3. I'm not a developer, programmer or anything related; I'm just a regular user
+4. I'm not a developer, programmer or anything related; I'm just a regular user
    sharing my basic knowledge.
-4. This script was made with an external HDD in mind. If you need to backup
+5. This script was made with an external HDD in mind. If you need to backup
    to a S3 cloud, or with `rclone` you must make sure that you add your
    credentials or put your `rclone` repository correctly in order to function.
 
@@ -80,8 +83,8 @@ was giving me errors. I solved this problems using:
 
 This problem is not because of this script. If you're having any problems
 with restic you should look at the [restic forum](https://forum.restic.net/)
-page to find answers or submit a question about your problem. I'm no whatsoever
-affiliated with the **restic** team in any way.
+page to find answers or submit a question about your problem. I'm no affiliated
+with the **restic** team in any way.
 
 Before that I make sure that the system was not executing the cron job
 (just adding a # in the cron job file) and made my backups to run every two
