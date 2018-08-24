@@ -81,7 +81,7 @@ was giving me errors. I solved this problems using:
 This problem is not because of this script. If you're having any problems
 with restic you should look at the [restic forum](https://forum.restic.net/)
 page to find answers or submit a question about your problem. I'm no whatsoever
-affiliated with the **restic** in any way.
+affiliated with the **restic** team in any way.
 
 Before that I make sure that the system was not executing the cron job
 (just adding a # in the cron job file) and made my backups to run every two
