@@ -36,7 +36,7 @@ without at least a guide (noob).
 
 # Possible changes you'll want to make:
 1. The `restic unlock` line. You don't really need to unlock the `restic` repo.
-   In fact, `fd0` (restic developer)
+   In fact, [fd0](https://github.com/fd0) (restic developer)
    [doesn't advise to run `unlock` in a script](https://forum.restic.net/t/prune-error-tree-not-found/785/4);
    so keep in mind that if you use it, it will be at your own risk. I've been
    using the `unlock` command because sometimes I totally forget about my
