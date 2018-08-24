@@ -8,7 +8,7 @@ ENDCOLOR="\033[0m"
 echo -e "======================================================================"
 echo -e "| - - - - - - - > [ S T A R T I N G    B A C K U P ] < - - - - - - - |"
 echo -e "======================================================================"
-echo -e $YELLOW"Start:"$ENDCOLOR "$(date)" $YELLOW"Destination:$ENDCOLOR" "WRITE_BACKUP_DESTINATION_NAME"
+echo -e $YELLOW"Start:"$ENDCOLOR "$(date)" $YELLOW"Destination:"$ENDCOLOR "WRITE_BACKUP_DESTINATION_NAME"
 SECONDS=0
 echo -e "----------------------------------------------------------------------"
 
