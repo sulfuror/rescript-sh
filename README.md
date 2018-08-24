@@ -72,7 +72,7 @@ the `prune` process was really slow and it causes errors because a cron job was
 in process and when it was the time to start the other hourly snapshot then it
 all crashed. So, the problems that I had were that after killing all processes
 or viewing the log files, the backups were there but the `prune` process was
-killed. That leads me to problems with the "trees not found" and runnin `check`
+killed. That leads me to problems with the "trees not found" and running `check`
 was giving me errors. I solved this problems using:
 * `restic rebuild-index`
 * `restic check --read-data`
