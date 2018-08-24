@@ -26,11 +26,12 @@ without at least a guide (noob).
 7. stats
 
 # Keep in mind
-1. This script was made for GNU/Linux use. You could use it for other systems but you'll
+1. You need `restic` installed to use this script.
+2. This script was made for GNU/Linux use. You could use it for other systems but you'll
    probably have to edit the commands depending on your system.
-2. I'm not a developer, programmer or anything related; I'm just a regular user
+3. I'm not a developer, programmer or anything related; I'm just a regular user
    sharing my basic knowledge.
-3. This script was made with an external HDD in mind. If you need to backup
+4. This script was made with an external HDD in mind. If you need to backup
    to a S3 cloud, or with `rclone` you must make sure that you add your
    credentials or put your `rclone` repository correctly in order to function.
 
@@ -43,7 +44,7 @@ without at least a guide (noob).
    computers running a backup before shutting them down... so if `restic` was
    running, when I turn on my computer again I need to unlock the repo so 
    the script could keep running regularly. I haven't had any problems with it
-   and I don't really thing that it could cause any problem because that command
+   and I don't really think that it could cause any problems because that command
    just remove lock files that it considers stale.
 2. You need to change the `CHANGEME` passwords; both at the beginning and the end of the script.
 3. You need to set your repo path and change the `/PATH/TO/REPO` in the script.
@@ -51,7 +52,7 @@ without at least a guide (noob).
       `rclone:yourremotename:yourremotefolder` so it can work as intended.
     * The same for this first sub-point for `sftp` but with repo
       (from now on I'll assume you know how this work).
-4. You need to hange the `tag` specified on the `backup` command.
+4. You need to hange the `tag` specified after the `backup` command.
    If you don't want to use any tag you can delete the `--tag YOURTAG` after
    the `backup` command. The script will work the same way but it will not have
    any tag. If you want to chose a tag, then change `YOURTAG` for whatever name you want.
