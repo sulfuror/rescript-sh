@@ -12,9 +12,9 @@ disclose the original source. I found all sources in this Reddit thread:
 https://www.reddit.com/r/ScriptSwap/comments/7v7vby/restic_backup_script/
 
 The account is deleted and the pastebin was made as a guest so I haven't found
-the person who did the restic original script to thank him because that was 
+the person who did the restic original script to thank him/her because that was 
 the only script I found and I really couldn't found out how to do that before
-without at least a guide.
+without at least a guide (noob).
 
 # This `script` was made with the following commands on the same file:
 1. unlock
@@ -26,7 +26,7 @@ without at least a guide.
 7. stats
 
 # Keep in mind
-1. This script was made for Linux. You could use it for other systems but you'll
+1. This script was made for GNU/Linux. You could use it for other systems but you'll
    probably have to edit the commands depending on your system.
 2. I'm not a developer, programmer or anything related; I'm just a regular user
    sharing my basics knowledge.
