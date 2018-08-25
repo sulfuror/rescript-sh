@@ -4,6 +4,17 @@ YELLOW="\033[33m"
 GREEN="\033[32m"
 RED="\033[31m"
 ENDCOLOR="\033[0m"
+LOCK="$HOME/.restic_sh.lock"
+
+#Bail if restic is already running
+if [ -e "$LOCK" ]; then
+  echo -e $YELLOW"Date:"$ENDCOLOR "$(date)" $YELLOW"Message:"$ENDCOLOR "Backup is already running..."
+  exit 
+fi
+
+touch $HOME/.restic_sh.lock
+
+trap "rm -rf $LOCK" EXIT INT KILL TERM QUIT
 
 echo -e "======================================================================"
 echo -e "| - - - - - - - > [ S T A R T I N G    B A C K U P ] < - - - - - - - |"
@@ -17,12 +28,6 @@ export RESTIC_PASSWORD='CHANGEME'
 
 #Set repo path
 export RESTIC_REPOSITORY='/PATH/TO/REPO'
-
-#Bail if restic is already running
-if pidof -x restic >/dev/null; then
-    echo "Restic is already running"
-    exit
-fi
 
 echo -e $YELLOW"[Unlock Repo]"$ENDCOLOR
 restic unlock
