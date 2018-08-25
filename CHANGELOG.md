@@ -15,8 +15,8 @@ you can work with other repositories and still have this script running.
 The whole change it supposed to be transparent if you're using the script. If
 you still want to use the other method you can replace the "if" and "trap" codes/lines
 with this:
-
-#Bail if restic is already running
+ 
+# Bail if restic is already running
 
 ``if pidof -x restic >/dev/null; then
     echo "Restic is already running"
