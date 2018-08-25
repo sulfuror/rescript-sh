@@ -16,10 +16,10 @@ with this:
 
 #Bail if restic is already running
 
-if pidof -x restic >/dev/null; then
+``if pidof -x restic >/dev/null; then
     echo "Restic is already running"
     exit
-fi
+fi``
 
 8/19/2018 - Added start date and hour of script, end date and hour of script
 and duration of all script at the end.
