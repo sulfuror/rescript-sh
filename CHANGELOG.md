@@ -15,6 +15,7 @@ you still want to use the other method you can replace the "if" and "trap" codes
 with this:
 
 #Bail if restic is already running
+
 if pidof -x restic >/dev/null; then
     echo "Restic is already running"
     exit
