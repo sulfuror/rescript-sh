@@ -1,4 +1,6 @@
-8/25/2018 - Edited "Bail if restic is already running". Now the script will 
+## August 25, 2018
+
+Edited "Bail if restic is already running". Now the script will 
 create a little "lock" file so if the script is already running it'll know
 because the "lock" file created by the latest process is present. Also, if the
 process is killed, terminated, exited, interrupted or quit (so maybe you killed
