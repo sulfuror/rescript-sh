@@ -1,4 +1,4 @@
-## August 25, 2018
+# August 25, 2018
 
 Edited "Bail if restic is already running". Now the script will 
 create a little "lock" file so if the script is already running it'll know
@@ -22,8 +22,12 @@ if pidof -x restic >/dev/null; then
     exit
 fi``
 
-8/19/2018 - Added start date and hour of script, end date and hour of script
+# August 19, 2018
+
+Added start date and hour of script, end date and hour of script
 and duration of all script at the end.
 
-8/18/2018 - Added "Bail if restic is already running" so if there's a previous
+# August 18, 2018
+
+Added "Bail if restic is already running" so if there's a previous
 job that is not finished it doesn't mess it up and just let it finish.
