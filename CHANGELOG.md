@@ -1,3 +1,10 @@
+# August 27, 2018
+
+Added the things you'll want to change at the beginning of the script so 
+you don't have to read the whole script trying to figure out what to change or not;
+instead I'm using variables at the beginning that you'll use for your password,
+repo directory, backup directory, destination, keep and exclude policies, etc.
+
 # August 25, 2018
 
 Edited "Bail if restic is already running". Now the script will 
