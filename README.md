@@ -1,11 +1,11 @@
 # About `restic.sh`
 
-This script was made using an example of a Restic Script found in
+This script based on an example of a Restic Script found in
 the following link: https://pastebin.com/ydN9fJ4H. The purpose of it is to
 automate the use of [Restic](https://restic.net/) (backup program).
 
-At the same time I have to give credit to the original script made
-for Borg at this site: https://blog.andrewkeech.com/posts/170718_borg.html
+The original script was made for Borg and you can find it at this site:
+https://blog.andrewkeech.com/posts/170718_borg.html
 
 My intention is not to steal someone elses work so that's why I need to 
 disclose the original source. I found all sources in this Reddit thread:
