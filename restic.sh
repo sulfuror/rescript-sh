@@ -38,7 +38,7 @@ restic unlock
 echo -e $YELLOW"[Taking a Snapshot]"$ENDCOLOR
 restic backup ~/ --tag YOURTAG --verbose    \
 --exclude='~/Downloads'                     \
---exclude='~/.local/share/Trash/*           \
+--exclude='~/.local/share/Trash/*'          \
 --exclude='~/.dbus'                         \
 --exclude='~/.cache/*'                      \
 
