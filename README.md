@@ -101,7 +101,7 @@ This last striked out paragraph is why I decided to make a "lock" file so the sc
 doesn't execute if it's already running. However, you could run into problems
 like the "trees not found" and you can try to fix it using the commands mentioned before.
 
-This problem is not because of this script. If you're having any problems
+These problems are not because of this script. If you're having any problems
 with restic you should look at the [restic forum](https://forum.restic.net/)
 page to find answers or submit a question about your problem. I'm no affiliated
 with the **restic** team in any way.
