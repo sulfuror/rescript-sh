@@ -16,8 +16,8 @@ the person who did the restic original script to thank him/her because that was
 the only script I found and I really couldn't found out how to do that before
 without at least a guide (noob).
 
-# This `script` was made with the following commands on the same file:
-1. unlock
+# This `script` was made to run the following commands:
+1. unlock (optional)
 2. backup
 3. check
 4. snapshots
@@ -29,7 +29,7 @@ without at least a guide (noob).
 1. Use this script at your own risk. If you do something wrong, that's on you.
    You should take the time to study the script and see if it could help you
    for what you need; if you use it without knowing what you're doing, that's on you too.
-2. You need `restic` installed to use this script.
+2. You need `restic 0.9.2` installed to use this script.
 3. This script was made for GNU/Linux use. You could use it for other systems but you'll
    probably have to edit the commands depending on your system.
 4. I'm not a developer, programmer or anything related; I'm just a regular user
@@ -39,7 +39,7 @@ without at least a guide (noob).
    credentials or put your `rclone` repository correctly in order to function.
 
 # Possible changes you'll want to make:
-1. The `restic unlock` line. You don't really need to unlock the `restic` repo.
+1. ~~The `restic unlock` line. You don't really need to unlock the `restic` repo.
    In fact, [fd0](https://github.com/fd0) (restic developer)
    [doesn't advise to run `unlock` in a script](https://forum.restic.net/t/prune-error-tree-not-found/785/4);
    so keep in mind that if you use it, it will be at your own risk. I've been
@@ -48,7 +48,7 @@ without at least a guide (noob).
    running, when I turn on my computer again I need to unlock the repo so 
    the script could keep running regularly. I haven't had any problems with it
    and I don't really think that it could cause any problems because that command
-   just remove lock files that it considers stale.
+   just remove lock files that it considers stale.~~
 2. You need to change the `CHANGEME` passwords; both at the beginning and the end of the script.
 3. You need to set your repo path and change the `/PATH/TO/REPO` in the script.
     * If you're using a `rclone` backend make sure you set up this line with
