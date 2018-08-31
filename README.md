@@ -92,12 +92,12 @@ in process and when it was the time to start the other hourly snapshot then it
 all crashed. So, the problems that I had were that after killing all processes
 or viewing the log files, the backups were there but the `prune` process was
 killed. That leads me to problems with the "trees not found" and running `check`
-was giving me errors. I solved this problems using:
-* `restic rebuild-index`
-* `restic check --read-data`
-* `restic prune`~~
+was giving me errors. I solved this problems using:~~
+* ~~`restic rebuild-index`~~
+* ~~`restic check --read-data`~~
+* ~~`restic prune`~~
 
-This last striked out sentence is why I decided to make a "lock" file so the script
+This last striked out paragraph is why I decided to make a "lock" file so the script
 doesn't execute if it's already running. However, you could run into problems
 like the "trees not found" and you can try to fix it using the commands mentioned before.
 
