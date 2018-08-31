@@ -48,24 +48,40 @@ without at least a guide (noob).
    running, when I turn on my computer again I need to unlock the repo so 
    the script could keep running regularly. I haven't had any problems with it
    and I don't really think that it could cause any problems because that command
-   just remove lock files that it considers stale.~~
-2. You need to change the `CHANGEME` passwords; both at the beginning and the end of the script.
+   just remove lock files that it considers stale.~~ As of August 27, 2018 the 
+   `unlock` was disabled by default because the 'lock' file that this script will
+   create when it's running will make sure to not execute the same script if it's
+   already running; however, the command is still in the script and you can enable
+   it if you need it uncommenting (delete the "#" symbol at the beginning) the line 
+   that says `#UNLOCK='restic unlock'`.
+2. You need to change the `CHANGEME` passwords.
 3. You need to set your repo path and change the `/PATH/TO/REPO` in the script.
     * If you're using a `rclone` backend make sure you set up this line with
       `rclone:yourremotename:yourremotefolder` so it can work as intended.
     * The same for this first sub-point for `sftp` but with repo
       (from now on I'll assume you know how this work).
-4. You need to hange the `tag` specified after the `backup` command.
+4. ~~You need to hange the `tag` specified after the `backup` command.
    If you don't want to use any tag you can delete the `--tag YOURTAG` after
    the `backup` command. The script will work the same way but it will not have
-   any tag. If you want to chose a tag, then change `YOURTAG` for whatever name you want.
+   any tag. If you want to chose a tag, then change `YOURTAG` for whatever name you want.~~
+   As of August 27, 2018 the `tag` choice is disabled by default (commented), but you
+   can enable it uncommenting (delete the "#" symbol at the beginning) the line
+   that says `#TAG='--tag YOURTAG'` and replacing "YOURTAG" for the `tag` you'll
+   be using.
 5. Exclude list:
     * The exclude list is pretty basic. I use this script for a `rclone` backup
       and my exclude list is extensive so I shrink it to the files most people
       don't want to backup like the `cache` folder, `downloads`, `dbus`
-      and `trash`. Feel free to include any other folder or file you don't
+      and `trash`. ~~Feel free to include any other folder or file you don't
       want on your backup adding another line with:
-        * `--exclude='/PATH/TO/UNWANTED/FILE/OR/FOLDER'` including the '\' at the end.
+        * `--exclude='/PATH/TO/UNWANTED/FILE/OR/FOLDER'` including the '\' at the end.~~
+    * You may add your exclude folders/files just adding them into the lines
+      that includes `EXCLUDE01=''`. For example, if you want to exclude your Music
+      directory this line will look like this: `EXCLUDE01='/home/user/Music'`.
+      By default I've created ten (10) empty exclude lines so you can put up to
+      10 exclude parameters. You can add more if you want creating an `EXCLUDE11='/new/exclude'`
+      and adding another `--exclude=$EXCLUDE11 \` if you want to do it that way.
+      You could also add a new exclude just doing the striked out point before this.
 6. Feel free to change the forget rules to whatever number of days, hours,
    weeks, months or years you want to keep your snapshots.
 
