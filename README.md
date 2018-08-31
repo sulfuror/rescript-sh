@@ -85,8 +85,8 @@ without at least a guide (noob).
 6. Feel free to change the forget rules to whatever number of days, hours,
    weeks, months or years you want to keep your snapshots.
 
-# Possible problems with the script:
-I use to run this script hourly with a cron but with my repo increasing on size,
+# Possible problems:
+~~I use to run this script hourly with a cron but with my repo increasing on size,
 the `prune` process was really slow and it causes errors because a cron job was
 in process and when it was the time to start the other hourly snapshot then it
 all crashed. So, the problems that I had were that after killing all processes
@@ -95,21 +95,25 @@ killed. That leads me to problems with the "trees not found" and running `check`
 was giving me errors. I solved this problems using:
 * `restic rebuild-index`
 * `restic check --read-data`
-* `restic prune`
+* `restic prune`~~
+
+This last striked out sentence is why I decided to make a "lock" file so the script
+doesn't execute if it's already running. However, you could run into problems
+like the "trees not found" and you can try to fix it using the commands mentioned before.
 
 This problem is not because of this script. If you're having any problems
 with restic you should look at the [restic forum](https://forum.restic.net/)
 page to find answers or submit a question about your problem. I'm no affiliated
 with the **restic** team in any way.
 
-Before that I make sure that the system was not executing the cron job
-(just adding a # in the cron job file) and made my backups to run every two
-hours. You can setup a cronjob using `crontab -e` in your terminal emulator.
+## Adding a Cron Job
 
-Then you'll need to add a new cronjob like
+You'll need to open your terminal emulator and edit your crontab file writing
+`crontab -e` and `enter`. After that you need to add a new cronjob like
 `10 */2 * * * /home/YOURUSERNAME/restic.sh`. This cron job will execute every
 two hours at the 10th minute. If you want to change it for every four hours;
 for example, at the 0 minute just write `0 */4 * * * /home/YOURUSERNAME/restic.sh`.
+You can read more about how `crontab` works in [here](https://help.ubuntu.com/community/CronHowto).
 
 Also, you can create a log file so the cron job can store the output in a
 plaintext file. You can do this using adding in the cron job file the following
@@ -119,8 +123,8 @@ after the cron job you've just created:
 If you do this your cron job will look like this:
 * `0 */4 * * * /home/YOURUSERNAME/restic.sh >> /home/YOURUSERNAME/logs/restic-log_$(date +\%Y-\%m-\%d-\%H:00) 2>&1`
 
-You could totally change the destination to your logs if you want. I made it 
-to  /home because it's just simple and you don't have to mix that with
+You can change the destination to your logs if you want. I made it 
+to  /home because is just simple and you don't have to mix that with
 systems logs. You could also make the log folder hidden (that's my choice)
 and just use `ls` to list your logs and `cat` to display the output instead
 of opening file by file.
