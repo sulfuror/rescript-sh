@@ -26,7 +26,7 @@ KEEP_YEARLY='10' #Put the number of yearly backups you want to keep#
 # You chose if you want to unlock your repo before backing up or not;
 # this is optional and the reason why this is in this script is 
 # in the README.md file. By default commented; if you want to use it
-# just uncomment by deleting the '#' symbol after the "UNLOCK" word.
+# just uncomment by deleting the '#' symbol before the "UNLOCK" word.
 
 #UNLOCK='restic unlock'
 
