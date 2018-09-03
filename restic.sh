@@ -177,7 +177,7 @@ fi
 if [ -z "$EXCLUDE11" ]; then
     >/dev/null
   else
-    echo -e $YELLOW"Excluding:"$ENDCOLOR"$EXCLUDE11"
+    echo -e $YELLOW"Excluded:"$ENDCOLOR"$EXCLUDE11"
 fi
 
 if [ -z "$EXCLUDE12" ]; then
