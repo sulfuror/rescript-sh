@@ -46,7 +46,8 @@ KEEP_DAILY="7" (Indicate the number of daily backups you want to keep)
 KEEP_WEEKLY="4" (Indicate the number of weekly backups you want to keep)
 KEEP_MONTHLY="12" (Indicate the number of montly backups you want to keep)
 KEEP_YEARLY="10" (Indicate the number of yearly backups you want to keep)
-CLEAN="7" (Indicate the number in days your cleanup policy {by default is 7 days}; this will run forget, check and prune according to your choice)`
+CLEAN="7" (Indicate the number in days your cleanup policy {by default is 7 days}; this will run forget, check and prune according to your choice)
+UNLOCK="no" (The default value is "no"; feel free to change it to "yes" if you want to unlock your repo at the beginning of the script)`
 
 There are 15 exclude rules. You don't have to use it all or delete the ones you're
 not using. If there's no file indicated it'll run normally without excluding anything
@@ -81,7 +82,7 @@ If you do this your cron job will look like this:
 * `0 */4 * * * /home/YOURUSERNAME/restic.sh >> /home/YOURUSERNAME/logs/restic-log_$(date +\%Y-\%m-\%d-\%H:00) 2>&1`
 
 You can change the destination to your logs if you want. I made it 
-to  /home because is just simple and you don't have to mix that with
+to /home because is just simple and you don't have to mix that with
 systems logs. You could also make the log folder hidden (that's my choice)
 and just use `ls` to list your logs and `cat` to display the output instead
 of opening file by file.
