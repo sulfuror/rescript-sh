@@ -24,6 +24,7 @@ KEEP_WEEKLY="4" #Put the number of weekly backups you want to keep#
 KEEP_MONTHLY="12" #Put the number of montly backups you want to keep#
 KEEP_YEARLY="10" #Put the number of yearly backups you want to keep#
 CLEAN="7" #Put the number your cleanup policy (this will run forget, check and prune according to your choice)#
+UNLOCK="no" #If you want to unlock your repo if it is unlocked at the beginning of the script, change "no" for "yes"#
 
 # Excludes:
 # Your Downloads directory, Trash and Caches are excluded by default;
@@ -83,9 +84,11 @@ echo -e $YELLOW"Start:"$ENDCOLOR "$(date)" $YELLOW"Destination:"$ENDCOLOR "$DEST
 echo -e "----------------------------------------------------------------------"
 
 # Unlock if neccesary
-if [ -e $RESTIC_REPO/locks/* ]; then
-  echo -e $YELLOW"[Unlocking repo...]"$ENDCOLOR
-  restic unlock
+if [ $UNLOCK == yes ]; then
+  if [ -e $RESTIC_REPO/locks/* ]; then
+    echo -e $YELLOW"[Unlocking repo...]"$ENDCOLOR
+    restic unlock
+  fi
 fi
 
 # Backup and exclusions
