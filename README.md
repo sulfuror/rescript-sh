@@ -35,6 +35,7 @@ operation and the duration of the whole operation.
 # Usage:
 
 You'll se a lot of lines in this little script. What you need to change is the following values:
+
 ``
 RESTIC_PASSWORD="CHANGE_ME" (Put your restic password between the "")
 RESTIC_REPO="/path/to/your/repo" (Put your repository directory)
@@ -48,19 +49,25 @@ KEEP_MONTHLY="12" (Indicate the number of montly backups you want to keep)
 KEEP_YEARLY="10" (Indicate the number of yearly backups you want to keep)
 CLEAN="7" (Indicate the number in days your cleanup policy {by default is 7 days}; this will run forget, check and prune according to your choice)
 ``
+
 There are 15 exclude rules. You don't have to use it all or delete the ones you're
 not using. If there's no file indicated it'll run normally without excluding anything
 but the cache and trash. The "excludes" looks like this:
+
 ``
 EXCLUDE01=""
 ``
+
 You just have to put the full path of your excluded items/directories or the patterns
 you want to exclude. For example, if I you don't want to backup your "Downloads" foler
 just indicate it like this:
+
 ``
 EXCLUDE01="/home/user/Downloads"
 ``
+
 If you want to exclude ald PDF files, for example, you could do it like this:
+
 ``
 EXCLUDE01="/*.pdf"
 ``
