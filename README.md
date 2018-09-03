@@ -89,6 +89,43 @@ of opening file by file.
 
 You can read more about how `crontab` works in [here](https://help.ubuntu.com/community/CronHowto).
 
+# Some things worth to mention
+This script will create two (2) files when it runs. One is temporary and it is
+a `lock` file that will be deleted by the script at the end of it. The other 
+file is a `datefile` created by the script. This `datefile` is not temporary
+and if it is deleted the script will create it again on the next run.
+
+**Why the `lock` file?**
+The lock file will be a 0kb (it contains literally nothing) on the directory
+that you put your script and the name of the file will be `.restic_sh.lock`. This
+`lock` file is hidden (hence the "." at the beginning). Why is it there?
+Well, I was having trouble with some cron jobs that started and the latest run
+was not finished yet. That leads me to some errors in my repo (nothing to be worried in my case).
+That's why I created the `lock` file. When the script start, first it'll check if the
+`lock` file is present;  if it is present then it will not execute and it'll show you
+a message telling you that the _"Backup is already running..."_. That way the script
+will not run if it's already running and it's not finished yet. If you kill the script, shut down
+your computer, kill restic or something similar the script will delete the file so
+you don't have to delete it manually for the next run.
+
+**Why the `datefile`?**
+The `datefile` is created by the script in the first run and it'll only contain
+literally the date of the first run. The file will be on the same directory
+of your script and the `lock` file (also hidden) and it will be called `.datefile_restic`.
+Why is it there? I liked the way my script was but I really didn't wanted to do the
+`check`, `forget` and `prune` commands every day or even in every run of the script.
+So, I find a way to play with the dates to make this happen and it was creating
+a file where the script could read and write dates. The `datefile` will only contain
+one date and that is 7 days from the moment you run the script for the first time
+(this 7 days is by default but you can change it in the "CLEAN" value).
+So, what does this mean? It means that every time the script runs, before running
+`check`, `forget` and `prune` it will read the date in your `datefile` and if those
+seven days have not passed yet (again, you can change the days), then it'll not run
+the `check`, `forget` and `prune`.
+
+**Why so much trouble to do something that I could have achieve with a cron job?**
+Because is cool and all the kids are doing it.
+
 ## Having problems?
 If you have any problem with the script you can reach out so it can be fixed.
 If you have any problem using restic check out the [restic forum](https://forum.restic.net/);
