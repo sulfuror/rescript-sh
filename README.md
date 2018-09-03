@@ -52,23 +52,17 @@ There are 15 exclude rules. You don't have to use it all or delete the ones you'
 not using. If there's no file indicated it'll run normally without excluding anything
 but the cache and trash. The "excludes" looks like this:
 
-``
-EXCLUDE01=""
-``
+`EXCLUDE01=""`
 
 You just have to put the full path of your excluded items/directories or the patterns
 you want to exclude. For example, if I you don't want to backup your "Downloads" foler
 just indicate it like this:
 
-``
-EXCLUDE01="/home/user/Downloads"
-``
+`EXCLUDE01="/home/user/Downloads"`
 
 If you want to exclude ald PDF files, for example, you could do it like this:
 
-``
-EXCLUDE01="/*.pdf"
-``
+`EXCLUDE01="/*.pdf"`
 
 ## Adding a Cron Job
 
