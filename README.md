@@ -32,8 +32,8 @@ operation and the duration of the whole operation.
    versions because I still want to have at hand the older one just in case
    I get bored of this one. You're free to navigate to the "tags" and download
    it if you prefer that one. The older one is v0.5.
-# Usage:
 
+# Usage:
 You'll se a lot of lines in this little script. What you need to change is the following values:
 
 `RESTIC_PASSWORD="CHANGE_ME" (Put your restic password between the "")
@@ -65,7 +65,6 @@ If you want to exclude ald PDF files, for example, you could do it like this:
 `EXCLUDE01="/*.pdf"`
 
 ## Adding a Cron Job
-
 You can use a cron job to run backups automatically. You'll need to open your 
 terminal emulator and edit your crontab file writing `crontab -e` and `enter`.
 After that you need to add a new cronjob like `10 */2 * * * /home/YOURUSERNAME/restic.sh`.
@@ -90,7 +89,6 @@ of opening file by file.
 You can read more about how `crontab` works in [here](https://help.ubuntu.com/community/CronHowto).
 
 ## Having problems?
-
 If you have any problem with the script you can reach out so it can be fixed.
 If you have any problem using restic check out the [restic forum](https://forum.restic.net/);
 maybe you can find answers or submit a question about your problem. I'm no affiliated
@@ -99,7 +97,6 @@ with the **restic** team in any way.
 That's it. Make this your own and make it better.
 
 ## Based on:
-
 This script based on an example of a Restic Script found in
 the following link: https://pastebin.com/ydN9fJ4H.
 
