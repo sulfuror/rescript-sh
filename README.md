@@ -65,6 +65,18 @@ If you want to exclude ald PDF files, for example, you could do it like this:
 
 `EXCLUDE01="/*.pdf"`
 
+Also, I have to mention that the **"UNLOCK"** is set to **"no"** by default because
+you really should not need to unlock your repo besides maybe in some rare
+ocassions. I put it there because Restic creates a lock for every process but
+if you cancel the process manually you will not need to unlock it because
+Restic take care of unlock the repo when cleaning up the operation. In some rare
+cases, the process is killed it leave the repo locked and that is why I
+decided to run `unlock` if it's locked at the beginning of the script. If you're
+using one repository for multiple machines you should not use `unlock` because
+it may be lock files from other processes and removing them could cause problems.
+In that case it's better to check the origin of the lock before
+unlocking the repository.
+
 ## Adding a Cron Job
 You can use a cron job to run backups automatically. You'll need to open your 
 terminal emulator and edit your crontab file writing `crontab -e` and `enter`.
