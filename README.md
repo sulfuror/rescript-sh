@@ -121,7 +121,11 @@ one date and that is 7 days from the moment you run the script for the first tim
 So, what does this mean? It means that every time the script runs, before running
 `check`, `forget` and `prune` it will read the date in your `datefile` and if those
 seven days have not passed yet (again, you can change the days), then it'll not run
-the `check`, `forget` and `prune`.
+the `check`, `forget` and `prune`. When it's time to run `check`, `forget` and `prune`
+the script will run all three operations and it'll override the date in the file
+created. If, for some reason the file is deleted then the script will not know 
+and it will run `check`, `forget` and `prune` according to your policies and 
+it will create the `datefile` again adding the date for the next "cleaning" run.
 
 **Why so much trouble to do something that I could have achieve with a cron job?**
 Because is cool and all the kids are doing it.
