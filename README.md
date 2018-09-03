@@ -1,5 +1,8 @@
 # About `restic.sh`
 
+This script was created for the sole purpose of using
+[Restic](https://restic.net/) (deduplication backup program).
+
 This script based on an example of a Restic Script found in
 the following link: https://pastebin.com/ydN9fJ4H. The purpose of it is to
 automate the use of [Restic](https://restic.net/) (backup program).
@@ -11,19 +14,19 @@ My intention is not to steal someone elses work so that's why I need to
 disclose the original source. I found all sources in this Reddit thread:
 https://www.reddit.com/r/ScriptSwap/comments/7v7vby/restic_backup_script/
 
-The account is deleted and the pastebin was made as a guest so I haven't found
-the person who did the restic original script to thank him/her because that was 
-the only script I found and I really couldn't found out how to do that before
-without at least a guide (noob).
-
 # This `script` was made to run the following commands:
-1. unlock (optional)
+1. unlock (when repo is locked)
 2. backup
-3. check
-4. snapshots
+3. snapshots
+4. check
 5. forget
 6. prune
 7. stats
+
+Also, it'll give you a nice output additional of the restic output with
+the date it started, date ended, where are you backing up, excluded files,
+the days left for the next "cleanup" run, the days it'll run the next "cleanup"
+operation and the duration of the whole operation.
 
 # Keep in mind
 1. Use this script at your own risk. If you do something wrong, that's on you.
@@ -37,7 +40,10 @@ without at least a guide (noob).
 5. This script was made with an external HDD in mind. If you need to backup
    to a S3 cloud, or with `rclone` you must make sure that you add your
    credentials or put your `rclone` repository correctly in order to function.
-
+6. I made a lot of changes in the latest version (v1.0); I made this "tags" of 
+   versions because I still want to have at hand the older one just in case
+   I get bored of this one. You're free to navigate to the "tags" and download
+   it if you prefer that one. The older one is v0.5.
 # Possible changes you'll want to make:
 1. ~~The `restic unlock` line. You don't really need to unlock the `restic` repo.
    In fact, [fd0](https://github.com/fd0) (restic developer)
