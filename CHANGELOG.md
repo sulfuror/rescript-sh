@@ -1,5 +1,6 @@
 # September 2, 2018
 **Changed the way to handle check, forget and prune along with new additions:**
+---
 1. Now the script will create a "date file". This will be used to know when it'll 
    need to prune according to your choice in the "CLEAN" variable. The default 
    is 7 which means that the script will run `check`, `forget` and `prune` 
