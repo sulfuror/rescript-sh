@@ -1,18 +1,6 @@
 # About `restic.sh`
-
 This script was created for the sole purpose of using
 [Restic](https://restic.net/) (deduplication backup program).
-
-This script based on an example of a Restic Script found in
-the following link: https://pastebin.com/ydN9fJ4H. The purpose of it is to
-automate the use of [Restic](https://restic.net/) (backup program).
-
-The original script was made for Borg and you can find it at this site:
-https://blog.andrewkeech.com/posts/170718_borg.html
-
-My intention is not to steal someone elses work so that's why I need to 
-disclose the original source. I found all sources in this Reddit thread:
-https://www.reddit.com/r/ScriptSwap/comments/7v7vby/restic_backup_script/
 
 # This `script` was made to run the following commands:
 1. unlock (when repo is locked)
@@ -29,10 +17,10 @@ the days left for the next "cleanup" run, the days it'll run the next "cleanup"
 operation and the duration of the whole operation.
 
 # Keep in mind
-1. Use this script at your own risk. If you do something wrong, that's on you.
-   You should take the time to study the script and see if it could help you
+1. If you use this script is at your own risk. If you do something wrong, that's on you.
+   You should take the time to study the script and see if it can help you
    for what you need; if you use it without knowing what you're doing, that's on you too.
-2. You need `restic 0.9.2` installed to use this script.
+2. You need `restic 0.9.2` installed to use this script (I think `stats` are not in older versions of `restic`).
 3. This script was made for GNU/Linux use. You could use it for other systems but you'll
    probably have to edit the commands depending on your system.
 4. I'm not a developer, programmer or anything related; I'm just a regular user
@@ -44,80 +32,45 @@ operation and the duration of the whole operation.
    versions because I still want to have at hand the older one just in case
    I get bored of this one. You're free to navigate to the "tags" and download
    it if you prefer that one. The older one is v0.5.
-# Possible changes you'll want to make:
-1. ~~The `restic unlock` line. You don't really need to unlock the `restic` repo.
-   In fact, [fd0](https://github.com/fd0) (restic developer)
-   [doesn't advise to run `unlock` in a script](https://forum.restic.net/t/prune-error-tree-not-found/785/4);
-   so keep in mind that if you use it, it will be at your own risk. I've been
-   using the `unlock` command because sometimes I totally forget about my
-   computers running a backup before shutting them down... so if `restic` was
-   running, when I turn on my computer again I need to unlock the repo so 
-   the script could keep running regularly. I haven't had any problems with it
-   and I don't really think that it could cause any problems because that command
-   just remove lock files that it considers stale.~~ As of August 27, 2018 the 
-   `unlock` was disabled by default because the 'lock' file that this script will
-   create when it's running will make sure to not execute the same script if it's
-   already running; however, the command is still in the script and you can enable
-   it if you need it uncommenting (delete the "#" symbol at the beginning) the line 
-   that says `#UNLOCK='restic unlock'`.
-2. You need to change the `CHANGEME` passwords.
-3. You need to set your repo path and change the `/PATH/TO/REPO` in the script.
-    * If you're using a `rclone` backend make sure you set up this line with
-      `rclone:yourremotename:yourremotefolder` so it can work as intended.
-    * The same for this first sub-point for `sftp` but with repo
-      (from now on I'll assume you know how this work).
-4. ~~You need to hange the `tag` specified after the `backup` command.
-   If you don't want to use any tag you can delete the `--tag YOURTAG` after
-   the `backup` command. The script will work the same way but it will not have
-   any tag. If you want to chose a tag, then change `YOURTAG` for whatever name you want.~~
-   As of August 27, 2018 the `tag` choice is disabled by default (commented), but you
-   can enable it uncommenting (delete the "#" symbol at the beginning) the line
-   that says `#TAG='--tag YOURTAG'` and replacing "YOURTAG" for the `tag` you'll
-   be using.
-5. Exclude list:
-    * The exclude list is pretty basic. I use this script for a `rclone` backup
-      and my exclude list is extensive so I shrink it to the files most people
-      don't want to backup like the `cache` folder, `downloads`, `dbus`
-      and `trash`. ~~Feel free to include any other folder or file you don't
-      want on your backup adding another line with:
-        * `--exclude='/PATH/TO/UNWANTED/FILE/OR/FOLDER'` including the '\' at the end.~~
-    * You may add your exclude folders/files just adding them into the lines
-      that includes `EXCLUDE01=''`. For example, if you want to exclude your Music
-      directory this line will look like this: `EXCLUDE01='/home/user/Music'`.
-      By default I've created ten (10) empty exclude lines so you can put up to
-      10 exclude parameters. You can add more if you want creating an `EXCLUDE11='/new/exclude'`
-      and adding another `--exclude=$EXCLUDE11 \` if you want to do it that way.
-      You could also add a new exclude just doing the striked out point before this.
-6. Feel free to change the forget rules to whatever number of days, hours,
-   weeks, months or years you want to keep your snapshots.
+# Usage:
 
-# Possible problems:
-~~I use to run this script hourly with a cron but with my repo increasing on size,
-the `prune` process was really slow and it causes errors because a cron job was
-in process and when it was the time to start the other hourly snapshot then it
-all crashed. So, the problems that I had were that after killing all processes
-or viewing the log files, the backups were there but the `prune` process was
-killed. That leads me to problems with the "trees not found" and running `check`
-was giving me errors. I solved this problems using:~~
-* ~~`restic rebuild-index`~~
-* ~~`restic check --read-data`~~
-* ~~`restic prune`~~
-
-This last striked out paragraph is why I decided to make a "lock" file so the script
-doesn't execute if it's already running. However, you could run into problems
-like the "trees not found" and you can try to fix it using the commands mentioned before.
-
-These problems are not because of this script. If you're having any problems
-with restic you should look at the [restic forum](https://forum.restic.net/)
-page to find answers or submit a question about your problem. I'm no affiliated
-with the **restic** team in any way.
+You'll se a lot of lines in this little script. What you need to change is the following values:
+``
+RESTIC_PASSWORD="CHANGE_ME" (Put your restic password between the "")
+RESTIC_REPO="/path/to/your/repo" (Put your repository directory)
+BACKUP_DIR="$HOME" (This is what you're backing up; by default is your home directory)
+DESTINATION="Local" (Put the name of your backup destination; something like S3, Google Drive, External Drive, FriendServerName, etc.)
+TAG="YOURTAG" (Change YOURTAG to your tag; this is commented {it will not work} by default; just uncomment {delete the "#" symbol at the beginning} if you want to use a tag)
+KEEP_HOURLY="8" (Indicate the number of hourly backups you want to keep) 
+KEEP_DAILY="7" (Indicate the number of daily backups you want to keep)
+KEEP_WEEKLY="4" (Indicate the number of weekly backups you want to keep)
+KEEP_MONTHLY="12" (Indicate the number of montly backups you want to keep)
+KEEP_YEARLY="10" (Indicate the number of yearly backups you want to keep)
+CLEAN="7" (Indicate the number in days your cleanup policy {by default is 7 days}; this will run forget, check and prune according to your choice)
+``
+There are 15 exclude rules. You don't have to use it all or delete the ones you're
+not using. If there's no file indicated it'll run normally without excluding anything
+but the cache and trash. The "excludes" looks like this:
+``
+EXCLUDE01=""
+``
+You just have to put the full path of your excluded items/directories or the patterns
+you want to exclude. For example, if I you don't want to backup your "Downloads" foler
+just indicate it like this:
+``
+EXCLUDE01="/home/user/Downloads"
+``
+If you want to exclude ald PDF files, for example, you could do it like this:
+``
+EXCLUDE01="/*.pdf"
+``
 
 ## Adding a Cron Job
 
-You'll need to open your terminal emulator and edit your crontab file writing
-`crontab -e` and `enter`. After that you need to add a new cronjob like
-`10 */2 * * * /home/YOURUSERNAME/restic.sh`. This cron job will execute every
-two hours at the 10th minute. If you want to change it for every four hours;
+You can use a cron job to run backups automatically. You'll need to open your 
+terminal emulator and edit your crontab file writing `crontab -e` and `enter`.
+After that you need to add a new cronjob like `10 */2 * * * /home/YOURUSERNAME/restic.sh`.
+This cron job will execute every two hours at the 10th minute. If you want to change it for every four hours;
 for example, at the 0 minute just write `0 */4 * * * /home/YOURUSERNAME/restic.sh`.
 You can read more about how `crontab` works in [here](https://help.ubuntu.com/community/CronHowto).
 
@@ -135,4 +88,25 @@ systems logs. You could also make the log folder hidden (that's my choice)
 and just use `ls` to list your logs and `cat` to display the output instead
 of opening file by file.
 
-That's it. If you want to make this script better feel free to do it here.
+You can read more about how `crontab` works in [here](https://help.ubuntu.com/community/CronHowto).
+
+## Having problems?
+
+If you have any problem with the script you can reach out so it can be fixed.
+If you have any problem using restic check out the [restic forum](https://forum.restic.net/);
+maybe you can find answers or submit a question about your problem. I'm no affiliated
+with the **restic** team in any way.
+
+That's it. Make this your own and make it better.
+
+## Based on:
+
+This script based on an example of a Restic Script found in
+the following link: https://pastebin.com/ydN9fJ4H.
+
+The original script was made for Borg and you can find it at this site:
+https://blog.andrewkeech.com/posts/170718_borg.html
+
+My intention is not to steal someone elses work so that's why I need to 
+disclose the original source. I found all sources in this Reddit thread:
+https://www.reddit.com/r/ScriptSwap/comments/7v7vby/restic_backup_script/
