@@ -86,14 +86,18 @@ terminal emulator and edit your crontab file writing `crontab -e` and `enter`.
 After that you need to add a new cronjob like `10 */2 * * * /home/YOURUSERNAME/restic.sh`.
 This cron job will execute every two hours at the 10th minute. If you want to change it for every four hours;
 for example, at the 0 minute just write `0 */4 * * * /home/YOURUSERNAME/restic.sh`.
-You can read more about how `crontab` works in [here](https://help.ubuntu.com/community/CronHowto).
 
 Also, you can create a log file so the cron job can store the output in a
-plaintext file. You can do this using adding in the cron job file the following
+plaintext file. You can do this by adding in the cron job file the following
 after the cron job you've just created:
 * `>> /home/YOURUSERNAME/logs/restic-log_$(date +\%Y-\%m-\%d-\%H:00) 2>&1`
 
-If you do this your cron job will look like this:
+That will create a plain text file in the directory `/home/YOURUSERNAME/logs`.
+Let's say the system ran the job at 12:00 a.m. in January 1, 2018; then this
+past line on your `crontab` will create a file called 
+restic-log_2018-01-01-12:00 with all the script process output.
+
+If you do this your `crontab` will look like this:
 * `0 */4 * * * /home/YOURUSERNAME/restic.sh >> /home/YOURUSERNAME/logs/restic-log_$(date +\%Y-\%m-\%d-\%H:00) 2>&1`
 
 You can change the destination to your logs if you want. I made it 
