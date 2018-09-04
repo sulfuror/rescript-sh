@@ -11,10 +11,12 @@
    it'll run `check`, `forget` and `prune` on the next run and it'll create the 
    file again.
 2. The script will now check if your repository is locked. This will be done by 
-   checking the `locks` file inside your repository. If the repository is locked 
-   it'll run `restic unlock` to proceed with its operation. If you're using this 
-   script for multiple machines just delete or comment the lines that contains 
-   the `unlock` command along with the `if` parameters.
+   checking the `locks` directory inside your repository. If the repository is locked 
+   it'll run `restic unlock` to proceed with its operation. This operation is optional
+   and by default it is set to `no` in the variable called `UNLOCK` at the 
+   beginning of the script. If you're using this script for multiple machines just
+   you're better leaving the script by default. I haven't tested it with
+   a repository for multiple machines.
 3. Now the script will tell you the files you're excluding in your snapshots 
    after the backup.
 4. The `clean`, `forget` and `prune` operations are calculated because of the 
