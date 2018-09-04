@@ -36,11 +36,12 @@ operation and the duration of the whole operation.
 # Usage:
 You'll se a lot of lines in this little script. What you need to change is the following values:
 
-`RESTIC_PASSWORD="CHANGE_ME"` <--- Put your restic password between the ""
-RESTIC_REPO="/path/to/your/repo" (Put your repository directory)
-BACKUP_DIR="$HOME" (This is what you're backing up; by default is your home directory)
-DESTINATION="Local" (Put the name of your backup destination; something like S3, Google Drive, External Drive, FriendServerName, etc.)
-TAG="YOURTAG" (Change YOURTAG to your tag; this is commented {it will not work} by default; just uncomment {delete the "#" symbol at the beginning} if you want to use a tag)
+`RESTIC_PASSWORD="CHANGE_ME"` <- Put your restic password between the ""
+
+`RESTIC_REPO="/path/to/your/repo"` <- Put your repository directory
+`BACKUP_DIR="$HOME"` <- This is what you're backing up; by default is your home directory
+`DESTINATION="Local"` <- Put the name of your backup destination; something like S3, Google Drive, External Drive, FriendServerName, etc.
+`TAG="YOURTAG"` <- Change YOURTAG to your tag; this is commented (it will not work) by default; just uncomment (delete the "#" symbol at the beginning) if you want to use a tag
 KEEP_HOURLY="8" (Indicate the number of hourly backups you want to keep) 
 KEEP_DAILY="7" (Indicate the number of daily backups you want to keep)
 KEEP_WEEKLY="4" (Indicate the number of weekly backups you want to keep)
