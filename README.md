@@ -70,7 +70,7 @@ you really should not need to unlock your repo besides maybe in some rare
 ocassions. I put it there because Restic creates a lock for every process but
 if you cancel the process manually you will not need to unlock it because
 Restic take care of unlock the repo when cleaning up the operation. In some rare
-ocassions the process could be killed and in that case it does leave the repo locked.
+ocassions the process could be killed and in that case it may leave the repo locked.
 That is why I decided to run `unlock` first in my script if it's locked at the
 beginning of the script. My repo is just for one machine and if that's your case
 you can run `unlock` at the beginning so maybe if the latest process for some
