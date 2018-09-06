@@ -46,7 +46,7 @@ You'll se a lot of lines in this little script. What you need to change is the f
 * `KEEP_WEEKLY="4"` <- Indicate the number of weekly backups you want to keep
 * `KEEP_MONTHLY="12"` <- Indicate the number of montly backups you want to keep
 * `KEEP_YEARLY="10"` <- Indicate the number of yearly backups you want to keep
-* `CLEAN="7"` <- Indicate the number in days your cleanup policy (by default is 7 days); this will run forget, check and prune according to your choice
+* `CLEAN="7"` <- Indicate the number (in days) of your cleanup policy (by default is 7 days); this will run forget, check and prune according to your choice
 * `UNLOCK="no"` <- The default value is "no"; feel free to change it to "yes" if you want to unlock your repo at the beginning of the script
 
 There are 15 exclude rules. You don't have to use it all or delete the ones you're
