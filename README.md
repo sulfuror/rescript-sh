@@ -80,6 +80,21 @@ it may be lock files from other processes and removing them could cause problems
 In that case it's better to check the origin of the lock before
 unlocking the repository.
 
+**Arguments**:
+You can use the script now with the following five arguments:
+
+1. `check` <- This will check your repository
+2. `init` <-This will create a new repository if it does not exists
+3. `prune` <- This will delete data (if there's nothing to delete it won't do anything)
+4. `snapshots` <- This will display a list of your snapshots
+5. `unlock` <- This will unlock your repository
+
+You can use this arguments as follows:
+
+`./restic.sh argument`
+
+You can use just one argument at a time.
+
 ## Adding a Cron Job
 You can use a cron job to run backups automatically. You'll need to open your 
 terminal emulator and edit your crontab file writing `crontab -e` and `enter`.
