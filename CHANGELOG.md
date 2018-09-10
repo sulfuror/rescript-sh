@@ -1,6 +1,6 @@
 #September 10, 2018
-**Arguments**:
 
+**Arguments**:
 
 Now the script could be use with the five following arguments:
 1. `check`
