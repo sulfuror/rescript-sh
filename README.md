@@ -90,7 +90,7 @@ You can use the script now with the following five arguments:
 4. `snapshots` <- This will display a list of your snapshots
 5. `unlock` <- This will unlock your repository
 
-You can use this arguments as follows:
+You can use these arguments as follows:
 
 `./restic.sh argument`
 
