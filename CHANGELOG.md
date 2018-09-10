@@ -1,3 +1,18 @@
+#September 10, 2018
+**Arguments**:
+
+
+Now the script could be use with the five following arguments:
+1. `check`
+2. `init`
+3. `prune`
+4. `snapshots`
+5. `unlock`
+
+You can use these arguments as follows:
+
+`./restic.sh argument`
+
 # September 2, 2018
 **Changed the way to handle check, forget and prune along with new additions:**
 ---
