@@ -60,6 +60,48 @@ SECONDS=0
 export RESTIC_PASSWORD=$RESTIC_PASSWORD
 export RESTIC_REPOSITORY=$RESTIC_REPO
 
+# Arguments
+check=$1
+init=$2
+prune=$3
+snapshots=$4
+unlock=$5
+
+if [[ -n "$check" ]];then
+  for check in "$@"
+  do restic $1
+  done
+  exit
+fi
+
+if [[ -n "$init" ]];then
+  for init in "$@"
+  do restic $2
+  done
+  exit
+fi
+
+if [[ -n "$prune" ]];then
+  for prune in "$@"
+  do restic $3
+  done
+  exit
+fi
+
+if [[ -n "$snapshots" ]];then
+  for snapshots in "$@"
+  do restic $4
+  done
+  exit
+fi
+
+if [[ -n "$unlock" ]];then
+  for unlock in "$@"
+  do restic $5
+  done
+  exit
+fi
+
 # If there is no date file create one
 if [ -e "$DATEFILE" ]; then
   >/dev/null
