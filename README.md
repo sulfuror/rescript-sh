@@ -80,7 +80,7 @@ it may be lock files from other processes and removing them could cause problems
 In that case it's better to check the origin of the lock before
 unlocking the repository.
 
-# **Arguments**:
+## Arguments:
 
 You can use the script now with the following five arguments:
 
