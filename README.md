@@ -89,7 +89,7 @@ just indicate it like this:
 
 If you want to exclude ald PDF files, for example, you could do it like this:
 
-`EXCLUDE01="/*.pdf"`
+`EXCLUDE01="*.pdf"`
 
 Also, I have to mention that the **"UNLOCK"** is set to **"no"** by default because
 you really should not need to unlock your repo besides maybe in some rare
