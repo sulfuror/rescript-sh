@@ -1,8 +1,8 @@
-# About `restic.sh`
+## About `restic.sh`
 This script was created for the sole purpose of using
 [Restic](https://restic.net/) (deduplication backup program).
 
-# This `script` was made to run the following commands:
+## This `script` was made to run the following commands automatically:
 1. unlock (when repo is locked)
 2. backup
 3. snapshots
@@ -16,7 +16,7 @@ the date it started, date ended, where are you backing up, excluded files,
 the days left for the next "cleanup" run, the days it'll run the next "cleanup"
 operation and the duration of the whole operation.
 
-# Keep in mind
+## Keep in mind
 1. If you use this script is at your own risk. If you do something wrong, that's on you.
    You should take the time to study the script and see if it can help you
    for what you need; if you use it without knowing what you're doing, that's on you too.
@@ -33,7 +33,7 @@ operation and the duration of the whole operation.
    I get bored of this one. You're free to navigate to the "tags" and download
    it if you prefer that one. The older one is v0.5.
 
-# Usage:
+## Usage:
 You'll se a lot of lines in this little script. What you need to change is the following values:
 
 * `RESTIC_PASSWORD="CHANGE_ME"` <- Put your restic password between the ""
@@ -80,19 +80,44 @@ it may be lock files from other processes and removing them could cause problems
 In that case it's better to check the origin of the lock before
 unlocking the repository.
 
-## Arguments:
+## Commands and Options:
 
-You can use the script now with the following five arguments:
+You can use the script with the following five commands and six options:
 
+**Commands**:
 1. `check` <- This will check your repository
 2. `init` <-This will create a new repository if it does not exists
 3. `prune` <- This will delete data (if there's nothing to delete it won't do anything)
 4. `snapshots` <- This will display a list of your snapshots
 5. `unlock` <- This will unlock your repository
 
-You can use these arguments as follows:
+**Options**:
+1. `-b, -backup`: this option is pretty basic; it does what it says... it'll
+   take a new snapshot.
+2. `-c, -cleanup`: this option will execute `forget` according to the policies
+   indicated in your script; also it'll execute the `--prune` flag so it'll
+   actually delete the forgotten snapshots.
+3. `-h, -help`: this will bring up the help dialog on your terminal emulator.
+4. `-m, -mount`: this option will mount your repository; it'll create a 
+   directory in your `/home` so it can mount your repository. Once you quit
+   the mount option with `Ctrl+c` it will delete the directory.
+5. `-r, -restore`: this option will do what it says, it will restore.
+   It will create a new directory in your `/home` called `restic-restore`
+   and it will restore your latest snapshot only. If you want to restore
+   a specific snapshot you will have to do it manually.
+6. `-v, -version`: this option will display the current version you're using
+   of this script.
+
+You can use these commands as follows:
 
 `./restic.sh argument`
+or
+`./restic.sh -option`
+
+Commands will work if you use the full command. You can use options with
+just one letter or the full name of the option. For example, for "help"
+you need to type `./restic.sh -h` or `./restic.sh -help`. Both are valid
+and do the same thing.
 
 You can use just one argument at a time.
 
@@ -124,33 +149,41 @@ of opening file by file.
 
 You can read more about how `crontab` works in [here](https://help.ubuntu.com/community/CronHowto).
 
-# Some things worth to mention
-This script will create two (2) files when it runs. One is temporary and it is
-a `lock` file that will be deleted by the script at the end of it. The other 
-file is a `datefile` created by the script. This `datefile` is not temporary
-and if it is deleted the script will create it again on the next run.
+## Some things worth to mention
+This script will create one (1) directory and two (2) files when it runs. 
+One is temporary and it is a `lock` file that will be deleted by the script
+at the end of it. The other file is a `datefile` created by the script. 
+This `datefile` is not temporary and if it is deleted the script will create 
+it again on the next run.
+
+**Why the new directory?**
+I was looking for something more generic than adding two files in the `/home`
+directory. So the script will create a directory inside your `/.local` directory.
+This new directory will be called `/tmp`. If it already exists, it will do
+nothing. Inside this directory will be placed the `lock` and `datefile`
+created by the same script.
 
 **Why the `lock` file?**
 The lock file will be a 0kb (it contains literally nothing) on the directory
-that you put your script and the name of the file will be `.restic_sh.lock`. This
-`lock` file is hidden (hence the "." at the beginning). Why is it there?
+that you put your script and the name of the file will be `nameofscript.lock`. This
+`lock` file will be inside `/.local/tmp`. Why is it there?
 Well, I was having trouble with some cron jobs that started and the latest run
 was not finished yet. That leads me to some errors in my repo (nothing to be worried in my case).
 That's why I created the `lock` file. When the script start, first it'll check if the
 `lock` file is present;  if it is present then it will not execute and it'll show you
-a message telling you that the _"Backup is already running..."_. That way the script
+a message telling you that the _"nameofscript is already running..."_. That way the script
 will not run if it's already running and it's not finished yet. If you kill the script, shut down
 your computer, kill restic or something similar the script will delete the file so
 you don't have to delete it manually for the next run.
 
 **Why the `datefile`?**
-The `datefile` is created by the script in the first run and it'll only contain
-literally the date of the first run. The file will be on the same directory
-of your script and the `lock` file (also hidden) and it will be called `.datefile_restic`.
-Why is it there? I liked the way my script was but I really didn't wanted to do the
-`check`, `forget` and `prune` commands every day or even in every run of the script.
-So, I find a way to play with the dates to make this happen and it was creating
-a file where the script could read and write dates. The `datefile` will only contain
+
+The `datefile` is created by the script in the first run. This file will also 
+be inside `/.local/tmp` and it will be called `datefile_nameofscript`. 
+Why is it there? I liked the way my script was but I really didn't wanted to do
+the `check`, `forget` and `prune` commands every day or even in every run of the script.
+So, I find a way to play with the dates to make this happen and it was creating a 
+file where the script could read and write dates. The `datefile` will only contain
 one date and that is 7 days from the moment you run the script for the first time
 (this 7 days is by default but you can change it in the "CLEAN" value).
 So, what does this mean? It means that every time the script runs, before running
@@ -163,6 +196,7 @@ and it will run `check`, `forget` and `prune` according to your policies and
 it will create the `datefile` again adding the date for the next "cleaning" run.
 
 **Why so much trouble to do something that I could have achieve with a cron job?**
+
 Because is cool and all the kids are doing it.
 
 ## Having problems?
