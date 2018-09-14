@@ -183,6 +183,7 @@ This `datefile` is not temporary and if it is deleted the script will create
 it again on the next run.
 
 **Why the new directory?**
+
 I was looking for something more generic than adding two files in the `/home`
 directory. So the script will create a directory inside your `/.local` directory.
 This new directory will be called `/tmp`. If it already exists, it will do
@@ -190,6 +191,7 @@ nothing. Inside this directory will be placed the `lock` and `datefile`
 created by the same script.
 
 **Why the `lock` file?**
+
 The lock file will be a 0kb (it contains literally nothing) on the directory
 that you put your script and the name of the file will be `nameofscript.lock`. This
 `lock` file will be inside `/.local/tmp`. Why is it there?
