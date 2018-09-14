@@ -45,13 +45,12 @@ then you just need to create it. Once created, verify in your `.profile` documen
 if your distribution already have this option enabled. If you see this next lines
 it means it is already enabled:
 
-``# set PATH so it includes user's private bin if it exists 
-
-if [ -d "$HOME/.local/bin" ] ; then
-
-    PATH="$HOME/.local/bin:$PATH"
-    
-fi``
+```
+# set PATH so it includes user's private bin if it exists`
+if [ -d "$HOME/.local/bin" ] ; then`
+    PATH="$HOME/.local/bin:$PATH"`
+fi
+```
 
 If you don't have theses lines in your `.profile` then just copy those and paste it
 at the end. If you had to create the `/bin` directory and edit the `.profile`, then
