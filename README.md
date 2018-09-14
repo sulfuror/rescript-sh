@@ -131,7 +131,7 @@ You can use the script with the following five commands and six options:
    It will create a new directory in your `/home` called `restic-restore`
    and it will restore your latest snapshot only. If you want to restore
    a specific snapshot you will have to do it manually.
-6. `-v, -version`: this option will display the current version you're using
+6. `-v, -version`: this option will display the version you're using
    of this script.
 
 You can use these commands as follows:
