@@ -192,12 +192,12 @@ created by the same script.
 
 **Why the `lock` file?**
 
-The lock file will be a 0kb (it contains literally nothing) on the directory
-that you put your script and the name of the file will be `nameofscript.lock`. This
-`lock` file will be inside `/.local/tmp`. Why is it there?
-Well, I was having trouble with some cron jobs that started and the latest run
-was not finished yet. That leads me to some errors in my repo (nothing to be worried in my case).
-That's why I created the `lock` file. When the script start, first it'll check if the
+The lock file will be a 0kb (it contains literally nothing) and the name of 
+the file will be `nameofscript.lock`. This `lock` file will be inside 
+`/.local/tmp`. Why is it there? Well, I was having trouble with some cron jobs 
+that started and the latest run was not finished yet. That leads me to some 
+errors in my repo (nothing to be worried in my case). That's why I created 
+the `lock` file. When the script start, first it'll check if the
 `lock` file is present;  if it is present then it will not execute and it'll show you
 a message telling you that the _"nameofscript is already running..."_. That way the script
 will not run if it's already running and it's not finished yet. If you kill the script, shut down
