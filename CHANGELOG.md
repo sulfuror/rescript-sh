@@ -1,3 +1,27 @@
+# September 14, 2018
+
+**Commands & Options**
+
+So, I've been playing around with the script and added a few nice features.
+Now the script has its own `-h, -help` option so you can see all commands
+and options available but the following is an short explanation of the
+new options:
+1. `-b, -backup`: this option is pretty basic; it does what it says... it'll
+   take a new snapshot.
+2. `-c, -cleanup`: this option will execute `forget` according to the policies
+   indicated in your script; also it'll execute the `--prune` flag so it'll
+   actually delete the forgotten snapshots.
+3. `-h, -help`: this will bring up the help dialog on your terminal emulator.
+4. `-m, -mount`: this option will mount your repository; it'll create a 
+   directory in your `/home` so it can mount your repository. Once you quit
+   the mount option with `Ctrl+c` it will delete the directory.
+5. `-r, -restore`: this option will do what it says, it will restore.
+   It will create a new directory in your `/home` called `restic-restore`
+   and it will restore your latest snapshot only. If you want to restore
+   a specific snapshot you will have to do it manually.
+6. `-v, -version`: this option will display the current version you're using
+   of this script.
+
 # September 10, 2018
 
 **Arguments**:
