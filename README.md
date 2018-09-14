@@ -34,6 +34,31 @@ operation and the duration of the whole operation.
    it if you prefer that one. The older one is v0.5.
 
 ## Usage:
+The best way I've found to use a script is to put the script in your `./local/bin`
+directory. This is my choice, you're free to use it as you like. Distributions
+like _**Ubuntu**_ have already the options in their system to use this file
+as a regular `/bin` file of your system; that means, it already read from
+there executable files. So if `./local/bin` is already created, that's a great
+place for this script. If not and you don't want to write `./script.sh` every time
+you want to use it and instead you wish to type `nameofyourscript` and the options,
+then you just need to create it. Once created, verify in your `.profile` document
+if your distribution already have this option enabled. If you see this next lines
+it means it is already enabled:
+
+``
+# set PATH so it includes user's private bin if it exists 
+if [ -d "$HOME/.local/bin" ] ; then
+    PATH="$HOME/.local/bin:$PATH"
+fi
+``
+If you don't have theses lines in your `.profile` then just copy those and paste it
+at the end. If you had to create the `/bin` directory and edit the `.profile`, then
+you need to restart your session, or log out and login, or reboot your computer in 
+order for this work. If it was already there, you don't need to do anything, just 
+give it permission to execute  (`chmod 700 restic.sh`) and (optional) rename the 
+script from `restic.sh`  to `whatevername`, move the script to `/.local/bin`, open your terminal
+and type the name of your script.
+
 You'll se a lot of lines in this little script. What you need to change is the following values:
 
 * `RESTIC_PASSWORD="CHANGE_ME"` <- Put your restic password between the ""
