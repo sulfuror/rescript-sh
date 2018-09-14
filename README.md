@@ -46,9 +46,9 @@ if your distribution already have this option enabled. If you see this next line
 it means it is already enabled:
 
 ```
-# set PATH so it includes user's private bin if it exists`
-if [ -d "$HOME/.local/bin" ] ; then`
-    PATH="$HOME/.local/bin:$PATH"`
+# set PATH so it includes user's private bin if it exists
+if [ -d "$HOME/.local/bin" ] ; then
+    PATH="$HOME/.local/bin:$PATH"
 fi
 ```
 
