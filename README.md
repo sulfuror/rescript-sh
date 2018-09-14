@@ -110,7 +110,7 @@ You can use the script with the following five commands and six options:
 
 You can use these commands as follows:
 
-`./restic.sh argument`
+`./restic.sh command`
 or
 `./restic.sh -option`
 
@@ -119,7 +119,7 @@ just one letter or the full name of the option. For example, for "help"
 you need to type `./restic.sh -h` or `./restic.sh -help`. Both are valid
 and do the same thing.
 
-You can use just one argument at a time.
+You can use just one command or option at a time.
 
 ## Adding a Cron Job
 You can use a cron job to run backups automatically. You'll need to open your 
