@@ -87,7 +87,7 @@ just indicate it like this:
 
 `EXCLUDE01="/home/user/Downloads"`
 
-If you want to exclude ald PDF files, for example, you could do it like this:
+If you want to exclude all PDF files, for example, you could do it like this:
 
 `EXCLUDE01="*.pdf"`
 
