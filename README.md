@@ -59,7 +59,7 @@ give it permission to execute  (`chmod 700 rescript.sh`) and (optional) rename t
 script from `rescript.sh`  to `whatevername`, move the script to `/.local/bin`, open your terminal
 and type the name of your script.
 
-You'll se a lot of lines in this little script. What you need to change is the following values:
+You'll see a lot of lines in this little script. What you need to change is the following values:
 
 * `RESTIC_PASSWORD="CHANGE_ME"` <- Put your restic password between the ""
 * `RESTIC_REPO="/path/to/your/repo"` <- Put your repository directory
