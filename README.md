@@ -1,15 +1,14 @@
-## About `restic.sh`
+## About `rescript.sh`
 This script was created for the sole purpose of using
 [Restic](https://restic.net/) (deduplication backup program).
 
 ## This `script` was made to run the following commands automatically:
-1. unlock (when repo is locked)
-2. backup
-3. snapshots
-4. check
-5. forget
-6. prune
-7. stats
+1. backup
+2. snapshots
+3. check
+4. forget
+5. prune
+6. stats
 
 Also, it'll give you a nice output additional of the restic output with
 the date it started, date ended, where are you backing up, excluded files,
@@ -56,8 +55,8 @@ If you don't have theses lines in your `.profile` then just copy those and paste
 at the end. If you had to create the `/bin` directory and edit the `.profile`, then
 you need to restart your session, or log out and login, or reboot your computer in 
 order for this work. If it was already there, you don't need to do anything, just 
-give it permission to execute  (`chmod 700 restic.sh`) and (optional) rename the 
-script from `restic.sh`  to `whatevername`, move the script to `/.local/bin`, open your terminal
+give it permission to execute  (`chmod 700 rescript.sh`) and (optional) rename the 
+script from `rescript.sh`  to `whatevername`, move the script to `/.local/bin`, open your terminal
 and type the name of your script.
 
 You'll se a lot of lines in this little script. What you need to change is the following values:
@@ -73,7 +72,6 @@ You'll se a lot of lines in this little script. What you need to change is the f
 * `KEEP_MONTHLY="12"` <- Indicate the number of montly backups you want to keep
 * `KEEP_YEARLY="10"` <- Indicate the number of yearly backups you want to keep
 * `CLEAN="7"` <- Indicate the number (in days) of your cleanup policy (by default is 7 days); this will run forget, check and prune according to your choice
-* `UNLOCK="no"` <- The default value is "no"; feel free to change it to "yes" if you want to unlock your repo at the beginning of the script
 
 There are 15 exclude rules. You don't have to use it all or delete the ones you're
 not using. If there's no file indicated it'll run normally without excluding anything
@@ -91,81 +89,108 @@ If you want to exclude all PDF files, for example, you could do it like this:
 
 `EXCLUDE01="*.pdf"`
 
-Also, I have to mention that the **"UNLOCK"** is set to **"no"** by default because
-you really should not need to unlock your repo besides maybe in some rare
-ocassions. I put it there because Restic creates a lock for every process but
-if you cancel the process manually you will not need to unlock it because
-Restic take care of unlock the repo when cleaning up the operation. In some rare
-ocassions the process could be killed and in that case it may leave the repo locked.
-That is why I decided to run `unlock` first in my script if it's locked at the
-beginning of the script. My repo is just for one machine and if that's your case
-you can run `unlock` at the beginning so maybe if the latest process for some
-reason left a lock, then the backup will run after unlocking the repo. If you're
-using one repository for multiple machines **you should not use `unlock`** because
-it may be lock files from other processes and removing them could cause problems.
-In that case it's better to check the origin of the lock before
-unlocking the repository.
-
 ## Commands and Options:
 
 You can use the script with the following five commands and six options:
 
 **Commands**:
-1. `check` <- This will check your repository
-2. `init` <-This will create a new repository if it does not exists
-3. `prune` <- This will delete data (if there's nothing to delete it won't do anything)
-4. `snapshots` <- This will display a list of your snapshots
-5. `unlock` <- This will unlock your repository
+1. `check`: This will check your repository
+2. `init`: This will create a new repository if it does not exists
+3. `prune`: This will delete data (if there's nothing to delete it won't do anything)
+4. `snapshots`: This will display a list of your snapshots
+5. `unlock`: This will unlock your repository
+6. `rebuild-index`: This will build a new index file
+7. `stats`: This will scan the repository and show basic statistics
 
-**Options**:
+**Automatic Options**:
 1. `-b, -backup`: this option is pretty basic; it does what it says... it'll
    take a new snapshot.
 2. `-c, -cleanup`: this option will execute `forget` according to the policies
-   indicated in your script; also it'll execute the `--prune` flag so it'll
-   actually delete the forgotten snapshots.
-3. `-h, -help`: this will bring up the help dialog on your terminal emulator.
-4. `-m, -mount`: this option will mount your repository; it'll create a 
+   indicated in your script; also it'll execute the `prune` with `--cleanup-cache` flag so it'll
+   actually delete the forgotten snapshots and cleanup your cache.
+3. `-d, -deep-check`: Check repository with --read-data flag.
+4. `-h, -help`: this will bring up the help dialog on your terminal emulator.
+5. `-m, -mount`: this option will mount your repository; it'll create a 
    directory in your `/home` so it can mount your repository. Once you quit
    the mount option with `Ctrl+c` it will delete the directory.
-5. `-r, -restore`: this option will do what it says, it will restore.
+6. `-n, -next-cleanup`: this will show you the time left for your next cleanup
+   according to your option in "CLEAN" days.
+7. `-r, -restore`: this option will do what it says, it will restore.
    It will create a new directory in your `/home` called `restic-restore`
    and it will restore your latest snapshot only. If you want to restore
    a specific snapshot you will have to do it manually.
-6. `-v, -version`: this option will display the version you're using
+8. `-v, -version`: this option will display the version you're using
    of this script.
+9. `-s, -stats`: this will display the stats with --mode flag for
+   original size of latest snapshot, deduplicated size of latest snapshot,
+   original size of all snapshots and deduplicated size of all snapshots.
+10. `-u, -unlock`: this option WILL NOT unlock your repository. When you run this
+   script it will create a separate lock just for the script (it has nothing
+   to do with the restic locks), so if your latest run left a lock (which is
+   very unlikely unless it occurs an abrupt shut down while the script was running)
+   and you're trying to do something with the script, it will display that the
+   script is already running and it will not run again until the lock file is removed.
+   If you're really sure the script is not running you can just run this option
+   and it will delete the lock file so you can continue with your operation.
+
+**User Options**
+1. `-f`: this option is for forget snapshots.
+2. `-g`: this option is for find; it will help you find a file, pattern or directory
+   inside your repo.
+3. `-k`: this stands for keys and is for wokring, listing with your repo keys.
+4. `-l`: this option is for ls to list files in a snapshot.
+
+You can just use one argument with every "user option". This means that, for
+example, you can just use `-f` for one snapshot at a time.
 
 You can use these commands as follows:
+```
+    ./rescript.sh command
+OR
+    ./rescript.sh -option
+OR
+    ./rescript.sh -option argument
+```
+**Examples**
 
-`./restic.sh command`
-or
-`./restic.sh -option`
+For `forget`:
+`./rescript.sh -f [snapshot ID]`
+
+For `find`:
+`./rescript.sh -g [your_file_directory_or_pattern]`
+
+For `key`:
+`./rescript.sh -k [list|add|remove|passwd]`
+
+For `ls`:
+`./rescript.sh -l [snapshot ID]`
 
 Commands will work if you use the full command. You can use options with
 just one letter or the full name of the option. For example, for "help"
-you need to type `./restic.sh -h` or `./restic.sh -help`. Both are valid
-and do the same thing.
+you need to type `./rescript.sh -h` or `./rescript.sh -help`. Both are valid
+and do the same thing. Optional commands will only wokr with just one letter.
 
 You can use just one command or option at a time.
 
 ## Adding a Cron Job
 You can use a cron job to run backups automatically. You'll need to open your 
 terminal emulator and edit your crontab file writing `crontab -e` and `enter`.
-After that you need to add a new cronjob like `10 */2 * * * /home/YOURUSERNAME/restic.sh`.
+After that you need to add a new cronjob like `10 */2 * * * /PATH/TO/YOUR/rescript.sh`.
 This cron job will execute every two hours at the 10th minute. If you want to change it for every four hours;
-for example, at the 0 minute just write `0 */4 * * * /home/YOURUSERNAME/restic.sh`.
+for example, at the 0 minute just write `0 */4 * * * /PATH/TO/YOUR/rescript.sh`.
 
 Also, you can create a log file so the cron job can store the output in a
 plaintext file. You can do this by adding in the cron job file the following
 after the cron job you've just created:
-* `>> /home/YOURUSERNAME/logs/restic-log_$(date +\%Y-\%m-\%d-\%H:00) 2>&1`
+* `>> /home/YOURUSERNAME/.rescript/logs/rescript-log_$(date +\%Y-\%m-\%d-\%H:00) 2>&1`
 
-That will create a plain text file in the directory `/home/YOURUSERNAME/logs`.
+That will create a plain text file in the directory `/home/YOURUSERNAME/.rescript/logs`.
 Let's say the system ran the job at 12:00 a.m. in January 1, 2018; then this
 past line on your `crontab` will create a file called 
-restic-log_2018-01-01-12:00 with all the script process output.
+rescript-log_2018-01-01-12:00 with all the script process output.
 
 If you do this your `crontab` will look like this:
-* `0 */4 * * * /home/YOURUSERNAME/restic.sh >> /home/YOURUSERNAME/logs/restic-log_$(date +\%Y-\%m-\%d-\%H:00) 2>&1`
+* `0 */4 * * * /PATH/TO/YOUR/rescript.sh >> /home/YOURUSERNAME/.rescript/logs/rescript-log_$(date +\%Y-\%m-\%d-\%H:00) 2>&1`
 
 You can change the destination to your logs if you want. I made it 
 to /home because is just simple and you don't have to mix that with
