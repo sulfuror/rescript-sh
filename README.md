@@ -91,6 +91,9 @@ If you want to exclude all PDF files, for example, you could do it like this:
 
 ## Commands and Options:
 
+Commands and options are optional. If you don't run any command or option
+the script will run normally with all the options you have in your script.
+
 You can use the script with the following five commands and six options:
 
 **Commands**:
