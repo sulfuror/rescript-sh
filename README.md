@@ -214,10 +214,11 @@ it again on the next run.
 **Why the new directory?**
 
 I was looking for something more generic than adding two files in the `/home`
-directory. So the script will create a directory inside your `/.local` directory.
-This new directory will be called `/tmp`. If it already exists, it will do
-nothing. Inside this directory will be placed the `lock` and `datefile`
-created by the same script.
+directory. So the script will create a directory inside called `/.rescript` in your `/home` directory.
+Inside this new directory will be two more called `/lock` and `/logs`. If it already exists, it will do
+nothing. Inside the `lock` directory will be placed the `lock` file and in
+`/logs` will be the `datefile` and if you want to place your logs if you're using
+cron jobs you could direct it to that directory too.
 
 **Why the `lock` file?**
 
