@@ -151,7 +151,7 @@ OR
 OR
     ./rescript.sh -user_option argument
 ```
-**Examples**
+**User Options Examples**:
 
 For `forget`:
 
