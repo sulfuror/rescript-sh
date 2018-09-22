@@ -166,7 +166,7 @@ For `find`:
 
 For `key`:
 
-`./rescript.sh -k [list|add|remove|passwd]`
+`./rescript.sh -k [list|add|passwd]`
 
 For `ls`:
 
