@@ -147,9 +147,9 @@ You can use these commands as follows:
 ```
     ./rescript.sh command
 OR
-    ./rescript.sh -option
+    ./rescript.sh -automatic_option
 OR
-    ./rescript.sh -option argument
+    ./rescript.sh -user_option argument
 ```
 **Examples**
 
