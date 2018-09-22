@@ -1,3 +1,68 @@
+# September 21, 2018
+
+**New Options and Some Fixes**
+
+New options are available now. The new options are:
+
+**Automatic Options**
+1. `-d, -deep-check`: this option will perform `check` with the `--read-data`
+   flag.
+2. `-n, -next-cleanup`: this will display when the next "cleanup" will be done.
+3. `-s, -stats`: this will display the `stats` with `--mode` flag for 
+   original size of latest snapshot, deduplicated size of latest snapshot,
+   original size of all snapshots and deduplicated size of all snapshots.
+4. `-u, -unlock`: this option WILL NOT unlock your repository. When you run this
+   script it will create a separate lock just for the script (it has nothing
+   to do with the restic locks), so if your latest run left a lock (which is
+   very unlikely unless it occurs an abrupt shut down while the script was running)
+   and you're trying to do something with the script, it will display that the 
+   script is already running and it will not run again until the lock file is removed.
+   If you're really sure the script is not running you can just run this option
+   and it will delete the lock file so you can continue with your operation.
+
+**User Options**
+
+I've added some more options called "User Options" because it requires more than
+just the option; these options require a "argument".
+
+**Usage**: `./rescript.sh [user_option] [argument]`
+
+1. `-f`: this option is for `forget`; you need to type the `-f` and the snapshot
+   ID you want to forget like `./rescript.sh -f 0005sdf6`, for example.
+2. `-g`: this option is for `find`; it will help you find a file or directory
+   inside your repo when you type `./rescript.sh -g file_pattern_or_directory`.
+3. `-k`: this stands for `keys`; you can use any option of the `key` command
+   with this option like `./rescript.sh -k list`, for example.
+4. `-l`: this option is for `ls` to list files in a snapshot; example:
+   `./rescript.sh -l latest`.
+
+You can just use one argument with every "user option". This means that, for
+example, you can just use `-f` for one snapshot at a time. I'm using `getopts`
+for this and I don't really know how to make this run with infinite arguments.
+If you know how to make this better, please feel free to share.
+
+**Fixes**
+
+1. Typos and quoting.
+2. Remove `unlock` automatically; you can just use `./rescript.sh unlock` if needed.
+3. Now the script will create the lock file for every option except for `-h` and `-v`.
+4. Now the script will create one directory with two subdirectories. The main
+   directory will be hidden in your `/home` and it will be called `.rescript`; it
+   a subdirectory called "lock" where it will be placed the lock file and another
+   called "logs" where it will be placed the datefile. I changed it this way
+   for convenience. Instead of looking into `./local/etc/etc` I wanted a single
+   directory with all the script related files. Also, I use this script with 
+   a cron job and logs files are created every run with the cron job and I find
+   it convenient to create a `log` file if anyone uses the script the same way.
+5. "Commands" code was unnecessary so I just simplified the code a little. Also
+   note that **you can run almost every restic command** but the downsize is that
+   you cannot run restic options or flags. That means that you can just run
+   restic commands that does not require an option (like the "available commands"
+   list you get when you type `-h`.)
+
+Change the name from `restic.sh` to `rescript.sh` to not be confused by the 
+actual program.
+
 # September 14, 2018
 
 **Commands & Options**
