@@ -154,15 +154,19 @@ OR
 **Examples**
 
 For `forget`:
+
 `./rescript.sh -f [snapshot ID]`
 
 For `find`:
+
 `./rescript.sh -g [your_file_directory_or_pattern]`
 
 For `key`:
+
 `./rescript.sh -k [list|add|remove|passwd]`
 
 For `ls`:
+
 `./rescript.sh -l [snapshot ID]`
 
 Commands will work if you use the full command. You can use options with
