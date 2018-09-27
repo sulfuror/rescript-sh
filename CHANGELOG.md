@@ -96,7 +96,8 @@ Now the script could be use with the five following arguments:
 2. `init`
 3. `prune`
 4. `snapshots`
-5. `unlock`
+5. `rebuild-index`
+6. `unlock`
 
 You can use these arguments as follows:
 
