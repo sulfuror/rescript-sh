@@ -1,3 +1,27 @@
+# September 27, 2018
+
+**Changes and Fixes**
+1. Divided the "REPO INFO" into two: the ones you MUST put and 
+   cannot be left blank and the ones that you can left blank.
+2. Now the script will set the "$HOME/bin" and "$HOME./local/bin" (if 
+   directories exist) paths in case these paths are not already set, 
+   then it won't fail if you have the restic binary in your home directory.
+3. The "datefile" will now be created only if you set the "CLEAN" value.
+4. Restore option was moved to "User options" instead of the "Automatic" ones.
+   I discovered how to use "$OPTARG" for restores, so... yeah, now 
+   you can just put the snapshot you want to restore after the `-r` option.
+5. The `-n, -next-cleanup` options was giving negative numbers if the time
+   for the next "cleanup" already passed, so now it will give you a message
+   saying that it will be run "on the next run". Also, if you have not
+   set the "CLEAN" variable it will display an explanation on how to do it
+   and give you the "usage" link for more information.
+6. Any atempt to pass an "User Option" (requires one argument) will tell you
+   that "No argument value was indicated for..." the option you chose and it will
+   display the "help".
+7. The "cleanup" process was changed a little to display the days, hours or minutes
+   left to the next "cleanup" and now it will forget first, prune and check --cleanup-cache
+   at the end.
+
 # September 21, 2018
 
 **New Options and Some Fixes**
