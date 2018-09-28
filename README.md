@@ -118,16 +118,12 @@ You can use the script with the following five commands and six options:
    the mount option with `Ctrl+c` it will delete the directory.
 6. `-n, -next-cleanup`: this will show you the time left for your next cleanup
    according to your option in "CLEAN" days.
-7. `-r, -restore`: this option will do what it says, it will restore.
-   It will create a new directory in your `/home` called `restic-restore`
-   and it will restore your latest snapshot only. If you want to restore
-   a specific snapshot you will have to do it manually.
-8. `-v, -version`: this option will display the version you're using
+7. `-v, -version`: this option will display the version you're using
    of this script.
-9. `-s, -stats`: this will display the stats with --mode flag for
+8. `-s, -stats`: this will display the stats with --mode flag for
    original size of latest snapshot, deduplicated size of latest snapshot,
    original size of all snapshots and deduplicated size of all snapshots.
-10. `-u, -unlock`: this option WILL NOT unlock your repository. When you run this
+9. `-u, -unlock`: this option WILL NOT unlock your repository. When you run this
    script it will create a separate lock just for the script (it has nothing
    to do with the restic locks), so if your latest run left a lock (which is
    very unlikely unless it occurs an abrupt shut down while the script was running)
@@ -142,6 +138,8 @@ You can use the script with the following five commands and six options:
    inside your repo.
 3. `-k`: this stands for keys and is for wokring, listing with your repo keys.
 4. `-l`: this option is for ls to list files in a snapshot.
+5. `-r`: this option will restore with the `--verify` flag any snapshot
+   you wish to restore.
 
 You can just use one argument with every "user option". This means that, for
 example, you can just use `-f` for one snapshot at a time.
@@ -157,20 +155,25 @@ OR
 **User Options Examples**:
 
 For `forget`:
-
-`./rescript.sh -f [snapshot ID]`
-
+```
+./rescript.sh -f [snapshot ID]
+```
 For `find`:
-
-`./rescript.sh -g [your_file_directory_or_pattern]`
-
+```
+./rescript.sh -g [your_file_directory_or_pattern]
+```
 For `key`:
-
-`./rescript.sh -k [list|add|passwd]`
-
+```
+./rescript.sh -k [list|add|passwd]
+```
 For `ls`:
-
-`./rescript.sh -l [snapshot ID]`
+```
+./rescript.sh -l [snapshot ID]
+```
+For `restore`:
+```
+./rescript.sh -r [snapshot ID]
+```
 
 Commands will work if you use the full command. You can use options with
 just one letter or the full name of the option. For example, for "help"
@@ -189,15 +192,27 @@ for example, at the 0 minute just write `0 */4 * * * /PATH/TO/YOUR/rescript.sh`.
 Also, you can create a log file so the cron job can store the output in a
 plaintext file. You can do this by adding in the cron job file the following
 after the cron job you've just created:
-* `>> /home/YOURUSERNAME/.rescript/logs/rescript-log_$(date +\%Y-\%m-\%d-\%H:00) 2>&1`
-
+```
+>> /home/YOURUSERNAME/.rescript/logs/rescript-log_$(date +\%Y-\%m-\%d-\%H:00) 2>&1
+```
 That will create a plain text file in the directory `/home/YOURUSERNAME/.rescript/logs`.
 Let's say the system ran the job at 12:00 a.m. in January 1, 2018; then this
 past line on your `crontab` will create a file called 
 rescript-log_2018-01-01-12:00 with all the script process output.
 
 If you do this your `crontab` will look like this:
-* `0 */4 * * * /PATH/TO/YOUR/rescript.sh >> /home/YOURUSERNAME/.rescript/logs/rescript-log_$(date +\%Y-\%m-\%d-\%H:00) 2>&1`
+
+```
+0 */4 * * * /PATH/TO/YOUR/rescript.sh >> /home/YOURUSERNAME/.rescript/logs/rescript-log_$(date +\%Y-\%m-\%d-\%H:00) 2>&1
+```
+
+If you want to just do backups with this script without the need to run
+the entire script, you can set up a cron job including the `-b` option,
+just to run a backup and anything else, like this:
+
+```
+0 */4 * * * /PATH/TO/YOUR/rescript.sh -b >> /home/YOURUSERNAME/.rescript/logs/rescript-log_$(date +\%Y-\%m-\%d-\%H:00) 2>&1
+```
 
 You can change the destination to your logs if you want. I made it 
 to /home because is just simple and you don't have to mix that with
