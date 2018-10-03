@@ -1,3 +1,27 @@
+# October 2, 2018
+
+**Changes and Fixes**
+1. There are changes in v1.5 with the output; now it will display the 
+   host and if you do not indicate the "Destination" it will output
+   the backup directory instead.
+2. Added a "help" command so if you type ./rescript.sh help it will
+   actually display the help for the script and not the help for 
+   restic (I consider this a fix too because to display the restic
+   help is not the best approach because commands may vary).
+3. Added "flags" for "user options". Now every user option have its
+   own "--help" flag wich will display how to use every option.
+   Also, added the ability to pass restic options for those "user
+   options" (all explained in the `--help` flag).
+
+In general, now the script has many more options that it used to.
+Still, the purpose hasn't changed. I did this for the sole purpose
+of getting a nice output (at least for me it looks nice) for automatic
+backups and to clean itself in "X" numbers of days. As time has passed
+I needed to do some tasks in my repo and having multiple hosts in one
+repo and working with various repos, it needed some attention that 
+I wasn't able to do automatically or with the script, so I added those
+options that I mostly use to make my life easier.
+
 # September 27, 2018
 
 **Changes and Fixes**
