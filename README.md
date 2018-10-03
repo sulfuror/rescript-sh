@@ -98,12 +98,13 @@ You can use the script with the following five commands and six options:
 
 **Commands**:
 1. `check`: This will check your repository
-2. `init`: This will create a new repository if it does not exists
-3. `prune`: This will delete data (if there's nothing to delete it won't do anything)
-4. `snapshots`: This will display a list of your snapshots
-5. `unlock`: This will unlock your repository
-6. `rebuild-index`: This will build a new index file
-7. `stats`: This will scan the repository and show basic statistics
+2. `help`: Help for this script
+3. `init`: This will create a new repository if it does not exists
+4. `prune`: This will delete data (if there's nothing to delete it won't do anything)
+5. `snapshots`: This will display a list of your snapshots
+6. `unlock`: This will unlock your repository
+7. `rebuild-index`: This will build a new index file
+8. `stats`: This will scan the repository and show basic statistics
 
 **Automatic Options**:
 1. `-b, -backup`: this option is pretty basic; it does what it says... it'll
@@ -120,10 +121,7 @@ You can use the script with the following five commands and six options:
    according to your option in "CLEAN" days.
 7. `-v, -version`: this option will display the version you're using
    of this script.
-8. `-s, -stats`: this will display the stats with --mode flag for
-   original size of latest snapshot, deduplicated size of latest snapshot,
-   original size of all snapshots and deduplicated size of all snapshots.
-9. `-u, -unlock`: this option WILL NOT unlock your repository. When you run this
+8. `-u, -unlock`: this option WILL NOT unlock your repository. When you run this
    script it will create a separate lock just for the script (it has nothing
    to do with the restic locks), so if your latest run left a lock (which is
    very unlikely unless it occurs an abrupt shut down while the script was running)
@@ -138,8 +136,18 @@ You can use the script with the following five commands and six options:
    inside your repo.
 3. `-k`: this stands for keys and is for wokring, listing with your repo keys.
 4. `-l`: this option is for ls to list files in a snapshot.
-5. `-r`: this option will restore with the `--verify` flag any snapshot
-   you wish to restore.
+5. `-p`: this option is to list snapshots with flags.
+6. `-r`: this option will restore with the `--verify` flag any snapshot
+         you wish to restore.
+7. `-s`: this option will give you stats for your repository.
+
+Every "user option" comes with help for each one. You can see the usage and 
+flags available typing:
+```
+./rescript.sh -o --help
+```
+Obviously, the `-o` doesn't exist, so you have to type the letter of the option
+you want to see the "help".
 
 You can just use one argument with every "user option". This means that, for
 example, you can just use `-f` for one snapshot at a time.
@@ -156,23 +164,31 @@ OR
 
 For `forget`:
 ```
-./rescript.sh -f [snapshot ID]
+./rescript.sh -f [snapshot-ID]
 ```
 For `find`:
 ```
-./rescript.sh -g [your_file_directory_or_pattern]
+./rescript.sh -g [pattern]
 ```
 For `key`:
 ```
-./rescript.sh -k [list|add|passwd]
+./rescript.sh -k [list|add|remove|passwd] [ID]
 ```
 For `ls`:
 ```
-./rescript.sh -l [snapshot ID]
+./rescript.sh -l [snapshot-ID]
+```
+For `snapshots`:
+```
+./rescript.sh -p [flag] [host|path|tag]
 ```
 For `restore`:
 ```
 ./rescript.sh -r [snapshot ID]
+```
+For `stats`:
+```
+./rescript.sh -s [snapshot-ID]
 ```
 
 Commands will work if you use the full command. You can use options with
