@@ -147,7 +147,7 @@ User options [all user options require an argument]:
 	-g			find: Find a file or directory
 	-k			keys: Manage keys [list|add|remove|passwd]
 	-l			ls: List files in a snapshot
-	-p			List snapshots
+	-p			List snapshots with the following flags:
 	-r			Restore a snapshot
 	-s			Scan the repository and show basic statistics
 		--help		This flag will display help for every
@@ -528,6 +528,8 @@ while getopts ":bcdf:g:hk:l:mnp:r:s:uv" o
 		  echo "Usage:"
 		  echo "	./rescript.sh -p [flag] [host|path|tag]"
 		  echo "Available flags:"
+		  echo "	--compact	use compact format"
+		  echo "	--cleanup-cache	auto remove old cache directories"
 		  echo "	--help		help for -p"
 		  echo "	--host		only consider snapshots for this host"
 		  echo "	--last		only show the last snapshot for each"
@@ -697,6 +699,7 @@ while getopts ":bcdf:g:hk:l:mnp:r:s:uv" o
 		  echo "Usage with mode flag:"
 		  echo "	./rescript.sh -s [--mode] [mode]"		  
 		  echo "Available flags:"
+		  echo "	--cleanup-cache	auto remove old cache directories"
 		  echo "	--help		help for -s"
 		  echo "	--host		filter latest snapshot by this hostname"
 		  echo "	--mode		modes for counting data"
@@ -788,14 +791,19 @@ shift $((OPTIND - 1))
 
 # Commands
 command="$1"
-if [[ "$command" == "help" ]] ; then
-  echo "$Usage"
-  exit
-else
-  for command in "$@"
-  do restic "$1"
-  done
-  exit
+if [[ -n "$command" ]] ; then
+  if [[ "$command" == "help" ]] ; then
+    echo "$Usage"
+    exit
+  elif [[ "$command" == "version" ]] ; then
+    echo "$Version"
+    exit
+  else
+    for command in "$@"
+    do restic "$1"
+    done
+    exit
+  fi
 fi
 
 # Bail if script is already running
