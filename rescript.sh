@@ -951,6 +951,7 @@ if [[ -f "$DATEFILE" || "$CLEAN" -gt "0" ]]; then
       restic check --cleanup-cache
       if [[ "$CLEAN" -gt "0" ]] ; then
         echo -e "$YELLOW""[Done Cleaning; Next Check and Cleanup Will Be Done in $CLEAN days...]""$ENDCOLOR"
+        date -d now+"$CLEAN"days > "$DATEFILE"
       fi
     fi
   fi
@@ -963,11 +964,6 @@ else
       restic check --cleanup-cache
     fi
 fi
-
-if [[ -f "$DATEFILE" ]] ; then
-  date -d now+"$CLEAN"days > "$DATEFILE"
-fi
-
 
 # Stats
 echo -e "----------------------------------------------------------------------"
