@@ -1,3 +1,17 @@
+# October 6, 2018
+
+**Changes**:
+
+Basically, changes are less user commands and more restic commands.
+Now all restic commands are available within the script (not sure if this is
+the best approach but it works). Past "user commands" were removed
+except for `-r` (restore). The only restic commands that are not "available"
+(in the sense that if you execute it it will not behave as restic itself) are:
+
+1. `backup`: the command exists but it will behave the same as `-b`.
+2. `help`: this command will display the `rescript` help.
+3. `version`: this will display the `rescript` version you're using.
+
 # October 2, 2018
 
 **Changes and Fixes**
