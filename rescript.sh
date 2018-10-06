@@ -102,10 +102,10 @@ if [[ ! -z "$CLEAN" ]] ; then
   fi
 fi
 # ------------------------------------------------------------------------------- #
-Version="rescript.sh-v1.5"
+Version="rescript.sh-v1.6"
 Usage='Author		: Sulfuror, Copyright (c) 2018 <sulfuror@gmail.com>
 License		: BSD 2-clause "Simplified" License
-Version		: rescript.sh-v1.5
+Version		: rescript.sh-v1.6
 Description	: rescript.sh is a shell script created to manage
 		  backups made with restic program.
 
@@ -118,49 +118,55 @@ For more information about restic visit https://restic.net
 Note that these commands only work when you have already set
 the required values correctly.
 
-Available commands:
-	check			Check the repository for errors
-	help			Help for this script
-	init			Initialize a new repository
-	prune			Remove unneeded data from the repository
-	snapshots		List all snapshots
-	unlock			Remove locks other processes created
-	rebuild-index		Build a new index file
-	stats			Scan the repository and show basic statistics
-Commands usage:
-	./rescript.sh [command]
+All restic commands are available within this script except for:
+	backup			This will make a backup according to your
+				options in this script
+	help			This will display rescript help
+	version			This wil display the rescript version
 
-Automatic options:
-	-b, -backup		Make a backup	
+For restic help type in you terminal emulator [restic help]. For
+other restic commands help you can type:
+	restic help [command]
+OR
+	./rescript.sh [restic_command] --help
+
+Commands usage:
+	./rescript.sh [command] [flags] [options]
+
+Rescript options:
+	-b, -backup		Take a snapshot
 	-c, -cleanup		Forget and prune [using your policies]
-	-d, -deep-check		Check repository with --read-data flag
+	-d, -deep-check		Check repository with [--read-data] flag
 	-h, -help		Help for this script
 	-m, -mount		Mount your restic repo
 	-n, -next-cleanup	Display when it will do the next cleanup
 	-v, -version		Version of this script
-	-u, -unlock		Remove lock created by script
-Automatic options usage:
+	-u, -unlock		Remove lock created by script [this will
+				NOT unlock your repo]
+	-r			Restore a snapshot; this option will create
+				a folder in your home directory, restore
+				the snapshot you want to restore and
+				run [--verify] flag
+		--help		help for [-r]
+		--host		only consider snapshots for this host
+				when snapshot-ID is [latest]
+		--path		only consider snapshots which include
+				this [absolute] path for snapshot-ID [latest]
+		--tag		only consider snapshots which include this
+				taglist for snapshot-ID [latest]
+Rescript options usage:
 	./rescript.sh [-o|-option]
-
-User options [all user options require an argument]:
-	-f			forget: Remove snapshots from the repository
-	-g			find: Find a file or directory
-	-k			keys: Manage keys [list|add|remove|passwd]
-	-l			ls: List files in a snapshot
-	-p			List snapshots with the following flags:
-	-r			Restore a snapshot
-	-s			Scan the repository and show basic statistics
-		--help		This flag will display help for every
-				user option
-User options usage:
-	./rescript.sh [-o] [option|--help]
+When using [-r] restore option:
+	./rescript.sh -r [snapshot-ID]
+OR
+	./rescript.sh -r [--flag] [option]
 
 For more information about the usage check out the following link:
-https://gitlab.com/sulfuror/rescript.sh/blob/master/README.md#usage"
+https://gitlab.com/sulfuror/rescript.sh/blob/master/README.md#usage
 '
 # ------------------------------------------------------------------------------- #
 # Options
-while getopts ":bcdf:g:hk:l:mnp:r:s:uv" o
+while getopts ":bcdhmnr:uv" o
   do
       case "$o" in
 	b|backup)
@@ -290,180 +296,9 @@ while getopts ":bcdf:g:hk:l:mnp:r:s:uv" o
 		trap 'rm -rf "$LOCK"' INT QUIT TERM EXIT
 		restic check --read-data
 		;;
-	f) 
-		if [ -e "$LOCK" ]; then
-		  echo -e "$YELLOW""WARNING:""$ENDCOLOR" "$(basename "$0") is already running..."
-		  echo -e "If you are sure $(basename "$0") is not running, type"
-		  echo -e " "
-		  echo -e "	$(basename "$0") -u"
-		  echo -e "OR"
-		  echo -e "	$(basename "$0") -unlock"
-		  echo -e " "
-		  echo -e "This will remove the lock for $(basename "$0")"
-		  exit 
-		fi
-		touch "$LOCK"
-		trap 'rm -rf "$LOCK"' INT QUIT TERM EXIT
-		while [[ $OPTARG ]] ; do
-		  if [[ "$OPTARG" == "--help" ]] ; then
-		    echo "[-f] is for [forget] command in restic"
-		    echo "Usage:"
-		    echo "	./rescript.sh -f [snapshot-ID]"
-		  else
-		    echo "Forgetting snapshot-ID $OPTARG"
-		    restic forget "$OPTARG"
-		  fi
-		exit
-		done
-		;;
-	g)
-		if [ -e "$LOCK" ]; then
-		  echo -e "$YELLOW""WARNING:""$ENDCOLOR" "$(basename "$0") is already running..."
-		  echo -e "If you are sure $(basename "$0") is not running, type"
-		  echo -e " "
-		  echo -e "	$(basename "$0") -u"
-		  echo -e "OR"
-		  echo -e "	$(basename "$0") -unlock"
-		  echo -e " "
-		  echo -e "This will remove the lock for $(basename "$0")"
-		  exit 
-		fi
-		touch "$LOCK"
-		trap 'rm -rf "$LOCK"' INT QUIT TERM EXIT
-		while [[ $OPTARG == "--help" ]] ; do
-		  echo "[-g] is for [find] command in restic"
-		  echo "Usage:"
-		  echo "	./rescript.sh -g [pattern]"
-		  echo "Usage with flags:"
-		  echo "	./rescript.sh -g [flag] [host|path|snapshot|tag] [pattern]"
-		  echo "Available flags:"
-		  echo "	--host		only consider snapshots for this"
-		  echo "			host, when no snapshot ID is given"
-		  echo "	--long		use a long listing format showing"
-		  echo "			size and mode"
-		  echo "	--path		only consider snapshots wich include"
-		  echo "			this (absolute) path, when no"
-		  echo "			snapshot-ID is given"
-		  echo "	--snapshot	snapshot-ID to search in"
-		  echo "	--tag		only consider snapshots wich include"
-		  echo "			this taglist, when no snapshot-ID"
-		  echo "			is given"
-		  echo "You can combine [--long] flag with any other flag"
-		  echo "e.g.:"
-		  echo "	./rescript.sh -g [flag] [host|path|snapshot|tag] --long [pattern]"
-		exit
-		done
-		while [[ $OPTARG == "--host" || $OPTARG == "--path" || $OPTARG == "--snapshot" || $OPTARG == "--tag" ]] ; do
-		  if [[ -z "$3" ]] ; then 
-		    echo "No [$OPTARG] indicated"		    
-		  elif [[ "$4" == "--long" ]] ; then
-		    restic find "$OPTARG" "$3" "$4" "$5"
-		  else
-		    restic find "$OPTARG" "$3" "$4"
-		  fi
-		exit
-		done
-		while [[ $OPTARG ]] ; do
-		  if [[ "$OPTARG" == "--long" ]] ; then
-		    restic find "$OPTARG" "$3"
-		  else
-		    restic find "$OPTARG"
-		  fi
-		exit
-		done
-		;;
 	h|help)
 		echo "$Usage"
       		;;
-	k)
-		if [ -e "$LOCK" ]; then
-		  echo -e "$YELLOW""WARNING:""$ENDCOLOR" "$(basename "$0") is already running..."
-		  echo -e "If you are sure $(basename "$0") is not running, type"
-		  echo -e " "
-		  echo -e "	$(basename "$0") -u"
-		  echo -e "OR"
-		  echo -e "	$(basename "$0") -unlock"
-		  echo -e " "
-		  echo -e "This will remove the lock for $(basename "$0")"
-		  exit 
-		fi
-		touch "$LOCK"
-		trap 'rm -rf "$LOCK"' INT QUIT TERM EXIT
-		while [[ $OPTARG == "--help" ]] ; do
-		  echo "[-k] is for [key] command in restic"
-		  echo "Usage:"
-		  echo "	./rescript.sh -k [list|add|remove|passwd] [ID]"
-		  echo "Available options:"
-		  echo "	add		add a key"
-		  echo "	list		list all keys in your repo"
-		  echo "	passwd		change a password for a key"
-		  echo "	remove		remove a key from your repo"
-		  echo "Available flags:"
-		  echo "	--help		help for -l"
-		exit
-		done
-		while [[ $OPTARG == "remove" ]] ; do
-		  if [[ -z "$3" ]] ; then
-		    echo "No key to [$OPTARG] indicated"
-		  else
-		    restic key "$OPTARG" "$3"
-		  fi
-		exit
-		done
-		while [[ $OPTARG ]] ; do
-		  restic key "$OPTARG"
-		exit
-		done		
-		;;
-	l)
-		if [ -e "$LOCK" ]; then
-		  echo -e "$YELLOW""WARNING:""$ENDCOLOR" "$(basename "$0") is already running..."
-		  echo -e "If you are sure $(basename "$0") is not running, type"
-		  echo -e " "
-		  echo -e "	$(basename "$0") -u"
-		  echo -e "OR"
-		  echo -e "	$(basename "$0") -unlock"
-		  echo -e " "
-		  echo -e "This will remove the lock for $(basename "$0")"
-		  exit 
-		fi
-		touch "$LOCK"
-		trap 'rm -rf "$LOCK"' INT QUIT TERM EXIT
-		while [[ $OPTARG == "--help" ]] ; do
-		  echo "[-l] is for [ls] command in restic"
-		  echo "Usage:"
-		  echo "	./rescript.sh -l [snapshot-ID]"
-		  echo "Usage with flags:"
-		  echo "	./rescript.sh -l [flag] [snapshot-ID]"
-		  echo "Available flags:"
-		  echo "	--help		help for -l"
-		  echo "	--host		only consider snapshots for this"
-		  echo "			host, when no snapshot ID is given"
-		  echo "	--long		use a long listing format showing"
-		  echo "			size and mode"
-		  echo "	--path		only consider snapshots wich include"
-		  echo "			this (absolute) path, when no"
-		  echo "			snapshot-ID is given"
-		  echo "	--tag		only consider snapshots wich include"
-		  echo "			this taglist, when no snapshot-ID"
-		  echo "			is given"
-		exit
-		done
-		while [[ "$OPTARG" == "--host" || "$OPTARG" == "--long" || "$OPTARG" == "--path" || "$OPTARG" == "--tag" ]] ; do
-		  if [[ -z "$3" ]] ; then
-		    echo "No [$OPTARG] indicated"
-		  elif [[ "$4" == "--long" ]] ; then
-		    restic ls "$OPTARG" "$3" "$4" "$5"
-		  else
-		    restic ls "$OPTARG" "$3" "$4"
-		  fi
-		exit
-		done
-		while [[ "$OPTARG" ]] ; do
-		  restic ls "$OPTARG"
-		exit
-		done
-		;;
 	m|mount)
 		if [ -e "$LOCK" ]; then
 		  echo -e "$YELLOW""WARNING:""$ENDCOLOR" "$(basename "$0") is already running..."
@@ -509,49 +344,6 @@ while getopts ":bcdf:g:hk:l:mnp:r:s:uv" o
 		  fi
 		fi
 		;;
-	p)
-		if [ -e "$LOCK" ]; then
-		  echo -e "$YELLOW""WARNING:""$ENDCOLOR" "$(basename "$0") is already running..."
-		  echo -e "If you are sure $(basename "$0") is not running, type"
-		  echo -e " "
-		  echo -e "	$(basename "$0") -u"
-		  echo -e "OR"
-		  echo -e "	$(basename "$0") -unlock"
-		  echo -e " "
-		  echo -e "This will remove the lock for $(basename "$0")"
-		  exit 
-		fi
-		touch "$LOCK"
-		trap 'rm -rf "$LOCK"' INT QUIT TERM EXIT
-		while [[ "$OPTARG" == "--help" ]] ; do
-		  echo "[-p] is for [snapshots] command in restic"
-		  echo "Usage:"
-		  echo "	./rescript.sh -p [flag] [host|path|tag]"
-		  echo "Available flags:"
-		  echo "	--compact	use compact format"
-		  echo "	--cleanup-cache	auto remove old cache directories"
-		  echo "	--help		help for -p"
-		  echo "	--host		only consider snapshots for this host"
-		  echo "	--last		only show the last snapshot for each"
-		  echo "			host and path [does not need an argument]"
-		  echo "	--path		only consider snapshots for this path"
-		  echo "	--tag		only consider snapshots which include this"
-		  echo "			taglist"
-		exit
-		done
-		while [[ $OPTARG == "--host" || $OPTARG == "--path" || $OPTARG == "--tag" ]] ; do
-		  if [[ -z "$3" ]] ; then
-		    echo "No [$OPTARG] indicated"
-		  else
-		    restic snapshots "$OPTARG" "$3"
-		  fi
-		exit
-		done
-		while [[ $OPTARG ]] ; do
-		  restic snapshots "$OPTARG"
-		exit
-		done
-		;;
 	r)
 		if [ -e "$LOCK" ]; then
 		  echo -e "$YELLOW""WARNING:""$ENDCOLOR" "$(basename "$0") is already running..."
@@ -577,7 +369,7 @@ while getopts ":bcdf:g:hk:l:mnp:r:s:uv" o
 		  echo "	--host		only consider snapshots for this host"
 		  echo "			when snapshot-ID is [latest]"
 		  echo "	--path		only consider snapshots which include"
-		  echo "			this (absolute) path for snapshot-ID [latest]"
+		  echo "			this [absolute] path for snapshot-ID [latest]"
 		  echo "	--tag		only consider snapshots which include this"
 		  echo "			taglist for snapshot-ID [latest]"
 		exit
@@ -676,84 +468,6 @@ while getopts ":bcdf:g:hk:l:mnp:r:s:uv" o
 	v|version)
 	        echo "$Version"
         	;;
-	s)
-		if [ -e "$LOCK" ]; then
-		  echo -e "$YELLOW""WARNING:""$ENDCOLOR" "$(basename "$0") is already running..."
-		  echo -e "If you are sure $(basename "$0") is not running, type"
-		  echo -e " "
-		  echo -e "	$(basename "$0") -u"
-		  echo -e "OR"
-		  echo -e "	$(basename "$0") -unlock"
-		  echo -e " "
-		  echo -e "This will remove the lock for $(basename "$0")"
-		  exit 
-		fi
-		touch "$LOCK"
-		trap 'rm -rf "$LOCK"' INT QUIT TERM EXIT
-		while [[ "$OPTARG" == "--help" ]] ; do
-		  echo "[-s] is for [stats] command in restic"
-		  echo "Usage:"
-		  echo "	./rescript.sh -s [snapshot-ID]"
-		  echo "Usage with flags:"
-		  echo "	./rescript.sh -s [--host] [host]"
-		  echo "Usage with mode flag:"
-		  echo "	./rescript.sh -s [--mode] [mode]"		  
-		  echo "Available flags:"
-		  echo "	--cleanup-cache	auto remove old cache directories"
-		  echo "	--help		help for -s"
-		  echo "	--host		filter latest snapshot by this hostname"
-		  echo "	--mode		modes for counting data"
-		  echo "Available modes:"
-		  echo "	restore-size		(default) Counts the size of the"
-		  echo "				restored files"
-		  echo "	files-by-contents	Counts total size of files, where"
-		  echo "				a file isconsidered unique if it"
-		  echo "				has unique contents"
-		  echo "	raw-data		Counts the size of blobs in the"
-		  echo "				repository, regardless of how many"
-		  echo "				files reference them"
-		  echo "	blobs-per-file		A combination of files-by-contents"
-		  echo "				and raw-data"
-		exit
-		done
-		while [[ "$OPTARG" == "--host" ]] ; do
-		  if [[ -z "$3" ]] ; then
-		    echo "No [$OPTARG] indicated"
-		  elif [[ "$4" == "--mode" ]] ; then
-		    restic stats "$OPTARG" "$3" "$4" "$5"
-		  else
-		    restic stats "$OPTARG" "$3"
-		  fi
-		exit
-		done
-		while [[ "$OPTARG" == "--mode" ]] ; do
-		  if [[ -z "$3" ]] ; then
-		    echo "No [$OPTARG] indicated"
-		    echo "Available modes:"
-		    echo "	restore-size		(default) Counts the size of the"
-		    echo "				restored files"
-		    echo "	files-by-contents	Counts total size of files, where"
-		    echo "				a file isconsidered unique if it"
-		    echo "				has unique contents"
-		    echo "	raw-data		Counts the size of blobs in the"
-		    echo "				repository, regardless of how many"
-		    echo "				files reference them"
-		    echo "	blobs-per-file		A combination of files-by-contents"
-		    echo "				and raw-data"
-		  elif [[ "$5" ]] ; then
-		    restic stats "$OPTARG" "$3" "$4" "$5"
-		  elif [[ -z "$5" ]] ; then
-		    restic stats "$OPTARG" "$3" "$4"
-		  else
-		    restic stats "$OPTARG" "$3"
-		  fi
-		exit
-		done
-		while [[ "$OPTARG" ]] ; do
-		  restic stats "$OPTARG"
-		exit
-		done
-		;;
 	u|unlock)
 		if [[ ! -e "$LOCK" ]]; then
 			echo -e "$YELLOW""No locks found...""$ENDCOLOR"
@@ -767,18 +481,8 @@ while getopts ":bcdf:g:hk:l:mnp:r:s:uv" o
 	        ;;
 	:)
 		echo "You have not indicated any option for [-$OPTARG]"
-		echo "	-f requires a snapshot-ID to forget [use -f --help"
-		echo "	   for usage]"
-		echo "	-g requires a file or directory to find [use -g --help for"
-		echo "	   usage and available flags]"
-		echo "	-k requires one of these four options: list, add, remove,"
-		echo "	   passwd [use -k --help for usage]"
-		echo "	-l requires a snapshot-ID to list [use -l --help for usage]"
-		echo "	-p requires a flag [use -p --help for usage and"
-		echo "	   available flags]"
 		echo "	-r requires a snapshot-ID to restore [use -r --help for"
 		echo "	   usage and available flags]"
-		echo "	-s requires a flag [use -k --help for usage and available flags]"
 	        ;;
 	*)
 	        echo "Unknown error while processing options"
@@ -790,18 +494,97 @@ while getopts ":bcdf:g:hk:l:mnp:r:s:uv" o
 shift $((OPTIND - 1))
 
 # Commands
-command="$1"
-if [[ -n "$command" ]] ; then
-  if [[ "$command" == "help" ]] ; then
+if [[ -n "$1" ]] ; then
+  if [[ "$1" == "help" || "$1" == "--a" ]] ; then
+    if [ -e "$LOCK" ]; then
+	echo -e "$YELLOW""WARNING:""$ENDCOLOR" "$(basename "$0") is already running..."
+	echo -e "If you are sure $(basename "$0") is not running, type"
+	echo -e " "
+	echo -e "	$(basename "$0") -u"
+	echo -e "OR"
+	echo -e "	$(basename "$0") -unlock"
+	echo -e " "
+	echo -e "This will remove the lock for $(basename "$0")"
+        exit
+    fi
+    touch "$LOCK"
+    trap 'rm -rf "$LOCK"' INT QUIT TERM EXIT
     echo "$Usage"
     exit
-  elif [[ "$command" == "version" ]] ; then
+  elif [[ "$1" == "version" ]] ; then
+    if [ -e "$LOCK" ]; then
+	echo -e "$YELLOW""WARNING:""$ENDCOLOR" "$(basename "$0") is already running..."
+	echo -e "If you are sure $(basename "$0") is not running, type"
+	echo -e " "
+	echo -e "	$(basename "$0") -u"
+	echo -e "OR"
+	echo -e "	$(basename "$0") -unlock"
+	echo -e " "
+	echo -e "This will remove the lock for $(basename "$0")"
+        exit
+    fi
+    touch "$LOCK"
+    trap 'rm -rf "$LOCK"' INT QUIT TERM EXIT
     echo "$Version"
     exit
+  elif [[ "$1" == "backup" ]] ; then
+    if [ -e "$LOCK" ]; then
+      echo -e "$YELLOW""WARNING:""$ENDCOLOR" "$(basename "$0") is already running..."
+      echo -e "If you are sure $(basename "$0") is not running, type"
+      echo -e " "
+      echo -e "		$(basename "$0") -u"
+      echo -e "OR"
+      echo -e "		$(basename "$0") -unlock"
+      echo -e " "
+      echo -e "This will remove the lock for $(basename "$0")"
+      exit 
+    fi
+    touch "$LOCK"
+    trap 'rm -rf "$LOCK"' INT QUIT TERM EXIT
+    echo -e "======================================================================"
+    echo -e "| - - - - - - - > [ S T A R T I N G    B A C K U P ] < - - - - - - - |"
+    echo -e "======================================================================"
+    echo -e "$YELLOW""Date and Time:""$ENDCOLOR" "$(date)"
+    echo -e "$YELLOW""System:""$ENDCOLOR" "$(cat /etc/issue.net) $(uname -o) $(uname -r)"
+    echo -e "$YELLOW""Hostname:""$ENDCOLOR" "$HOSTNAME"
+    if [[ "$DESTINATION" ]] ; then
+      echo -e "$YELLOW""Backup Destination:""$ENDCOLOR" "$DESTINATION"
+    else
+      echo -e "$YELLOW""Backup Destination:""$ENDCOLOR" "$BACKUP_DIR"
+    fi
+    echo -e "----------------------------------------------------------------------"
+    restic backup "$BACKUP_DIR" --tag "$TAG" --verbose --exclude-caches --exclude="/home/*/.cache/*" --exclude="/home/*/.local/share/Trash/*" --exclude="$EXCLUDE01" --exclude="$EXCLUDE02" --exclude="$EXCLUDE03" --exclude="$EXCLUDE04" --exclude="$EXCLUDE05" --exclude="$EXCLUDE06" --exclude="$EXCLUDE07" --exclude="$EXCLUDE08" --exclude="$EXCLUDE09" --exclude="$EXCLUDE10" --exclude="$EXCLUDE11" --exclude="$EXCLUDE12" --exclude="$EXCLUDE13" --exclude="$EXCLUDE14" --exclude="$EXCLUDE15"
+    echo -e "----------------------------------------------------------------------"
+    echo -e "$YELLOW""End:""$ENDCOLOR" "$(date)"
+    HRS=$((SECONDS / 3600))
+    MIN=$(((SECONDS / 60) % 60))
+    SEC=$((SECONDS % 60))
+    if [[ "$HRS" -gt "0" ]] ; then
+      echo -e "$YELLOW""Duration:""$ENDCOLOR" "$HRS hours $MIN minues $SEC seconds"
+    elif [[ "$MIN" -gt "0" ]] ; then
+      echo -e "$YELLOW""Duration:""$ENDCOLOR" "$MIN minutes $SEC seconds"
+    else
+      echo -e "$YELLOW""Duration:""$ENDCOLOR" "$SEC seconds"
+    fi
+    echo -e "======================================================================"
+    echo -e "| - - - - - - - - > [ B A C K U P      E N D E D ] < - - - - - - - - |"
+    echo -e "======================================================================"
+    exit
   else
-    for command in "$@"
-    do restic "$1"
-    done
+    if [ -e "$LOCK" ]; then
+	echo -e "$YELLOW""WARNING:""$ENDCOLOR" "$(basename "$0") is already running..."
+	echo -e "If you are sure $(basename "$0") is not running, type"
+	echo -e " "
+	echo -e "	$(basename "$0") -u"
+	echo -e "OR"
+	echo -e "	$(basename "$0") -unlock"
+	echo -e " "
+	echo -e "This will remove the lock for $(basename "$0")"
+        exit
+    fi
+    touch "$LOCK"
+    trap 'rm -rf "$LOCK"' INT QUIT TERM EXIT
+    restic "$@"
     exit
   fi
 fi
@@ -964,6 +747,7 @@ else
       restic check --cleanup-cache
     fi
 fi
+
 
 # Stats
 echo -e "----------------------------------------------------------------------"
