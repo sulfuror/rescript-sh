@@ -1,4 +1,4 @@
-## About `rescript.sh`
+## About `rescript`
 This script was created for the sole purpose of using
 [Restic](https://restic.net/) (deduplication backup program).
 
