@@ -96,7 +96,7 @@ If you don't have theses lines in your `.profile` then just copy those and paste
 at the end. If you had to create the `$HOME/bin` or `$HOME/.local/bin` directory and / or
 edit the `.profile`, then you need to restart your session, or log out and login, or reboot your computer in 
 order for this work. If it was already there, you don't need to do anything, just 
-give it permission to execute  (`chmod 700 rescript.sh`) and (optional) move 
+give it permission to execute  (`chmod 700 rescript`) and (optional) move 
 the script to `/.local/bin`.
 
 If you have different repos you can just change the name of the script and use
@@ -190,9 +190,9 @@ rescript -r [--flag] [host|path|tag]
 ## Adding a Cron Job
 You can use a cron job to run backups automatically. You'll need to open your 
 terminal emulator and edit your crontab file writing `crontab -e` and `enter`.
-After that you need to add a new cronjob like `10 */2 * * * /PATH/TO/YOUR/rescript.sh`.
+After that you need to add a new cronjob like `10 */2 * * * /PATH/TO/YOUR/rescript`.
 This cron job will execute every two hours at the 10th minute. If you want to change it for every four hours;
-for example, at the 0 minute just write `0 */4 * * * /PATH/TO/YOUR/rescript.sh`.
+for example, at the 0 minute just write `0 */4 * * * /PATH/TO/YOUR/rescript`.
 
 Also, you can create a log file so the cron job can store the output in a
 plaintext file. You can do this by adding in the cron job file the following
@@ -209,7 +209,7 @@ rescript-log_2018-01-01-12:00 with all the script process output.
 If you do this your `crontab` will look like this:
 
 ```
-0 */4 * * * /PATH/TO/YOUR/rescript.sh >> /home/YOURUSERNAME/.rescript/logs/rescript-log_$(date +\%Y-\%m-\%d-\%H:00) 2>&1
+0 */4 * * * /PATH/TO/YOUR/rescript >> /home/YOURUSERNAME/.rescript/logs/rescript-log_$(date +\%Y-\%m-\%d-\%H:00) 2>&1
 ```
 
 If you want to just do backups with this script without the need to run
@@ -217,7 +217,7 @@ the entire script, you can set up a cron job including the `-b` option,
 just to run a backup and anything else, like this:
 
 ```
-0 */4 * * * /PATH/TO/YOUR/rescript.sh -b >> /home/YOURUSERNAME/.rescript/logs/rescript-log_$(date +\%Y-\%m-\%d-\%H:00) 2>&1
+0 */4 * * * /PATH/TO/YOUR/rescript -b >> /home/YOURUSERNAME/.rescript/logs/rescript-log_$(date +\%Y-\%m-\%d-\%H:00) 2>&1
 ```
 
 You can change the destination to your logs if you want. I made it 
