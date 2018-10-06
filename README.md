@@ -5,9 +5,9 @@ This script was created for the sole purpose of using
 ## This `script` was made to run the following commands automatically:
 1. backup
 2. snapshots
-3. check
-4. forget
-5. prune
+3. forget
+4. prune
+5. check
 6. stats
 
 Also, it'll give you a nice output additional of the restic output with
@@ -21,57 +21,42 @@ operation and the duration of the whole operation.
    for what you need; if you use it without knowing what you're doing, that's on you too.
 2. You need `restic 0.9.2` installed to use this script (I think `stats` are not in older versions of `restic`).
 3. This script was made for GNU/Linux use. You could use it for other systems but you'll
-   probably have to edit the commands depending on your system.
+   probably have to edit some things depending on your system.
 4. I'm not a developer, programmer or anything related; I'm just a regular user
    sharing my basic knowledge.
-5. This script was made with an external HDD in mind. If you need to backup
-   to a S3 cloud, or with `rclone` you must make sure that you add your
-   credentials or put your `rclone` repository correctly in order to function.
-6. I made a lot of changes in the latest version (v1.0); I made this "tags" of 
-   versions because I still want to have at hand the older one just in case
-   I get bored of this one. You're free to navigate to the "tags" and download
-   it if you prefer that one. The older one is v0.5.
+5. This script was made with an external HDD, sftp connection or using rclone in mind.
+   If you need to backup to a S3, B2, or any other service using the service that make use
+   of credentials in order to access your repository, make sure to add an export of your credentials.
 
 ## Usage:
-The best way I've found to use a script is to put the script in your `./local/bin`
-directory. This is my choice, you're free to use it as you like. Distributions
-like _**Ubuntu**_ have already the options in their system to use this file
-as a regular `/bin` file of your system; that means, it already read from
-there executable files. So if `./local/bin` is already created, that's a great
-place for this script. If not and you don't want to write `./script.sh` every time
-you want to use it and instead you wish to type `nameofyourscript` and the options,
-then you just need to create it. Once created, verify in your `.profile` document
-if your distribution already have this option enabled. If you see this next lines
-it means it is already enabled:
 
-```
-# set PATH so it includes user's private bin if it exists
-if [ -d "$HOME/.local/bin" ] ; then
-    PATH="$HOME/.local/bin:$PATH"
-fi
-```
+When you open the script in your favorite text editor you'll see fairly clear instructions but
+for the sake of make things clear I'll explain as follows what you need to do:
 
-If you don't have theses lines in your `.profile` then just copy those and paste it
-at the end. If you had to create the `/bin` directory and edit the `.profile`, then
-you need to restart your session, or log out and login, or reboot your computer in 
-order for this work. If it was already there, you don't need to do anything, just 
-give it permission to execute  (`chmod 700 rescript.sh`) and (optional) rename the 
-script from `rescript.sh`  to `whatevername`, move the script to `/.local/bin`, open your terminal
-and type the name of your script.
+**Things you need to change**:
 
-You'll see a lot of lines in this little script. What you need to change is the following values:
+* `RESTIC_PASSWORD="CHANGE_ME"`: Put your restic password between the "".
+* `RESTIC_REPO="/path/to/your/repo"`: Put your repository directory.
+* `BACKUP_DIR="$HOME"`: This is what you're backing up; by default is your home directory.
+* `KEEP_HOURLY="8"`: Indicate the number of hourly backups you want to keep.
+* `KEEP_DAILY="7"`: Indicate the number of daily backups you want to keep.
+* `KEEP_WEEKLY="4"`: Indicate the number of weekly backups you want to keep.
+* `KEEP_MONTHLY="12"`: Indicate the number of montly backups you want to keep.
+* `KEEP_YEARLY="10"`: Indicate the number of yearly backups you want to keep.
 
-* `RESTIC_PASSWORD="CHANGE_ME"` <- Put your restic password between the ""
-* `RESTIC_REPO="/path/to/your/repo"` <- Put your repository directory
-* `BACKUP_DIR="$HOME"` <- This is what you're backing up; by default is your home directory
-* `DESTINATION="Local"` <- Put the name of your backup destination; something like S3, Google Drive, External Drive, FriendServerName, etc.
-* `TAG="YOURTAG"` <- Change YOURTAG to your tag; this is commented (it will not work) by default; just uncomment (delete the "#" symbol at the beginning) if you want to use a tag
-* `KEEP_HOURLY="8"` <- Indicate the number of hourly backups you want to keep
-* `KEEP_DAILY="7"` <- Indicate the number of daily backups you want to keep
-* `KEEP_WEEKLY="4"` <- Indicate the number of weekly backups you want to keep
-* `KEEP_MONTHLY="12"` <- Indicate the number of montly backups you want to keep
-* `KEEP_YEARLY="10"` <- Indicate the number of yearly backups you want to keep
-* `CLEAN="7"` <- Indicate the number (in days) of your cleanup policy (by default is 7 days); this will run forget, check and prune according to your choice
+**Optional variables**:
+
+These variables are optional because the script will still work if you don't want to setup
+ a "cleanup", tag or destination.
+
+* `CLEAN="7"`: Indicate the number (in days) of your cleanup policy (by default is 7 days); 
+   this will make sure that the script run forget, check and prune applying your policies every
+  days. You may change the number of days or leave it blank if you don't want the script to do this.
+* `TAG=""`: Indicate the tag you want to use for your backups between the "" or just leave it blank
+   if you don't want to use tags.
+* `DESTINATION=""`: Put the name of your backup destination between the "" 
+   (something like S3, Google Drive, External Drive, FriendServerName, etc.). If you don't want to use
+   it just leave it blank. This is just used for output purposes.
 
 There are 15 exclude rules. You don't have to use it all or delete the ones you're
 not using. If there's no file indicated it'll run normally without excluding anything
@@ -89,24 +74,74 @@ If you want to exclude all PDF files, for example, you could do it like this:
 
 `EXCLUDE01="*.pdf"`
 
+Once you have set the variables you can put this script in your `$HOME/.local/bin` or `$HOME/bin` 
+directory, so you don't have to indicate the full path every time you want to use it. Distributions like 
+_**Ubuntu**_ have already these paths set on the `.profile` file in your Home directory. 
+If `$HOME/.local/bin` was already there you don't have to do anything else. Just check your 
+your `.profile` text file if your distribution already have this option enabled. If you see these next lines
+it means it is already enabled:
+
+```
+# set PATH so it includes user's private bin if it exists
+if [ -d "$HOME/bin" ] ; then
+    PATH="$HOME/bin:$PATH"
+fi
+
+# set PATH so it includes user's private bin if it exists
+if [ -d "$HOME/.local/bin" ] ; then
+    PATH="$HOME/.local/bin:$PATH"
+fi
+```
+If you don't have theses lines in your `.profile` then just copy those and paste it
+at the end. If you had to create the `$HOME/bin` or `$HOME/.local/bin` directory and / or
+edit the `.profile`, then you need to restart your session, or log out and login, or reboot your computer in 
+order for this work. If it was already there, you don't need to do anything, just 
+give it permission to execute  (`chmod 700 rescript.sh`) and (optional) move 
+the script to `/.local/bin`.
+
+If you have different repos you can just change the name of the script and use
+one for every repo. For example:
+
+* For a B2 repo change `rescript` to `rescript_b2` so when you type `rescript_b2`
+   you're referring to the B2 repo.
+
 ## Commands and Options:
 
 Commands and options are optional. If you don't run any command or option
 the script will run normally with all the options you have in your script.
 
-You can use the script with the following five commands and six options:
+You can pass any restic command after calling the script. For example, if you
+want to display your snapshots you just need to do this:
 
-**Commands**:
-1. `check`: This will check your repository
-2. `help`: Help for this script
-3. `init`: This will create a new repository if it does not exists
-4. `prune`: This will delete data (if there's nothing to delete it won't do anything)
-5. `snapshots`: This will display a list of your snapshots
-6. `unlock`: This will unlock your repository
-7. `rebuild-index`: This will build a new index file
-8. `stats`: This will scan the repository and show basic statistics
+```
+rescript snapshots
+```
+You can use as many commands and flags as you want, as you were using restic but
+calling the name of the script before the option. There are three commands that will
+not work as restic usually work, and those are the following commands:
 
-**Automatic Options**:
+1. `backup`: This command will run a backup according to the variables set before.
+2. `help`: This command will display `rescript` help.
+3. `version`: This command will display the current version of `rescript` you're using.
+ 
+As far as I've tested, all other restic commands will run as using restic alone. For help
+with restic commands type:
+
+```
+restic help command
+OR
+rescript command --help
+```
+
+For restic regular commands usage:
+
+```
+rescript [command] [--flags] [options] [etc]
+```
+Please see restic `help` and [documentation](https://restic.readthedocs.io/en/stable/) for more.
+
+**Rescript Options**:
+
 1. `-b, -backup`: this option is pretty basic; it does what it says... it'll
    take a new snapshot.
 2. `-c, -cleanup`: this option will execute `forget` according to the policies
@@ -129,74 +164,28 @@ You can use the script with the following five commands and six options:
    script is already running and it will not run again until the lock file is removed.
    If you're really sure the script is not running you can just run this option
    and it will delete the lock file so you can continue with your operation.
+9. `-r`: this option will restore the snapshot you want to restore. You need to indicate
+   the snapshot-ID you want to restore. With this option you don't need to indicate where to restore,
+   it will automatically create a new file in your home directory called `restore-snapshotID-randomnumber`.
+   It will do the random number so it will not conflict with maybe a file called the same in your
+   home directory. You can use `-r` with the following restic flags: `--host`, `--path` and `--tag`.
+   For help type `rescript -r --help`. This option will also run `--verify` flag.
 
-**User Options**
-1. `-f`: this option is for forget snapshots.
-2. `-g`: this option is for find; it will help you find a file, pattern or directory
-   inside your repo.
-3. `-k`: this stands for keys and is for wokring, listing with your repo keys.
-4. `-l`: this option is for ls to list files in a snapshot.
-5. `-p`: this option is to list snapshots with flags.
-6. `-r`: this option will restore with the `--verify` flag any snapshot
-         you wish to restore.
-7. `-s`: this option will give you stats for your repository.
+Rescript options usage:
 
-Every "user option" comes with help for each one. You can see the usage and 
-flags available typing:
 ```
-./rescript.sh -o --help
-```
-Obviously, the `-o` doesn't exist, so you have to type the letter of the option
-you want to see the "help".
-
-You can just use one argument with every "user option". This means that, for
-example, you can just use `-f` for one snapshot at a time.
-
-You can use these commands as follows:
-```
-    ./rescript.sh command
+rescript -b
 OR
-    ./rescript.sh -automatic_option
+rescript -backup
+```
+
+For restore:
+
+```
+rescript -r [snapshot-ID]
 OR
-    ./rescript.sh -user_option argument
+rescript -r [--flag] [host|path|tag]
 ```
-**User Options Examples**:
-
-For `forget`:
-```
-./rescript.sh -f [snapshot-ID]
-```
-For `find`:
-```
-./rescript.sh -g [pattern]
-```
-For `key`:
-```
-./rescript.sh -k [list|add|remove|passwd] [ID]
-```
-For `ls`:
-```
-./rescript.sh -l [snapshot-ID]
-```
-For `snapshots`:
-```
-./rescript.sh -p [flag] [host|path|tag]
-```
-For `restore`:
-```
-./rescript.sh -r [snapshot ID]
-```
-For `stats`:
-```
-./rescript.sh -s [snapshot-ID]
-```
-
-Commands will work if you use the full command. You can use options with
-just one letter or the full name of the option. For example, for "help"
-you need to type `./rescript.sh -h` or `./rescript.sh -help`. Both are valid
-and do the same thing. Optional commands will only wokr with just one letter.
-
-You can use just one command or option at a time.
 
 ## Adding a Cron Job
 You can use a cron job to run backups automatically. You'll need to open your 
@@ -208,6 +197,7 @@ for example, at the 0 minute just write `0 */4 * * * /PATH/TO/YOUR/rescript.sh`.
 Also, you can create a log file so the cron job can store the output in a
 plaintext file. You can do this by adding in the cron job file the following
 after the cron job you've just created:
+
 ```
 >> /home/YOURUSERNAME/.rescript/logs/rescript-log_$(date +\%Y-\%m-\%d-\%H:00) 2>&1
 ```
