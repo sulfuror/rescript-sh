@@ -59,7 +59,7 @@ EXCLUDE15=""
 
 # AFTER THIS LINE YOU DO NOT NEED TO DO ANYTHING ELSE, YOU'RE DONE NOW
 # PUT THE SCRIPT TO WORK (remember to give the right to execute with 
-# 'chmod 700 rescript.sh') AND GO BACK TO YOUR LIFE
+# 'chmod 700 rescript') AND GO BACK TO YOUR LIFE
 # =============================================================================== #
 #                  H E R E   B E G I N S   T H E   S C R I P T
 # =============================================================================== #
@@ -102,11 +102,11 @@ if [[ ! -z "$CLEAN" ]] ; then
   fi
 fi
 # ------------------------------------------------------------------------------- #
-Version="rescript.sh-v1.6"
+Version="rescript-v1.6"
 Usage='Author		: Sulfuror, Copyright (c) 2018 <sulfuror@gmail.com>
 License		: BSD 2-clause "Simplified" License
-Version		: rescript.sh-v1.6
-Description	: rescript.sh is a shell script created to manage
+Version		: rescript-v1.6
+Description	: rescript is a bash script created to manage
 		  backups made with restic program.
 
 "restic is a backup program which allows saving multiple revisions 
@@ -128,10 +128,10 @@ For restic help type in you terminal emulator [restic help]. For
 other restic commands help you can type:
 	restic help [command]
 OR
-	./rescript.sh [restic_command] --help
+	rescript [restic_command] --help
 
 Commands usage:
-	./rescript.sh [command] [flags] [options]
+	rescript [command] [flags] [options]
 
 Rescript options:
 	-b, -backup		Take a snapshot
@@ -155,11 +155,11 @@ Rescript options:
 		--tag		only consider snapshots which include this
 				taglist for snapshot-ID [latest]
 Rescript options usage:
-	./rescript.sh [-o|-option]
+	rescript [-o|-option]
 When using [-r] restore option:
-	./rescript.sh -r [snapshot-ID]
+	rescript -r [snapshot-ID]
 OR
-	./rescript.sh -r [--flag] [option]
+	rescript -r [--flag] [option]
 
 For more information about the usage check out the following link:
 https://gitlab.com/sulfuror/rescript.sh/blob/master/README.md#usage
@@ -361,9 +361,9 @@ while getopts ":bcdhmnr:uv" o
 		while [[ "$OPTARG" == "--help" ]] ; do
 		  echo "[-r] is for [restore] command in restic"
 		  echo "Usage:"
-		  echo "	./rescript.sh -r [snapshot-ID]"
+		  echo "	rescript -r [snapshot-ID]"
 		  echo "Usage with flags:"
-		  echo "	./rescript.sh -r [flag] [host|path|tag]"
+		  echo "	rescript -r [flag] [host|path|tag]"
 		  echo "Available flags:"
 		  echo "	--help		help for -r"
 		  echo "	--host		only consider snapshots for this host"
