@@ -45,7 +45,7 @@ DESTINATION=""
 # =============================================================================== #
 #                  H E R E   B E G I N S   T H E   S C R I P T
 # =============================================================================== #
-033[33m"
+YELLOW="\033[33m"
 ENDCOLOR="\033[0m"
 LOCK="$HOME/.rescript/lock/$(basename "$0").lock"
 DATEFILE="$HOME/.rescript/config/$(basename "$0")-datefile"
