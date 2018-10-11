@@ -68,11 +68,6 @@ if [ -d "$HOME/.local/bin" ] ; then
     PATH="$HOME/.local/bin:$PATH"
 fi
 
-# For v1.6 and older move the datefile to the [config] directory
-if [[ -f "$HOME/.rescript/logs/datefile-$(basename "$0")" ]] ; then
-  mv "$HOME/.rescript/logs/datefile-$(basename "$0")" "$HOME/.rescript/config/$(basename "$0")-datefile"
-fi
-
 # Create a rescript directories
 if [[ ! -d "$HOME/.rescript" ]]; then
   mkdir -p "$HOME/.rescript"
@@ -85,6 +80,11 @@ if [[ ! -d "$HOME/.rescript/lock" ]]; then
 fi
 if [[ ! -d "$HOME/.rescript/logs" ]]; then
   mkdir -p "$HOME/.rescript/logs"
+fi
+
+# For v1.6 and older move the datefile to the [config] directory
+if [[ -f "$HOME/.rescript/logs/datefile-$(basename "$0")" ]] ; then
+  mv "$HOME/.rescript/logs/datefile-$(basename "$0")" "$HOME/.rescript/config/$(basename "$0")-datefile"
 fi
 
 # If there is no exclude file create one
