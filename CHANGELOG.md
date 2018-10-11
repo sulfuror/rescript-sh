@@ -1,3 +1,19 @@
+# October 10, 2018
+
+**Changes**:
+
+1. Added the `-e` option. Use `rescript -e --help` for usage or see README file.
+2. Added B2 credentials option.
+3. Added an exclusion file and generic exclusion lists.
+4. Added `--keep-last` option.
+5. Added an option to automatically move `datefile` from `logs` to `config` directory.
+6. Removed the exclusion list (unneccesary with exclusion file).
+
+**Fixes**:
+
+1. Typos.
+2. Reset credentials.
+
 # October 6, 2018
 
 **Changes**:
