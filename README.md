@@ -38,6 +38,7 @@ for the sake of make things clear I'll explain as follows what you need to do:
 * `RESTIC_PASSWORD="CHANGE_ME"`: Put your restic password between the "".
 * `RESTIC_REPO="/path/to/your/repo"`: Put your repository directory.
 * `BACKUP_DIR="$HOME"`: This is what you're backing up; by default is your home directory.
+* `KEEP_LAST="0"`: Indicate the number of "last" backups you want to keep
 * `KEEP_HOURLY="8"`: Indicate the number of hourly backups you want to keep.
 * `KEEP_DAILY="7"`: Indicate the number of daily backups you want to keep.
 * `KEEP_WEEKLY="4"`: Indicate the number of weekly backups you want to keep.
@@ -58,21 +59,25 @@ These variables are optional because the script will still work if you don't wan
    (something like S3, Google Drive, External Drive, FriendServerName, etc.). If you don't want to use
    it just leave it blank. This is just used for output purposes.
 
-There are 15 exclude rules. You don't have to use it all or delete the ones you're
-not using. If there's no file indicated it'll run normally without excluding anything
-but the cache and trash. The "excludes" looks like this:
+**Exclusions**:
 
-`EXCLUDE01=""`
+In the past you will have to put the exclusions in the same script... from v1.7 onwards this has change.
+Now you'll have an option [-e] to work with the exclusions. The exclusion file will be created by the
+script in `.rescript/config`, so once you run this script your exclusion file will be created inside
+this directory with a couple of exclusions by default, including Trash, rescript lock, private directory
+and ecryptfs . You can change this if you want. There are another options to create a more complete
+exclusion list for system backups and home directories. The [-e] options are explained as follows:
 
-You just have to put the full path of your excluded items/directories or the patterns
-you want to exclude. For example, if I you don't want to backup your "Downloads" foler
-just indicate it like this:
+1. `--build`: this option will build an exclusion file to be used according to your choice. You can add,
+   edit or remove exclusions rules as needed. This option by itself will do nothing, you have to chose from
+   two other options: `	home` or `sys`. So you need to execute `rescript -e --build home` in order
+   to build an exclude generic file for your home directory.
+2. `--help`: this will display the help dialog for `-e`.
+3. `edit`: now, executing `rescript -e edit` will open your exclusion file so you can either look at it,
+   remove, add or edit the exclusion file.
+4. `list`: the list option will list the exclusions inside its file.
 
-`EXCLUDE01="/home/user/Downloads"`
-
-If you want to exclude all PDF files, for example, you could do it like this:
-
-`EXCLUDE01="*.pdf"`
+If you had any exclusion list, copy your exclusion list before doing the change.
 
 Once you have set the variables you can put this script in your `$HOME/.local/bin` or `$HOME/bin` 
 directory, so you don't have to indicate the full path every time you want to use it. Distributions like 
@@ -148,15 +153,16 @@ Please see restic `help` and [documentation](https://restic.readthedocs.io/en/st
    indicated in your script; also it'll execute the `prune` with `--cleanup-cache` flag so it'll
    actually delete the forgotten snapshots and cleanup your cache.
 3. `-d, -deep-check`: Check repository with --read-data flag.
-4. `-h, -help`: this will bring up the help dialog on your terminal emulator.
-5. `-m, -mount`: this option will mount your repository; it'll create a 
+4. `-e`: manage your exclusion file.
+5. `-h, -help`: this will bring up the help dialog on your terminal emulator.
+6. `-m, -mount`: this option will mount your repository; it'll create a 
    directory in your `/home` so it can mount your repository. Once you quit
    the mount option with `Ctrl+c` it will delete the directory.
-6. `-n, -next-cleanup`: this will show you the time left for your next cleanup
+7. `-n, -next-cleanup`: this will show you the time left for your next cleanup
    according to your option in "CLEAN" days.
-7. `-v, -version`: this option will display the version you're using
+8. `-v, -version`: this option will display the version you're using
    of this script.
-8. `-u, -unlock`: this option WILL NOT unlock your repository. When you run this
+9. `-u, -unlock`: this option WILL NOT unlock your repository. When you run this
    script it will create a separate lock just for the script (it has nothing
    to do with the restic locks), so if your latest run left a lock (which is
    very unlikely unless it occurs an abrupt shut down while the script was running)
@@ -164,7 +170,7 @@ Please see restic `help` and [documentation](https://restic.readthedocs.io/en/st
    script is already running and it will not run again until the lock file is removed.
    If you're really sure the script is not running you can just run this option
    and it will delete the lock file so you can continue with your operation.
-9. `-r`: this option will restore the snapshot you want to restore. You need to indicate
+10. `-r`: this option will restore the snapshot you want to restore. You need to indicate
    the snapshot-ID you want to restore. With this option you don't need to indicate where to restore,
    it will automatically create a new file in your home directory called `restore-snapshotID-randomnumber`.
    It will do the random number so it will not conflict with maybe a file called the same in your
@@ -220,12 +226,6 @@ just to run a backup and anything else, like this:
 0 */4 * * * /PATH/TO/YOUR/rescript -b >> /home/YOURUSERNAME/.rescript/logs/rescript-log_$(date +\%Y-\%m-\%d-\%H:00) 2>&1
 ```
 
-You can change the destination to your logs if you want. I made it 
-to /home because is just simple and you don't have to mix that with
-systems logs. You could also make the log folder hidden (that's my choice)
-and just use `ls` to list your logs and `cat` to display the output instead
-of opening file by file.
-
 You can read more about how `crontab` works in [here](https://help.ubuntu.com/community/CronHowto).
 
 ## Some things worth to mention
@@ -237,12 +237,12 @@ it again on the next run.
 
 **Why the new directory?**
 
-I was looking for something more generic than adding two files in the `/home`
-directory. So the script will create a directory inside called `/.rescript` in your `/home` directory.
-Inside this new directory will be two more called `/lock` and `/logs`. If it already exists, it will do
-nothing. Inside the `lock` directory will be placed the `lock` file and in
-`/logs` will be the `datefile` and if you want to place your logs if you're using
-cron jobs you could direct it to that directory too.
+I was looking for something more generic than adding three files in the `/home`
+directory. So the script will create a directory called `.rescript` in your `/home` directory.
+Inside this new directory will be three  directories called `config`, `lock` and `logs`. If it already exists, it will do
+nothing. Inside the`config` directory will be placed the `datefile` and the `exclusion-file`.
+Inside the `lock` directory will be placed the `lock` file. The `logs` directory is for you to place
+the logs created by your cron jobs.
 
 **Why the `lock` file?**
 
@@ -260,8 +260,8 @@ you don't have to delete it manually for the next run.
 
 **Why the `datefile`?**
 
-The `datefile` is created by the script in the first run. This file will also 
-be inside `/.local/tmp` and it will be called `datefile_nameofscript`. 
+The `datefile` is created by the script in the first run. This file will be placed 
+inside `.rescript/config` and it will be called `datefile_nameofscript`. 
 Why is it there? I liked the way my script was but I really didn't wanted to do
 the `check`, `forget` and `prune` commands every day or even in every run of the script.
 So, I find a way to play with the dates to make this happen and it was creating a 
@@ -276,6 +276,8 @@ the script will run all three operations and it'll override the date in the file
 created. If, for some reason the file is deleted then the script will not know 
 and it will run `check`, `forget` and `prune` according to your policies and 
 it will create the `datefile` again adding the date for the next "cleaning" run.
+
+If you were using v1.6 the datefile will be automatically moved from `logs` to `config`.
 
 **Why so much trouble to do something that I could have achieve with a cron job?**
 
