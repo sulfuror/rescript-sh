@@ -15,14 +15,19 @@
 RESTIC_PASSWORD="CHANGE_ME"
 RESTIC_REPO="/PATH/TO/YOUR/REPO"
 BACKUP_DIR="$HOME"
+KEEP_LAST="0"
 KEEP_HOURLY="8"
 KEEP_DAILY="7"
 KEEP_WEEKLY="4"
 KEEP_MONTHLY="12"
 KEEP_YEARLY="10"
 
+# B2 Credentials
+B2_ID=""
+B2_KEY=""
+
 # Optional values; The "DESTINATION" value is just use in this script to display
-# in output the name of your destination (e.g.: Google Drive, Amazon, B2, Wasabi, 
+# in the output the name of your destination (e.g.: Google Drive, Amazon, B2, Wasabi, 
 # etc.). The "TAG" value will tag your snapshots with any name/tag you want.
 # The "CLEAN" value determine when it will execute the forget, prune and check
 # commands; this value must be set in days and by default the number 7 means
@@ -32,30 +37,7 @@ CLEAN="7"
 TAG=""
 DESTINATION=""
 
-# ------------------------------------------------------------------------------- #
-#                                 E X C L U D E S                                 #
-# ------------------------------------------------------------------------------- #
-# Your Downloads directory, Trash and Caches are excluded by default;
-# If you want to add more directories or files to be excluded of your
-# Snapshots you can add them writing the pattern or full directory 
-# between the "" that you want to exclude. If you don't want
-# to exclude more than it is by default, ignore this part.
-
-EXCLUDE01=""
-EXCLUDE02=""
-EXCLUDE03=""
-EXCLUDE04=""
-EXCLUDE05=""
-EXCLUDE06=""
-EXCLUDE07=""
-EXCLUDE08=""
-EXCLUDE09=""
-EXCLUDE10=""
-EXCLUDE11=""
-EXCLUDE12=""
-EXCLUDE13=""
-EXCLUDE14=""
-EXCLUDE15=""
+# From v1.7 onwards the exclusion file is located at '.rescript/config' directory
 
 # AFTER THIS LINE YOU DO NOT NEED TO DO ANYTHING ELSE, YOU'RE DONE NOW
 # PUT THE SCRIPT TO WORK (remember to give the right to execute with 
@@ -63,15 +45,18 @@ EXCLUDE15=""
 # =============================================================================== #
 #                  H E R E   B E G I N S   T H E   S C R I P T
 # =============================================================================== #
-YELLOW="\033[33m"
+033[33m"
 ENDCOLOR="\033[0m"
 LOCK="$HOME/.rescript/lock/$(basename "$0").lock"
-DATEFILE="$HOME/.rescript/logs/datefile-$(basename "$0")"
+DATEFILE="$HOME/.rescript/config/$(basename "$0")-datefile"
+EXCLUDES="$HOME/.rescript/config/$(basename "$0")-exclusions"
 SECONDS=0
 
 # Export Password and Repo
 export RESTIC_PASSWORD=$RESTIC_PASSWORD
 export RESTIC_REPOSITORY=$RESTIC_REPO
+export B2_ACCOUNT_ID=$B2_ID
+export B2_ACCOUNT_KEY=$B2_KEY
 
 # Set PATH so it includes user's private bin if it exists
 if [ -d "$HOME/bin" ] ; then
@@ -83,17 +68,38 @@ if [ -d "$HOME/.local/bin" ] ; then
     PATH="$HOME/.local/bin:$PATH"
 fi
 
+# For v1.6 and older move the datefile to the [config] directory
+if [[ -f "$HOME/.rescript/logs/datefile-$(basename "$0")" ]] ; then
+  mv "$HOME/.rescript/logs/datefile-$(basename "$0")" "$HOME/.rescript/config/$(basename "$0")-datefile"
+fi
+
 # Create a rescript directories
 if [[ ! -d "$HOME/.rescript" ]]; then
   mkdir -p "$HOME/.rescript"
 fi
-if [[ ! -d "$HOME/.rescript/logs" ]]; then
-  mkdir -p "$HOME/.rescript/logs"
+if [[ ! -d "$HOME/.rescript/config" ]]; then
+  mkdir -p "$HOME/.rescript/config"
 fi
 if [[ ! -d "$HOME/.rescript/lock" ]]; then
   mkdir -p "$HOME/.rescript/lock"
 fi
+if [[ ! -d "$HOME/.rescript/logs" ]]; then
+  mkdir -p "$HOME/.rescript/logs"
+fi
 
+# If there is no exclude file create one
+if [[ ! -e "$EXCLUDES" ]] ; then
+  touch "$EXCLUDES"
+  echo "# These are the default rescript exclusions:" >> "$EXCLUDES"
+  echo "$HOME/.cache/*" >> "$EXCLUDES"
+  echo "$HOME/.local/share/Trash/*" >> "$EXCLUDES"
+  echo "$HOME/.rescript/lock/*" >> "$EXCLUDES"
+  echo "$HOME/.Trash" >> "$EXCLUDES"
+  echo "$HOME/.Private" >> "$EXCLUDES"
+  echo "$HOME/.ecryptfs" >> "$EXCLUDES"
+  echo "" >> "$EXCLUDES"
+  echo "# Write your custom exclusions below:" >> "$EXCLUDES"
+fi
 # If there is no date file create one
 if [[ ! -z "$CLEAN" ]] ; then
   if [[ ! -e "$DATEFILE" ]]; then
@@ -102,10 +108,10 @@ if [[ ! -z "$CLEAN" ]] ; then
   fi
 fi
 # ------------------------------------------------------------------------------- #
-Version="rescript-v1.6"
+Version="rescript-v1.7"
 Usage='Author		: Sulfuror, Copyright (c) 2018 <sulfuror@gmail.com>
 License		: BSD 2-clause "Simplified" License
-Version		: rescript-v1.6
+Version		: rescript-v1.7
 Description	: rescript is a bash script created to manage
 		  backups made with restic program.
 
@@ -119,54 +125,64 @@ Note that these commands only work when you have already set
 the required values correctly.
 
 All restic commands are available within this script except for:
-	backup			This will make a backup according to your
+  backup			This will make a backup according to your
 				options in this script
-	help			This will display rescript help
-	version			This wil display the rescript version
+  help				This will display rescript help
+  version			This wil display the rescript version
 
 For restic help type in you terminal emulator [restic help]. For
 other restic commands help you can type:
-	restic help [command]
+  restic help [command]
 OR
-	rescript [restic_command] --help
+  rescript [restic_command] --help
 
 Commands usage:
-	rescript [command] [flags] [options]
+  rescript [command] [flags] [options]
 
 Rescript options:
-	-b, -backup		Take a snapshot
-	-c, -cleanup		Forget and prune [using your policies]
-	-d, -deep-check		Check repository with [--read-data] flag
-	-h, -help		Help for this script
-	-m, -mount		Mount your restic repo
-	-n, -next-cleanup	Display when it will do the next cleanup
-	-v, -version		Version of this script
-	-u, -unlock		Remove lock created by script [this will
+  -b, -backup			Take a snapshot
+  -c, -cleanup			Forget and prune [using your policies]
+  -d, -deep-check		Check repository with [--read-data] flag
+  -e,				Manage exclusions file
+	--build			this flag requires one option [home|sys]
+				to build an exclusion list based on common
+				exclusions patterns, files and directories
+	--help			help for [-e]
+	edit			this will open your exclusion file
+				for you to add, remove or edit your
+				exclusion list
+	list			list exclusions
+  -h, -help			Help for this script
+  -m, -mount			Mount your restic repo
+  -n, -next-cleanup		Display when it will do the next cleanup
+  -u, -unlock			Remove lock created by script [this will
 				NOT unlock your repo]
-	-r			Restore a snapshot; this option will create
+  -r				Restore a snapshot; this option will create
 				a folder in your home directory, restore
 				the snapshot you want to restore and
 				run [--verify] flag
-		--help		help for [-r]
-		--host		only consider snapshots for this host
+	--help			help for [-r]
+	--host			only consider snapshots for this host
 				when snapshot-ID is [latest]
-		--path		only consider snapshots which include
+	--path			only consider snapshots which include
 				this [absolute] path for snapshot-ID [latest]
-		--tag		only consider snapshots which include this
+	--tag			only consider snapshots which include this
 				taglist for snapshot-ID [latest]
+  -v, -version			Version of this script
+
 Rescript options usage:
-	rescript [-o|-option]
-When using [-r] restore option:
-	rescript -r [snapshot-ID]
-OR
-	rescript -r [--flag] [option]
+  rescript [-o|-option]
+For [-e] and [-r]:
+  rescript [-e|-r] [option|snapshot-ID]
+For [-r] with flags:
+  rescript -r [--flag] [option]
 
 For more information about the usage check out the following link:
 https://gitlab.com/sulfuror/rescript.sh/blob/master/README.md#usage
 '
 # ------------------------------------------------------------------------------- #
 # Options
-while getopts ":bcdhmnr:uv" o
+while getopts ":bcde:hmnr:uv" o
   do
       case "$o" in
 	b|backup)
@@ -195,7 +211,7 @@ while getopts ":bcdhmnr:uv" o
 		  echo -e "$YELLOW""Backup Destination:""$ENDCOLOR" "$BACKUP_DIR"
 		fi
 		echo -e "----------------------------------------------------------------------"
-		restic backup "$BACKUP_DIR" --tag "$TAG" --verbose --exclude-caches --exclude="/home/*/.cache/*" --exclude="/home/*/.local/share/Trash/*" --exclude="$EXCLUDE01" --exclude="$EXCLUDE02" --exclude="$EXCLUDE03" --exclude="$EXCLUDE04" --exclude="$EXCLUDE05" --exclude="$EXCLUDE06" --exclude="$EXCLUDE07" --exclude="$EXCLUDE08" --exclude="$EXCLUDE09" --exclude="$EXCLUDE10" --exclude="$EXCLUDE11" --exclude="$EXCLUDE12" --exclude="$EXCLUDE13" --exclude="$EXCLUDE14" --exclude="$EXCLUDE15"
+		restic backup "$BACKUP_DIR" --tag "$TAG" --verbose --exclude-caches --exclude-file="$EXCLUDES"
 		echo -e "----------------------------------------------------------------------"
 		echo -e "$YELLOW""End:""$ENDCOLOR" "$(date)"
 		HRS=$((SECONDS / 3600))
@@ -226,7 +242,7 @@ while getopts ":bcdhmnr:uv" o
 		fi
 		touch "$LOCK"
 		trap 'rm -rf "$LOCK"' INT QUIT TERM EXIT
-		if [[ "$KEEP_HOURLY" -gt "0" || "$KEEP_DAILY" -gt "0" || "$KEEP_WEEKLY" -gt "0" || "$KEEP_MONTHLY" -gt "0" || "$KEEP_YEARLY" -gt "0" ]] ; then
+		if [[ "$KEEP_LAST" -gt "0" || "$KEEP_HOURLY" -gt "0" || "$KEEP_DAILY" -gt "0" || "$KEEP_WEEKLY" -gt "0" || "$KEEP_MONTHLY" -gt "0" || "$KEEP_YEARLY" -gt "0" ]] ; then
 			echo -e "======================================================================"
 	  		echo -e "|- - - - - - - > [ S T A R T I N G    C L E A N U P ] < - - - - - - -|"
 			echo -e "======================================================================"
@@ -239,7 +255,7 @@ while getopts ":bcdhmnr:uv" o
 			  echo -e "$YELLOW""Backup Destination:""$ENDCOLOR" "$BACKUP_DIR"
 			fi
 			echo -e "----------------------------------------------------------------------"
-		        restic forget --keep-hourly $KEEP_HOURLY --keep-daily $KEEP_DAILY --keep-weekly $KEEP_WEEKLY --keep-monthly $KEEP_MONTHLY --keep-yearly $KEEP_YEARLY
+		        restic forget --keep-last $KEEP_LAST --keep-hourly $KEEP_HOURLY --keep-daily $KEEP_DAILY --keep-weekly $KEEP_WEEKLY --keep-monthly $KEEP_MONTHLY --keep-yearly $KEEP_YEARLY
 		        restic prune --cleanup-cache
 			if [[ -f "$DATEFILE" || "$CLEAN" -gt "0" ]] ; then
 			  NOW=$(date +"%s")
@@ -295,6 +311,132 @@ while getopts ":bcdhmnr:uv" o
 		touch "$LOCK"
 		trap 'rm -rf "$LOCK"' INT QUIT TERM EXIT
 		restic check --read-data
+		;;
+	e)
+		if [ -e "$LOCK" ]; then
+		  echo -e "$YELLOW""WARNING:""$ENDCOLOR" "$(basename "$0") is already running..."
+		  echo -e "If you are sure $(basename "$0") is not running, type"
+		  echo -e " "
+		  echo -e "	$(basename "$0") -u"
+		  echo -e "OR"
+		  echo -e "	$(basename "$0") -unlock"
+		  echo -e " "
+		  echo -e "This will remove the lock for $(basename "$0")"
+		  exit 
+		fi
+		touch "$LOCK"
+		trap 'rm -rf "$LOCK"' INT QUIT TERM EXIT
+		while [[ "$OPTARG" == "--help" ]] ; do
+		  echo "[-e] is for the [exclusion] restic list"
+		  echo "Usage:"
+		  echo "  rescript -e [option]"
+		  echo "OR"
+		  echo "  rescript -e [--flag] [option]"
+		  echo "Available options:"
+		  echo "  --build		this flag requires one option [home|sys]"
+		  echo "			to build an exclusion list based on common"
+		  echo "			exclusions patterns, files and directories"
+		  echo "	home		this will build a generic exclusion list"
+		  echo "			for your [home] directory"
+		  echo "	sys		this will build a generic exclusion list"
+		  echo "			for your [system] directories"
+		  echo "  --help		help for [-e]"
+		  echo "  edit			this will open your exclusion file"
+		  echo "			for you to add, remove or edit your"
+		  echo "			exclusion list"
+		  echo "  list			list exclusions"
+		  echo ""
+		  echo "WARNING: the [--build home] and [--build sys] options will override"
+		  echo "any existing list in your rescript/config directory; if you already have"
+		  echo "an exclusion list in this directory make a backup before using this two options"
+		exit
+		done
+		while [[ "$OPTARG" == "--build" ]] ; do
+		  if [[ -z "$3" ]] ; then
+			echo "No [$OPTARG] indicated; use [-e --help] for usage."
+		  elif [[ "$3" == "home" ]] ; then
+			echo "# These are the default rescript exclusions for your home directory:" > "$EXCLUDES"
+		  	echo "$HOME/.cache/*" >> "$EXCLUDES"
+		  	echo "$HOME/.local/share/Trash/*" >> "$EXCLUDES"
+		  	echo "$HOME/.rescript/lock/*" >> "$EXCLUDES"
+		  	echo "$HOME/.gvfs" >> "$EXCLUDES"
+		  	echo "$HOME/.dbus" >> "$EXCLUDES"
+		  	echo "$HOME/.local/share/gvfs-metadata" >> "$EXCLUDES"
+		  	echo "$HOME/.Private" >> "$EXCLUDES"
+		  	echo "$HOME/.Trash" >> "$EXCLUDES"
+		  	echo "$HOME/.cddb" >> "$EXCLUDES"
+		  	echo "$HOME/.aptitude" >> "$EXCLUDES"
+		  	echo "$HOME/.adobe" >> "$EXCLUDES"
+		  	echo "$HOME/.bash_history" >> "$EXCLUDES"
+		  	echo "$HOME/.dropbox" >> "$EXCLUDES"
+		  	echo "$HOME/.dropbox-dist" >> "$EXCLUDES"
+		  	echo "$HOME/.macromedia" >> "$EXCLUDES"
+		  	echo "$HOME/.xsession-errors" >> "$EXCLUDES"
+		  	echo "$HOME/.recently-used" >> "$EXCLUDES"
+		  	echo "$HOME/.recently-used.xbel" >> "$EXCLUDES"
+		  	echo "$HOME/.local/share/recently-used*" >> "$EXCLUDES"
+		  	echo "$HOME/.thumbnails/*" >> "$EXCLUDES"
+		  	echo "$HOME/.Xauthority" >> "$EXCLUDES"
+		  	echo "$HOME/.ICEauthority" >> "$EXCLUDES"
+		  	echo "$HOME/.gksu.lock" >> "$EXCLUDES"
+		  	echo "$HOME/.pulse" >> "$EXCLUDES"
+		  	echo "$HOME/.pulse-cookie" >> "$EXCLUDES"
+		  	echo "$HOME/.esd_auth" >> "$EXCLUDES"
+		  	echo "$HOME/.ecryptfs" >> "$EXCLUDES"
+		  	echo "$HOME/.mozilla" >> "$EXCLUDES"
+		  	echo "$HOME/.config/google-chrome" >> "$EXCLUDES"
+		  	echo "$HOME/.config/chromium" >> "$EXCLUDES"
+		  	echo "$HOME/.opera" >> "$EXCLUDES"
+		  	echo "$HOME/.npm" >> "$EXCLUDES"
+		  	echo "$HOME/.gnupg/rnd" >> "$EXCLUDES"
+		  	echo "$HOME/.gnupg/random_seed" >> "$EXCLUDES"
+		  	echo "$HOME/.gnupg/.#*" >> "$EXCLUDES"
+		  	echo "$HOME/.gnupg/*.lock" >> "$EXCLUDES"
+		  	echo "$HOME/.gnupg/gpg-agent-info-*" >> "$EXCLUDES"
+			echo "$HOME/.config/**/Cache" >> "$EXCLUDES"
+			echo "$HOME/.config/**/GPUCache" >> "$EXCLUDES"
+			echo "$HOME/.config/**/ShaderCache" >> "$EXCLUDES"
+			echo "$HOME/snap/**/.config/**/Cache" >> "$EXCLUDES"
+			echo "$HOME/snap/**/.config/**/GPUCache" >> "$EXCLUDES"
+			echo "$HOME/snap/**/.config/**/ShaderCache" >> "$EXCLUDES"
+		  	echo "$HOME/Downloads" >> "$EXCLUDES"
+		  	echo "*.lock" >> "$EXCLUDES"
+		  	echo "*.bak" >> "$EXCLUDES"
+		  	echo "*.backup" >> "$EXCLUDES"
+		  	echo "*.backup*" >> "$EXCLUDES"
+		  	echo "*~" >> "$EXCLUDES"
+		  	echo "" >> "$EXCLUDES"
+		  	echo "# Write your custom exclusions below:" >> "$EXCLUDES"
+			echo "Done biulding home exclusion list; type [-e edit] to edit your list or [-e list] to view exclusions added."
+		  elif [[ "$3" == "sys" ]] ; then
+			echo "# These are the default rescript exclusions for your system:" > "$EXCLUDES"
+			echo "/home/*" >> "$EXCLUDES"
+			echo "/proc/*" >> "$EXCLUDES"
+			echo "/sys/*" >> "$EXCLUDES"
+			echo "/dev/*" >> "$EXCLUDES"
+			echo "/run/*" >> "$EXCLUDES"
+			echo "/mnt/*" >> "$EXCLUDES"
+			echo "/media/*" >> "$EXCLUDES"
+			echo "/etc/mtab" >> "$EXCLUDES"
+			echo "/var/cache/apt/archives/*.deb" >> "$EXCLUDES"
+			echo "lost+found/*" >> "$EXCLUDES"
+			echo "/tmp/*" >> "$EXCLUDES"
+			echo "/var/tmp/*" >> "$EXCLUDES"
+			echo "/var/backups/*" >> "$EXCLUDES"
+			echo "" >> "$EXCLUDES"
+			echo "# Write your custom exclusions below:" >> "$EXCLUDES"
+			echo "Done biulding system exclusion list; type [-e edit] to edit your list or [-e list] to view exclusions added."
+		  fi
+		exit
+		done
+		while [[ "$OPTARG" == "edit" ]] ; do
+		  nano "$EXCLUDES"
+		exit
+		done
+		while [[ "$OPTARG" == "list" ]] ; do
+		  egrep -v '(^#|^\s*$|^\s*\t*#)' "$EXCLUDES"
+		exit
+		done
 		;;
 	h|help)
 		echo "$Usage"
@@ -361,22 +503,22 @@ while getopts ":bcdhmnr:uv" o
 		while [[ "$OPTARG" == "--help" ]] ; do
 		  echo "[-r] is for [restore] command in restic"
 		  echo "Usage:"
-		  echo "	rescript -r [snapshot-ID]"
+		  echo "  rescript -r [snapshot-ID]"
 		  echo "Usage with flags:"
-		  echo "	rescript -r [flag] [host|path|tag]"
+		  echo "  rescript -r [flag] [host|path|tag]"
 		  echo "Available flags:"
-		  echo "	--help		help for -r"
-		  echo "	--host		only consider snapshots for this host"
+		  echo "  --help		help for -r"
+		  echo "  --host		only consider snapshots for this host"
 		  echo "			when snapshot-ID is [latest]"
-		  echo "	--path		only consider snapshots which include"
+		  echo "  --path		only consider snapshots which include"
 		  echo "			this [absolute] path for snapshot-ID [latest]"
-		  echo "	--tag		only consider snapshots which include this"
+		  echo "  --tag			only consider snapshots which include this"
 		  echo "			taglist for snapshot-ID [latest]"
 		exit
 		done
 		while [[ "$OPTARG" == "--host" || "$OPTARG" == "--tag" || "$OPTARG" == "--path" ]] ; do
 		  if [[ -z "$3" ]] ; then
-		    echo "No [$OPTARG] indicated"
+		    echo "No [$OPTARG] indicated; use [-r --help] for usage."
 		  else
 		    echo -e "======================================================================"
 		    echo -e "|- - - - - - - > [ S T A R T I N G    R E S T O R E ] < - - - - - - -|"
@@ -481,6 +623,8 @@ while getopts ":bcdhmnr:uv" o
 	        ;;
 	:)
 		echo "You have not indicated any option for [-$OPTARG]"
+		echo "	-e requires an option to edit / build your exclusion list"
+		echo "	   [use -e --help for usage and available options]"
 		echo "	-r requires a snapshot-ID to restore [use -r --help for"
 		echo "	   usage and available flags]"
 	        ;;
@@ -495,7 +639,7 @@ shift $((OPTIND - 1))
 
 # Commands
 if [[ -n "$1" ]] ; then
-  if [[ "$1" == "help" || "$1" == "--a" ]] ; then
+  if [[ "$1" == "help" ]] ; then
     if [ -e "$LOCK" ]; then
 	echo -e "$YELLOW""WARNING:""$ENDCOLOR" "$(basename "$0") is already running..."
 	echo -e "If you are sure $(basename "$0") is not running, type"
@@ -553,7 +697,7 @@ if [[ -n "$1" ]] ; then
       echo -e "$YELLOW""Backup Destination:""$ENDCOLOR" "$BACKUP_DIR"
     fi
     echo -e "----------------------------------------------------------------------"
-    restic backup "$BACKUP_DIR" --tag "$TAG" --verbose --exclude-caches --exclude="/home/*/.cache/*" --exclude="/home/*/.local/share/Trash/*" --exclude="$EXCLUDE01" --exclude="$EXCLUDE02" --exclude="$EXCLUDE03" --exclude="$EXCLUDE04" --exclude="$EXCLUDE05" --exclude="$EXCLUDE06" --exclude="$EXCLUDE07" --exclude="$EXCLUDE08" --exclude="$EXCLUDE09" --exclude="$EXCLUDE10" --exclude="$EXCLUDE11" --exclude="$EXCLUDE12" --exclude="$EXCLUDE13" --exclude="$EXCLUDE14" --exclude="$EXCLUDE15"
+    restic backup "$BACKUP_DIR" --tag "$TAG" --verbose --exclude-caches --exclude-file="$EXCLUDES"
     echo -e "----------------------------------------------------------------------"
     echo -e "$YELLOW""End:""$ENDCOLOR" "$(date)"
     HRS=$((SECONDS / 3600))
@@ -621,86 +765,10 @@ echo -e "----------------------------------------------------------------------"
 
 # Backup and exclusions
 echo -e "$YELLOW""[Taking a Snapshot...]""$ENDCOLOR"
-restic backup "$BACKUP_DIR" --tag "$TAG"	\
---verbose					\
---exclude-caches				\
---exclude="/home/*/.cache/*"			\
---exclude="/home/*/.local/share/Trash/*"	\
---exclude="$EXCLUDE01"				\
---exclude="$EXCLUDE02"				\
---exclude="$EXCLUDE03"				\
---exclude="$EXCLUDE04"				\
---exclude="$EXCLUDE05"				\
---exclude="$EXCLUDE06"				\
---exclude="$EXCLUDE07"				\
---exclude="$EXCLUDE08"				\
---exclude="$EXCLUDE09"				\
---exclude="$EXCLUDE10"				\
---exclude="$EXCLUDE11"				\
---exclude="$EXCLUDE12"				\
---exclude="$EXCLUDE13"				\
---exclude="$EXCLUDE14"				\
---exclude="$EXCLUDE15"				\
+restic backup "$BACKUP_DIR" --tag "$TAG" --verbose --exclude-caches --exclude-file="$EXCLUDES"
 
-if [ ! -z "$EXCLUDE01" ]; then
-    echo -e "$YELLOW""Excluded:""$ENDCOLOR""$EXCLUDE01"
-fi
-
-if [ ! -z "$EXCLUDE02" ]; then
-    echo -e "$YELLOW""Excluded:""$ENDCOLOR""$EXCLUDE02"
-fi
-
-if [ ! -z "$EXCLUDE03" ]; then
-    echo -e "$YELLOW""Excluded:""$ENDCOLOR""$EXCLUDE03"
-fi
-
-if [ ! -z "$EXCLUDE04" ]; then
-    echo -e "$YELLOW""Excluded:""$ENDCOLOR""$EXCLUDE04"
-fi
-
-if [ ! -z "$EXCLUDE05" ]; then
-    echo -e "$YELLOW""Excluded:""$ENDCOLOR""$EXCLUDE05"
-fi
-
-if [ ! -z "$EXCLUDE06" ]; then
-    echo -e "$YELLOW""Excluded:""$ENDCOLOR""$EXCLUDE06"
-fi
-
-if [ ! -z "$EXCLUDE07" ]; then
-    echo -e "$YELLOW""Excluded:""$ENDCOLOR""$EXCLUDE07"
-fi
-
-if [ ! -z "$EXCLUDE08" ]; then
-    echo -e "$YELLOW""Excluded:""$ENDCOLOR""$EXCLUDE08"
-fi
-
-if [ ! -z "$EXCLUDE09" ]; then
-    echo -e "$YELLOW""Excluded:""$ENDCOLOR""$EXCLUDE09"
-fi
-
-if [ ! -z "$EXCLUDE10" ]; then
-    echo -e "$YELLOW""Excluded:""$ENDCOLOR""$EXCLUDE10"
-fi
-
-if [ ! -z "$EXCLUDE11" ]; then
-    echo -e "$YELLOW""Excluded:""$ENDCOLOR""$EXCLUDE11"
-fi
-
-if [ ! -z "$EXCLUDE12" ]; then
-    echo -e "$YELLOW""Excluded:""$ENDCOLOR""$EXCLUDE12"
-fi
-
-if [ ! -z "$EXCLUDE13" ]; then
-    echo -e "$YELLOW""Excluded:""$ENDCOLOR""$EXCLUDE13"
-fi
-
-if [ ! -z "$EXCLUDE14" ]; then
-    echo -e "$YELLOW""Excluded:""$ENDCOLOR""$EXCLUDE14"
-fi
-
-if [ ! -z "$EXCLUDE15" ]; then
-    echo -e "$YELLOW""Excluded:""$ENDCOLOR""$EXCLUDE15"
-fi
+EXCLUSIONS=$(egrep -v -n -c '(^#|^\s*$|^\s*\t*#)' "$EXCLUDES")
+echo -e "$YELLOW""There are "$EXCLUSIONS" exclusion rules...""$ENDCOLOR"
 
 echo -e "----------------------------------------------------------------------"
 # Snapshot List
@@ -726,9 +794,9 @@ if [[ -f "$DATEFILE" || "$CLEAN" -gt "0" ]]; then
       echo -e "$YELLOW""[Repo will be checked and cleaned in the next run...]""$ENDCOLOR"
     fi
   else 
-    if [[ "$KEEP_HOURLY" -gt "0" || "$KEEP_DAILY" -gt "0" || "$KEEP_WEEKLY" -gt "0" || "$KEEP_MONTHLY" -gt "0" || "$KEEP_YEARLY" -gt "0" ]] ; then
+    if [[ "$KEEP_LAST" -gt "0" || "$KEEP_HOURLY" -gt "0" || "$KEEP_DAILY" -gt "0" || "$KEEP_WEEKLY" -gt "0" || "$KEEP_MONTHLY" -gt "0" || "$KEEP_YEARLY" -gt "0" ]] ; then
       echo -e "$YELLOW""[Cleaning Repo...]""$ENDCOLOR"
-      restic forget --keep-hourly $KEEP_HOURLY --keep-daily $KEEP_DAILY --keep-weekly $KEEP_WEEKLY --keep-monthly $KEEP_MONTHLY --keep-yearly $KEEP_YEARLY
+      restic forget --keep-last $KEEP_LAST --keep-hourly $KEEP_HOURLY --keep-daily $KEEP_DAILY --keep-weekly $KEEP_WEEKLY --keep-monthly $KEEP_MONTHLY --keep-yearly $KEEP_YEARLY
       restic prune
       echo -e "$YELLOW""[Checking for Errors in Repo...]""$ENDCOLOR"
       restic check --cleanup-cache
@@ -739,9 +807,9 @@ if [[ -f "$DATEFILE" || "$CLEAN" -gt "0" ]]; then
     fi
   fi
 else 
-    if [[ "$KEEP_HOURLY" -gt "0" || "$KEEP_DAILY" -gt "0" || "$KEEP_WEEKLY" -gt "0" || "$KEEP_MONTHLY" -gt "0" || "$KEEP_YEARLY" -gt "0" ]] ; then
+    if [[ "$KEEP_LAST" -gt "0" || "$KEEP_HOURLY" -gt "0" || "$KEEP_DAILY" -gt "0" || "$KEEP_WEEKLY" -gt "0" || "$KEEP_MONTHLY" -gt "0" || "$KEEP_YEARLY" -gt "0" ]] ; then
       echo -e "$YELLOW""[Cleaning Repo...]""$ENDCOLOR"
-      restic forget --keep-hourly $KEEP_HOURLY --keep-daily $KEEP_DAILY --keep-weekly $KEEP_WEEKLY --keep-monthly $KEEP_MONTHLY --keep-yearly $KEEP_YEARLY
+      restic forget --keep-last $KEEP_LAST --keep-hourly $KEEP_HOURLY --keep-daily $KEEP_DAILY --keep-weekly $KEEP_WEEKLY --keep-monthly $KEEP_MONTHLY --keep-yearly $KEEP_YEARLY
       restic prune
       echo -e "$YELLOW""[Checking for Errors in Repo...]""$ENDCOLOR"
       restic check --cleanup-cache
@@ -776,7 +844,9 @@ echo -e "======================================================================"
 echo -e "| - - - - - - - - > [ B A C K U P      E N D E D ] < - - - - - - - - |"
 echo -e "======================================================================"
 
-#reset credentials
-export RESTIC_PASSWORD=$RESTIC_PASSWORD
+# Reset credentials
+export RESTIC_PASSWORD=""
+export B2_ACCOUNT_ID=""
+export B2_ACCOUNT_KEY=""
 
 exit 0
