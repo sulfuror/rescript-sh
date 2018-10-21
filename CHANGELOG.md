@@ -1,3 +1,10 @@
+# October 20, 2018
+
+**Changes**:
+
+1. Added "LOGGING" variable to keep logs in your `.rescript/logs` file.
+2. Fix date format so it display AM or PM hours.
+
 # October 10, 2018
 
 **Changes**:
