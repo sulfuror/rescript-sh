@@ -37,6 +37,11 @@ CLEAN="7"
 TAG=""
 DESTINATION=""
 
+# The variable "LOGGING" is "yes" by default. If you don't want logs to be saved
+# at .rescript/logs directory just change the "yes" to "no". This will only save
+# a log when the script is run; options and commands do not save logs.
+LOGGING="yes"
+
 # From v1.7 onwards the exclusion file is located at '.rescript/config' directory
 
 # AFTER THIS LINE YOU DO NOT NEED TO DO ANYTHING ELSE, YOU'RE DONE NOW
@@ -50,6 +55,7 @@ ENDCOLOR="\033[0m"
 LOCK="$HOME/.rescript/lock/$(basename "$0").lock"
 DATEFILE="$HOME/.rescript/config/$(basename "$0")-datefile"
 EXCLUDES="$HOME/.rescript/config/$(basename "$0")-exclusions"
+LOG="$HOME/.rescript/logs/$(basename "$0")-log-$(date +%Y-%m-%d-%H:%M)"
 SECONDS=0
 
 # Export Password and Repo
@@ -90,15 +96,17 @@ fi
 # If there is no exclude file create one
 if [[ ! -e "$EXCLUDES" ]] ; then
   touch "$EXCLUDES"
-  echo "# These are the default rescript exclusions:" >> "$EXCLUDES"
-  echo "$HOME/.cache/*" >> "$EXCLUDES"
-  echo "$HOME/.local/share/Trash/*" >> "$EXCLUDES"
-  echo "$HOME/.rescript/lock/*" >> "$EXCLUDES"
-  echo "$HOME/.Trash" >> "$EXCLUDES"
-  echo "$HOME/.Private" >> "$EXCLUDES"
-  echo "$HOME/.ecryptfs" >> "$EXCLUDES"
-  echo "" >> "$EXCLUDES"
-  echo "# Write your custom exclusions below:" >> "$EXCLUDES"
+  {
+    echo "# These are the default rescript exclusions:"
+    echo "$HOME/.cache/*"
+    echo "$HOME/.local/share/Trash/*"
+    echo "$HOME/.rescript/lock/*"
+    echo "$HOME/.Trash"
+    echo "$HOME/.Private"
+    echo "$HOME/.ecryptfs"
+    echo ""
+    echo "# Write your custom exclusions below:"
+  } > "$EXCLUDES"
 fi
 # If there is no date file create one
 if [[ ! -z "$CLEAN" ]] ; then
@@ -108,10 +116,10 @@ if [[ ! -z "$CLEAN" ]] ; then
   fi
 fi
 # ------------------------------------------------------------------------------- #
-Version="rescript-v1.7"
+Version="rescript-v1.8"
 Usage='Author		: Sulfuror, Copyright (c) 2018 <sulfuror@gmail.com>
 License		: BSD 2-clause "Simplified" License
-Version		: rescript-v1.7
+Version		: rescript-v1.8
 Description	: rescript is a bash script created to manage
 		  backups made with restic program.
 
@@ -125,7 +133,7 @@ Note that these commands only work when you have already set
 the required values correctly.
 
 All restic commands are available within this script except for:
-  backup			This will make a backup according to your
+  backup			This will take a new snapshot according to your
 				options in this script
   help				This will display rescript help
   version			This wil display the rescript version
@@ -202,7 +210,7 @@ while getopts ":bcde:hmnr:uv" o
 		echo -e "======================================================================"
 		echo -e "| - - - - - - - > [ S T A R T I N G    B A C K U P ] < - - - - - - - |"
 		echo -e "======================================================================"
-		echo -e "$YELLOW""Date and Time:""$ENDCOLOR" "$(date)"
+		echo -e "$YELLOW""Date and Time:""$ENDCOLOR" "$(date +%a\ %b\ %d\ %Y\ %r)"
 		echo -e "$YELLOW""System:""$ENDCOLOR" "$(cat /etc/issue.net) $(uname -o) $(uname -r)"
 		echo -e "$YELLOW""Hostname:""$ENDCOLOR" "$HOSTNAME"
 		if [[ "$DESTINATION" ]] ; then
@@ -213,7 +221,7 @@ while getopts ":bcde:hmnr:uv" o
 		echo -e "----------------------------------------------------------------------"
 		restic backup "$BACKUP_DIR" --tag "$TAG" --verbose --exclude-caches --exclude-file="$EXCLUDES"
 		echo -e "----------------------------------------------------------------------"
-		echo -e "$YELLOW""End:""$ENDCOLOR" "$(date)"
+		echo -e "$YELLOW""End:""$ENDCOLOR" "$(date +%a\ %b\ %d\ %Y\ %r)"
 		HRS=$((SECONDS / 3600))
 		MIN=$(((SECONDS / 60) % 60))
 		SEC=$((SECONDS % 60))
@@ -246,7 +254,7 @@ while getopts ":bcde:hmnr:uv" o
 			echo -e "======================================================================"
 	  		echo -e "|- - - - - - - > [ S T A R T I N G    C L E A N U P ] < - - - - - - -|"
 			echo -e "======================================================================"
-			echo -e "$YELLOW""Date and Time:""$ENDCOLOR" "$(date)"
+			echo -e "$YELLOW""Date and Time:""$ENDCOLOR" "$(date +%a\ %b\ %d\ %Y\ %r)"
 			echo -e "$YELLOW""System:""$ENDCOLOR" "$(cat /etc/issue.net) $(uname -o) $(uname -r)"
 			echo -e "$YELLOW""Hostname:""$ENDCOLOR" "$HOSTNAME"
 			if [[ "$DESTINATION" ]] ; then
@@ -275,7 +283,7 @@ while getopts ":bcde:hmnr:uv" o
 			  fi
 			fi
 			echo -e "----------------------------------------------------------------------"
-			echo -e "$YELLOW""End:""$ENDCOLOR" "$(date)"
+			echo -e "$YELLOW""End:""$ENDCOLOR" "$(date +%a\ %b\ %d\ %Y\ %r)"
 			HRS=$((SECONDS / 3600))
 			MIN=$(((SECONDS / 60) % 60))
 			SEC=$((SECONDS % 60))
@@ -355,76 +363,80 @@ while getopts ":bcde:hmnr:uv" o
 		  if [[ -z "$3" ]] ; then
 			echo "No [$OPTARG] indicated; use [-e --help] for usage."
 		  elif [[ "$3" == "home" ]] ; then
-			echo "# These are the default rescript exclusions for your home directory:" > "$EXCLUDES"
-		  	echo "$HOME/.cache/*" >> "$EXCLUDES"
-		  	echo "$HOME/.local/share/Trash/*" >> "$EXCLUDES"
-		  	echo "$HOME/.rescript/lock/*" >> "$EXCLUDES"
-		  	echo "$HOME/.gvfs" >> "$EXCLUDES"
-		  	echo "$HOME/.dbus" >> "$EXCLUDES"
-		  	echo "$HOME/.local/share/gvfs-metadata" >> "$EXCLUDES"
-		  	echo "$HOME/.Private" >> "$EXCLUDES"
-		  	echo "$HOME/.Trash" >> "$EXCLUDES"
-		  	echo "$HOME/.cddb" >> "$EXCLUDES"
-		  	echo "$HOME/.aptitude" >> "$EXCLUDES"
-		  	echo "$HOME/.adobe" >> "$EXCLUDES"
-		  	echo "$HOME/.bash_history" >> "$EXCLUDES"
-		  	echo "$HOME/.dropbox" >> "$EXCLUDES"
-		  	echo "$HOME/.dropbox-dist" >> "$EXCLUDES"
-		  	echo "$HOME/.macromedia" >> "$EXCLUDES"
-		  	echo "$HOME/.xsession-errors" >> "$EXCLUDES"
-		  	echo "$HOME/.recently-used" >> "$EXCLUDES"
-		  	echo "$HOME/.recently-used.xbel" >> "$EXCLUDES"
-		  	echo "$HOME/.local/share/recently-used*" >> "$EXCLUDES"
-		  	echo "$HOME/.thumbnails/*" >> "$EXCLUDES"
-		  	echo "$HOME/.Xauthority" >> "$EXCLUDES"
-		  	echo "$HOME/.ICEauthority" >> "$EXCLUDES"
-		  	echo "$HOME/.gksu.lock" >> "$EXCLUDES"
-		  	echo "$HOME/.pulse" >> "$EXCLUDES"
-		  	echo "$HOME/.pulse-cookie" >> "$EXCLUDES"
-		  	echo "$HOME/.esd_auth" >> "$EXCLUDES"
-		  	echo "$HOME/.ecryptfs" >> "$EXCLUDES"
-		  	echo "$HOME/.mozilla" >> "$EXCLUDES"
-		  	echo "$HOME/.config/google-chrome" >> "$EXCLUDES"
-		  	echo "$HOME/.config/chromium" >> "$EXCLUDES"
-		  	echo "$HOME/.opera" >> "$EXCLUDES"
-		  	echo "$HOME/.npm" >> "$EXCLUDES"
-		  	echo "$HOME/.gnupg/rnd" >> "$EXCLUDES"
-		  	echo "$HOME/.gnupg/random_seed" >> "$EXCLUDES"
-		  	echo "$HOME/.gnupg/.#*" >> "$EXCLUDES"
-		  	echo "$HOME/.gnupg/*.lock" >> "$EXCLUDES"
-		  	echo "$HOME/.gnupg/gpg-agent-info-*" >> "$EXCLUDES"
-			echo "$HOME/.config/**/Cache" >> "$EXCLUDES"
-			echo "$HOME/.config/**/GPUCache" >> "$EXCLUDES"
-			echo "$HOME/.config/**/ShaderCache" >> "$EXCLUDES"
-			echo "$HOME/snap/**/.config/**/Cache" >> "$EXCLUDES"
-			echo "$HOME/snap/**/.config/**/GPUCache" >> "$EXCLUDES"
-			echo "$HOME/snap/**/.config/**/ShaderCache" >> "$EXCLUDES"
-		  	echo "$HOME/Downloads" >> "$EXCLUDES"
-		  	echo "*.lock" >> "$EXCLUDES"
-		  	echo "*.bak" >> "$EXCLUDES"
-		  	echo "*.backup" >> "$EXCLUDES"
-		  	echo "*.backup*" >> "$EXCLUDES"
-		  	echo "*~" >> "$EXCLUDES"
-		  	echo "" >> "$EXCLUDES"
-		  	echo "# Write your custom exclusions below:" >> "$EXCLUDES"
+			{
+				echo "# These are the default rescript exclusions for your home directory:"
+		  		echo "$HOME/.cache/*"
+		  		echo "$HOME/.local/share/Trash/*"
+		  		echo "$HOME/.rescript/lock/*"
+		  		echo "$HOME/.gvfs"
+		  		echo "$HOME/.dbus"
+		  		echo "$HOME/.local/share/gvfs-metadata"
+		  		echo "$HOME/.Private"
+		  		echo "$HOME/.Trash"
+		  		echo "$HOME/.cddb"
+		  		echo "$HOME/.aptitude"
+		  		echo "$HOME/.adobe"
+		  		echo "$HOME/.bash_history"
+		  		echo "$HOME/.dropbox"
+		  		echo "$HOME/.dropbox-dist"
+		  		echo "$HOME/.macromedia"
+		  		echo "$HOME/.xsession-errors"
+		  		echo "$HOME/.recently-used"
+		  		echo "$HOME/.recently-used.xbel"
+		  		echo "$HOME/.local/share/recently-used*"
+		  		echo "$HOME/.thumbnails/*"
+		  		echo "$HOME/.Xauthority"
+		  		echo "$HOME/.ICEauthority"
+		  		echo "$HOME/.gksu.lock"
+		  		echo "$HOME/.pulse"
+		  		echo "$HOME/.pulse-cookie"
+		  		echo "$HOME/.esd_auth"
+		  		echo "$HOME/.ecryptfs"
+		  		echo "$HOME/.mozilla"
+		  		echo "$HOME/.config/google-chrome"
+		  		echo "$HOME/.config/chromium"
+		  		echo "$HOME/.opera"
+		  		echo "$HOME/.npm"
+		  		echo "$HOME/.gnupg/rnd"
+		  		echo "$HOME/.gnupg/random_seed"
+		  		echo "$HOME/.gnupg/.#*"
+		  		echo "$HOME/.gnupg/*.lock"
+		  		echo "$HOME/.gnupg/gpg-agent-info-*"
+				echo "$HOME/.config/**/Cache"
+				echo "$HOME/.config/**/GPUCache"
+				echo "$HOME/.config/**/ShaderCache"
+				echo "$HOME/snap/**/.config/**/Cache"
+				echo "$HOME/snap/**/.config/**/GPUCache"
+				echo "$HOME/snap/**/.config/**/ShaderCache"
+		  		echo "$HOME/Downloads"
+		  		echo "*.lock"
+		  		echo "*.bak"
+		  		echo "*.backup"
+		  		echo "*.backup*"
+		  		echo "*~"
+		  		echo ""
+		  		echo "# Write your custom exclusions below:"
+			} > "$EXCLUDES"
 			echo "Done biulding home exclusion list; type [-e edit] to edit your list or [-e list] to view exclusions added."
 		  elif [[ "$3" == "sys" ]] ; then
-			echo "# These are the default rescript exclusions for your system:" > "$EXCLUDES"
-			echo "/home/*" >> "$EXCLUDES"
-			echo "/proc/*" >> "$EXCLUDES"
-			echo "/sys/*" >> "$EXCLUDES"
-			echo "/dev/*" >> "$EXCLUDES"
-			echo "/run/*" >> "$EXCLUDES"
-			echo "/mnt/*" >> "$EXCLUDES"
-			echo "/media/*" >> "$EXCLUDES"
-			echo "/etc/mtab" >> "$EXCLUDES"
-			echo "/var/cache/apt/archives/*.deb" >> "$EXCLUDES"
-			echo "lost+found/*" >> "$EXCLUDES"
-			echo "/tmp/*" >> "$EXCLUDES"
-			echo "/var/tmp/*" >> "$EXCLUDES"
-			echo "/var/backups/*" >> "$EXCLUDES"
-			echo "" >> "$EXCLUDES"
-			echo "# Write your custom exclusions below:" >> "$EXCLUDES"
+			{
+				echo "# These are the default rescript exclusions for your system:"
+				echo "/home/*"
+				echo "/proc/*"
+				echo "/sys/*"
+				echo "/dev/*"
+				echo "/run/*"
+				echo "/mnt/*"
+				echo "/media/*"
+				echo "/etc/mtab"
+				echo "/var/cache/apt/archives/*.deb"
+				echo "lost+found/*"
+				echo "/tmp/*"
+				echo "/var/tmp/*"
+				echo "/var/backups/*"
+				echo ""
+				echo "# Write your custom exclusions below:"
+			} > "$EXCLUDES"
 			echo "Done biulding system exclusion list; type [-e edit] to edit your list or [-e list] to view exclusions added."
 		  fi
 		exit
@@ -434,7 +446,7 @@ while getopts ":bcde:hmnr:uv" o
 		exit
 		done
 		while [[ "$OPTARG" == "list" ]] ; do
-		  egrep -v '(^#|^\s*$|^\s*\t*#)' "$EXCLUDES"
+		  grep -E -v '(^#|^\s*$|^\s*\t*#)' "$EXCLUDES"
 		exit
 		done
 		;;
@@ -523,7 +535,7 @@ while getopts ":bcde:hmnr:uv" o
 		    echo -e "======================================================================"
 		    echo -e "|- - - - - - - > [ S T A R T I N G    R E S T O R E ] < - - - - - - -|"
 		    echo -e "======================================================================"
-		    echo -e "$YELLOW""Date and Time:""$ENDCOLOR" "$(date)"
+		    echo -e "$YELLOW""Date and Time:""$ENDCOLOR" "$(date +%a\ %b\ %d\ %Y\ %r)"
 		    echo -e "$YELLOW""System:""$ENDCOLOR" "$(cat /etc/issue.net) $(uname -o) $(uname -r)"
 		    echo -e "$YELLOW""Hostname:""$ENDCOLOR" "$HOSTNAME"
 		    if [[ "$DESTINATION" ]] ; then
@@ -544,7 +556,7 @@ while getopts ":bcde:hmnr:uv" o
 		    fi
 		    restic restore --verify "$OPTARG" "$3" latest --target "$restic_restore"
 		    echo -e "----------------------------------------------------------------------"
-		    echo -e "$YELLOW""End:""$ENDCOLOR" "$(date)"
+		    echo -e "$YELLOW""End:""$ENDCOLOR" "$(date +%a\ %b\ %d\ %Y\ %r)"
 		    HRS=$((SECONDS / 3600))
 		    MIN=$(((SECONDS / 60) % 60))
 		    SEC=$((SECONDS % 60))
@@ -565,7 +577,7 @@ while getopts ":bcde:hmnr:uv" o
 		  echo -e "======================================================================"
 		  echo -e "|- - - - - - - > [ S T A R T I N G    R E S T O R E ] < - - - - - - -|"
 		  echo -e "======================================================================"
-		  echo -e "$YELLOW""Date and Time:""$ENDCOLOR" "$(date)"
+		  echo -e "$YELLOW""Date and Time:""$ENDCOLOR" "$(date +%a\ %b\ %d\ %Y\ %r)"
 		  echo -e "$YELLOW""System:""$ENDCOLOR" "$(cat /etc/issue.net) $(uname -o) $(uname -r)"
 		  echo -e "$YELLOW""Hostname:""$ENDCOLOR" "$HOSTNAME"
 		  if [[ "$DESTINATION" ]] ; then
@@ -590,7 +602,7 @@ while getopts ":bcde:hmnr:uv" o
 		  restic_restore="$HOME/restore-$OPTARG-$(date +%s)"
 		  restic restore --verify "$OPTARG" --target "$restic_restore"
 		  echo -e "----------------------------------------------------------------------"
-		  echo -e "$YELLOW""End:""$ENDCOLOR" "$(date)"
+		  echo -e "$YELLOW""End:""$ENDCOLOR" "$(date +%a\ %b\ %d\ %Y\ %r)"
 		  HRS=$((SECONDS / 3600))
 		  MIN=$(((SECONDS / 60) % 60))
 		  SEC=$((SECONDS % 60))
@@ -639,7 +651,23 @@ shift $((OPTIND - 1))
 
 # Commands
 if [[ -n "$1" ]] ; then
-  if [[ "$1" == "help" ]] ; then
+  if [[ "$1" == "-" ]] ; then
+    if [ -e "$LOCK" ]; then
+	echo -e "$YELLOW""WARNING:""$ENDCOLOR" "$(basename "$0") is already running..."
+	echo -e "If you are sure $(basename "$0") is not running, type"
+	echo -e " "
+	echo -e "	$(basename "$0") -u"
+	echo -e "OR"
+	echo -e "	$(basename "$0") -unlock"
+	echo -e " "
+	echo -e "This will remove the lock for $(basename "$0")"
+        exit
+    fi
+    touch "$LOCK"
+    trap 'rm -rf "$LOCK"' INT QUIT TERM EXIT
+    echo "Unknown option [-$OPTARG]; use [-h] or [help] for available commands and options"
+    exit
+  elif [[ "$1" == "help" ]] ; then
     if [ -e "$LOCK" ]; then
 	echo -e "$YELLOW""WARNING:""$ENDCOLOR" "$(basename "$0") is already running..."
 	echo -e "If you are sure $(basename "$0") is not running, type"
@@ -688,7 +716,7 @@ if [[ -n "$1" ]] ; then
     echo -e "======================================================================"
     echo -e "| - - - - - - - > [ S T A R T I N G    B A C K U P ] < - - - - - - - |"
     echo -e "======================================================================"
-    echo -e "$YELLOW""Date and Time:""$ENDCOLOR" "$(date)"
+    echo -e "$YELLOW""Date and Time:""$ENDCOLOR" "$(date +%a\ %b\ %d\ %Y\ %r)"
     echo -e "$YELLOW""System:""$ENDCOLOR" "$(cat /etc/issue.net) $(uname -o) $(uname -r)"
     echo -e "$YELLOW""Hostname:""$ENDCOLOR" "$HOSTNAME"
     if [[ "$DESTINATION" ]] ; then
@@ -699,7 +727,7 @@ if [[ -n "$1" ]] ; then
     echo -e "----------------------------------------------------------------------"
     restic backup "$BACKUP_DIR" --tag "$TAG" --verbose --exclude-caches --exclude-file="$EXCLUDES"
     echo -e "----------------------------------------------------------------------"
-    echo -e "$YELLOW""End:""$ENDCOLOR" "$(date)"
+    echo -e "$YELLOW""End:""$ENDCOLOR" "$(date +%a\ %b\ %d\ %Y\ %r)"
     HRS=$((SECONDS / 3600))
     MIN=$(((SECONDS / 60) % 60))
     SEC=$((SECONDS % 60))
@@ -748,12 +776,18 @@ fi
 
 touch "$LOCK"
 trap 'rm -rf "$LOCK"' INT QUIT TERM EXIT
+
+if [[ "$LOGGING" == "yes" ]] ; then
+  exec > >(tee -a "$LOG") 2>&1
+elif [[ "$LOGGING" == "no" ]] ; then
+  echo > /dev/null
+fi
 # ------------------------------------------------------------------------------- #
 
 echo -e "======================================================================"
 echo -e "| - - - - - - - > [ S T A R T I N G    B A C K U P ] < - - - - - - - |"
 echo -e "======================================================================"
-echo -e "$YELLOW""Date and Time:""$ENDCOLOR" "$(date)"
+echo -e "$YELLOW""Date and Time:""$ENDCOLOR" "$(date +%a\ %b\ %d\ %Y\ %r)"
 echo -e "$YELLOW""System:""$ENDCOLOR" "$(cat /etc/issue.net) $(uname -o) $(uname -r)"
 echo -e "$YELLOW""Hostname:""$ENDCOLOR" "$HOSTNAME"
 if [[ "$DESTINATION" ]] ; then
@@ -767,8 +801,8 @@ echo -e "----------------------------------------------------------------------"
 echo -e "$YELLOW""[Taking a Snapshot...]""$ENDCOLOR"
 restic backup "$BACKUP_DIR" --tag "$TAG" --verbose --exclude-caches --exclude-file="$EXCLUDES"
 
-EXCLUSIONS=$(egrep -v -n -c '(^#|^\s*$|^\s*\t*#)' "$EXCLUDES")
-echo -e "$YELLOW""There are "$EXCLUSIONS" exclusion rules...""$ENDCOLOR"
+EXCLUSIONS=$(grep -E -v -n -c '(^#|^\s*$|^\s*\t*#)' "$EXCLUDES")
+echo -e "$YELLOW""There are $EXCLUSIONS exclusion rules...""$ENDCOLOR"
 
 echo -e "----------------------------------------------------------------------"
 # Snapshot List
@@ -816,20 +850,19 @@ else
     fi
 fi
 
-
 # Stats
 echo -e "----------------------------------------------------------------------"
-echo -e "$YELLOW""[Latest Snapshots Size...]""$ENDCOLOR"
-restic stats latest
-echo -e "$YELLOW""[Deduplicated Size for Latest Snapshot...]""$ENDCOLOR"
-restic stats --mode raw-data latest
-echo -e "$YELLOW""[Original Files Size...]""$ENDCOLOR"
+echo -e "$YELLOW""[Latest Snapshot Size for $(hostname)...]""$ENDCOLOR"
+restic stats --host "$(hostname)" latest
+echo -e "$YELLOW""[Deduplicated Size for Latest $(hostname) Snapshot...]""$ENDCOLOR"
+restic stats --mode raw-data --host "$(hostname)" latest
+echo -e "$YELLOW""[Original Files Size for All Snapshots...]""$ENDCOLOR"
 restic stats
 echo -e "$YELLOW""[Deduplicated Size for All Snapshots...]""$ENDCOLOR"
 restic stats --mode raw-data
 # Time and Runtime
 echo -e "----------------------------------------------------------------------"
-echo -e "$YELLOW""End:""$ENDCOLOR" "$(date)"
+echo -e "$YELLOW""End:""$ENDCOLOR" "$(date +%a\ %b\ %d\ %Y\ %r)"
 HRS=$((SECONDS / 3600))
 MIN=$(((SECONDS / 60) % 60))
 SEC=$((SECONDS % 60))
