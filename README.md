@@ -58,6 +58,12 @@ These variables are optional because the script will still work if you don't wan
 * `DESTINATION=""`: Put the name of your backup destination between the "" 
    (something like S3, Google Drive, External Drive, FriendServerName, etc.). If you don't want to use
    it just leave it blank. This is just used for output purposes.
+* `LOGGING="yes"`: this variable is set to "yes" to keep log files inside your 
+   `.rescript/logs` directory. If you don't want logs to be saved just change
+   the "yes" to "no". It will save a log every time you run the script; options
+   and restic commands will not save logs, it will only log when you run the
+   script without any option. If you use this, every run will create a unique log
+   file named with the name of the script, date and hour.
 
 **Exclusions**:
 
@@ -200,26 +206,8 @@ After that you need to add a new cronjob like `10 */2 * * * /PATH/TO/YOUR/rescri
 This cron job will execute every two hours at the 10th minute. If you want to change it for every four hours;
 for example, at the 0 minute just write `0 */4 * * * /PATH/TO/YOUR/rescript`.
 
-Also, you can create a log file so the cron job can store the output in a
-plaintext file. You can do this by adding in the cron job file the following
-after the cron job you've just created:
-
-```
->> /home/YOURUSERNAME/.rescript/logs/rescript-log_$(date +\%Y-\%m-\%d-\%H:00) 2>&1
-```
-That will create a plain text file in the directory `/home/YOURUSERNAME/.rescript/logs`.
-Let's say the system ran the job at 12:00 a.m. in January 1, 2018; then this
-past line on your `crontab` will create a file called 
-rescript-log_2018-01-01-12:00 with all the script process output.
-
-If you do this your `crontab` will look like this:
-
-```
-0 */4 * * * /PATH/TO/YOUR/rescript >> /home/YOURUSERNAME/.rescript/logs/rescript-log_$(date +\%Y-\%m-\%d-\%H:00) 2>&1
-```
-
 If you want to just do backups with this script without the need to run
-the entire script, you can set up a cron job including the `-b` option,
+the entire script and also save a log you can set up a cron job including the `-b` option,
 just to run a backup and anything else, like this:
 
 ```
