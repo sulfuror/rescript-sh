@@ -28,15 +28,69 @@ operation and the duration of the whole operation.
    If you need to backup to a S3, B2, or any other service using the service that make use
    of credentials in order to access your repository, make sure to add an export of your credentials.
 
+## Installation:
+
+You can install the script easily using the following commands:
+
+```
+~$ git clone https://gitlab.com/sulfuror/rescript.sh.git
+~$ cd rescript.sh
+~$ chmod 700 rescript
+~$ ./rescript install
+```
+What you just did was to download the files and move the `rescript` to your `~/bin` or `~/.local/bin`
+directory. If the `~/bin` directory already exists it will move the script there. If not, it will move it to `~/.local/bin`.
+Both directories are located in your `home` directory. If you don't have any of these directories it will create the second
+one and move it there.
+
+Note that you can just move the script to any location and use it from there if you know what you're doing but if you 
+use the install command it will move it to the directories mentioned before. Also, you need to already have your `$PATH`
+for one of those directories or both. Distributions like _**Ubuntu**_ have already these paths set on the 
+`.profile` file in your Home directory. If `$HOME/.local/bin` was already there you don't have to do anything else. Just check your 
+your `.profile` text file if your distribution already have this option enabled. If you see these next lines
+it means it is already enabled:
+
+```
+# set PATH so it includes user's private bin if it exists
+if [ -d "$HOME/bin" ] ; then
+    PATH="$HOME/bin:$PATH"
+fi
+
+# set PATH so it includes user's private bin if it exists
+if [ -d "$HOME/.local/bin" ] ; then
+    PATH="$HOME/.local/bin:$PATH"
+fi
+```
+If you don't have these lines in your `.profile` then just copy those and paste it
+at the end. Once everything is set, if it's not working properly don't panic, maybe the `~/.local/bin`
+wasn't there and the script created it and you only need to restart your session, or log out and login, or reboot
+your computer in order for this work. The same applies if you needed to copy and paste the code before.
+
+**Different repositories**:
+
+If you have different repos you can just change the name of the script and use
+one for every repo. For example:
+
+* For a B2 repo change `rescript` to `rescript_b2` so when you type `rescript_b2`
+   you're referring to the B2 repo.
+
+Using rescript, this is the best approach because all files realted to this instance will be named the same as your script;
+so if you rename the script after you set up everythig it will not recognize the configuration file, exclude file and datefile.
+
 ## Usage:
 
-When you open the script in your favorite text editor you'll see fairly clear instructions but
-for the sake of make things clear I'll explain as follows what you need to do:
+First thing to do is to edit your configuration file. This script will automatically create one but you need
+to put the correct values. To edit your configuration file you need to use the following command:
+
+```
+rescript config
+```
+The configuration file will be opened in your default text editor.
 
 **Things you need to change**:
 
-* `RESTIC_PASSWORD="CHANGE_ME"`: Put your restic password between the "".
-* `RESTIC_REPO="/path/to/your/repo"`: Put your repository directory.
+* `RESTIC_PASSWORD=""`: Put your restic password between the "".
+* `RESTIC_REPO=""`: Put your repository directory.
 * `BACKUP_DIR="$HOME"`: This is what you're backing up; by default is your home directory.
 * `KEEP_LAST="0"`: Indicate the number of "last" backups you want to keep
 * `KEEP_HOURLY="8"`: Indicate the number of hourly backups you want to keep.
@@ -58,21 +112,27 @@ These variables are optional because the script will still work if you don't wan
 * `DESTINATION=""`: Put the name of your backup destination between the "" 
    (something like S3, Google Drive, External Drive, FriendServerName, etc.). If you don't want to use
    it just leave it blank. This is just used for output purposes.
-* `LOGGING="yes"`: this variable is set to "yes" to keep log files inside your 
-   `.rescript/logs` directory. If you don't want logs to be saved just change
-   the "yes" to "no". It will save a log every time you run the script; options
-   and restic commands will not save logs, it will only log when you run the
-   script without any option. If you use this, every run will create a unique log
-   file named with the name of the script, date and hour.
+
+
 
 **Exclusions**:
 
-In the past you will have to put the exclusions in the same script... from v1.7 onwards this has change.
-Now you'll have an option [-e] to work with the exclusions. The exclusion file will be created by the
-script in `.rescript/config`, so once you run this script your exclusion file will be created inside
-this directory with a couple of exclusions by default, including Trash, rescript lock, private directory
-and ecryptfs . You can change this if you want. There are another options to create a more complete
-exclusion list for system backups and home directories. The [-e] options are explained as follows:
+By default, rescript create a very simple exclusion file. You can tell rescript to build another
+more complete exclusion file for you that will contain common exclusions patterns and directories.
+You can chose to create an exclusion list for your home directory or for your system with the 
+following commands:
+
+```
+rescript -e --build home
+OR
+rescript -e --build sys
+```
+Once created you can add, remove or edit whatever is inside the exclusion list with the following command:
+
+```
+rescript -e edit
+```
+This will open the exclusion file in your default text editor. The [-e] options are explained as follows:
 
 1. `--build`: this option will build an exclusion file to be used according to your choice. You can add,
    edit or remove exclusions rules as needed. This option by itself will do nothing, you have to chose from
@@ -84,37 +144,6 @@ exclusion list for system backups and home directories. The [-e] options are exp
 4. `list`: the list option will list the exclusions inside its file.
 
 If you had any exclusion list, copy your exclusion list before doing the change.
-
-Once you have set the variables you can put this script in your `$HOME/.local/bin` or `$HOME/bin` 
-directory, so you don't have to indicate the full path every time you want to use it. Distributions like 
-_**Ubuntu**_ have already these paths set on the `.profile` file in your Home directory. 
-If `$HOME/.local/bin` was already there you don't have to do anything else. Just check your 
-your `.profile` text file if your distribution already have this option enabled. If you see these next lines
-it means it is already enabled:
-
-```
-# set PATH so it includes user's private bin if it exists
-if [ -d "$HOME/bin" ] ; then
-    PATH="$HOME/bin:$PATH"
-fi
-
-# set PATH so it includes user's private bin if it exists
-if [ -d "$HOME/.local/bin" ] ; then
-    PATH="$HOME/.local/bin:$PATH"
-fi
-```
-If you don't have theses lines in your `.profile` then just copy those and paste it
-at the end. If you had to create the `$HOME/bin` or `$HOME/.local/bin` directory and / or
-edit the `.profile`, then you need to restart your session, or log out and login, or reboot your computer in 
-order for this work. If it was already there, you don't need to do anything, just 
-give it permission to execute  (`chmod 700 rescript`) and (optional) move 
-the script to `/.local/bin`.
-
-If you have different repos you can just change the name of the script and use
-one for every repo. For example:
-
-* For a B2 repo change `rescript` to `rescript_b2` so when you type `rescript_b2`
-   you're referring to the B2 repo.
 
 ## Commands and Options:
 
@@ -150,6 +179,18 @@ For restic regular commands usage:
 rescript [command] [--flags] [options] [etc]
 ```
 Please see restic `help` and [documentation](https://restic.readthedocs.io/en/stable/) for more.
+
+**Rescript Commands**:
+
+1. `config, --config`: this will open the configuration file.
+2. `install, --install`: this will place rescript in your `$PATH` (in your home directory).
+3. `logs, --logs`: this command needs an option. Options are as follows:
+	1. `--cat`: display output of selected log file (you need to copy and paste the filename to display it).
+	e.g.: `rescript logs --cat rescript-log-2018-01-01-00:00`
+	2. `--list`: list all log files saved.
+	3. `--remove`: remove all log files related to your script (if you have different scripts for different repositoies
+	  you need to call `--remove` for every instance).
+4. `version, --version`: display rescript version.
 
 **Rescript Options**:
 
@@ -206,8 +247,26 @@ After that you need to add a new cronjob like `10 */2 * * * /PATH/TO/YOUR/rescri
 This cron job will execute every two hours at the 10th minute. If you want to change it for every four hours;
 for example, at the 0 minute just write `0 */4 * * * /PATH/TO/YOUR/rescript`.
 
+Also, you can create a log file so the cron job can store the output in a
+plaintext file. You can do this by adding in the cron job file the following
+after the cron job you've just created:
+
+```
+>> /home/YOURUSERNAME/.rescript/logs/rescript-log_$(date +\%Y-\%m-\%d-\%H:00) 2>&1
+```
+That will create a plain text file in the directory `/home/YOURUSERNAME/.rescript/logs`.
+Let's say the system ran the job at 12:00 a.m. in January 1, 2018; then this
+past line on your `crontab` will create a file called 
+rescript-log_2018-01-01-12:00 with all the script process output.
+
+If you do this your `crontab` will look like this:
+
+```
+0 */4 * * * /PATH/TO/YOUR/rescript >> /home/YOURUSERNAME/.rescript/logs/rescript-log_$(date +\%Y-\%m-\%d-\%H:00) 2>&1
+```
+
 If you want to just do backups with this script without the need to run
-the entire script and also save a log you can set up a cron job including the `-b` option,
+the entire script, you can set up a cron job including the `-b` option,
 just to run a backup and anything else, like this:
 
 ```
