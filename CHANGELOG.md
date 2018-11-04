@@ -1,3 +1,18 @@
+# November 3, 2018
+**Changes**:
+
+1. Added some commands (check the [Commands and Options](https://gitlab.com/sulfuror/rescript.sh/blob/master/README.md#commands-and-options) section in README):
+	1. `install, --install`
+	2. `config, --config`
+	3. `logs, --logs`
+	4. `version, --version`
+
+2. Added a configuration file which contains all variables.
+
+**Fixes**:
+
+1. Fixed the "Destination" output which was displaying the backup directory instead, if leaved blank.
+
 # October 20, 2018
 
 **Changes**:
