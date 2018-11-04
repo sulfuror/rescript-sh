@@ -30,6 +30,9 @@ operation and the duration of the whole operation.
 
 ## Installation:
 
+_**Note**: if you were using v1.8 or earlier make sure to backup your script before
+continuing._
+
 You can install the script easily using the following commands:
 
 ```
