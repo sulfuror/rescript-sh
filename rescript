@@ -1,142 +1,25 @@
 #!/bin/bash
-# =============================================================================== #
-#                   I N F O R M A T I O N    N E E D E D                          #
-# =============================================================================== #
-# This part is where you need to change the values; you need to set your restic
-# password (password for the repository), the directory for your repository, 
-# the backup directory (by default the backup directory is your Home directory), 
-# the destination name of your backup (local, S3, B2, Wasabi, remote host, etc.), 
-# your tag (empty by default if used) and your "keep" and "excludes" policies.
 # ------------------------------------------------------------------------------- #
-#                              R E P O    I N F O                                 #
-# ------------------------------------------------------------------------------- #
-# You MUST set these values. "KEEP" values CANNOT be left blank; if you are not
-# going to use "KEEP" policies the value must be set to "0".
-RESTIC_PASSWORD="CHANGE_ME"
-RESTIC_REPO="/PATH/TO/YOUR/REPO"
-BACKUP_DIR="$HOME"
-KEEP_LAST="0"
-KEEP_HOURLY="8"
-KEEP_DAILY="7"
-KEEP_WEEKLY="4"
-KEEP_MONTHLY="12"
-KEEP_YEARLY="10"
-
-# B2 Credentials
-B2_ID=""
-B2_KEY=""
-
-# Optional values; The "DESTINATION" value is just use in this script to display
-# in the output the name of your destination (e.g.: Google Drive, Amazon, B2, Wasabi, 
-# etc.). The "TAG" value will tag your snapshots with any name/tag you want.
-# The "CLEAN" value determine when it will execute the forget, prune and check
-# commands; this value must be set in days and by default the number 7 means
-# it will do these tasks every seven (7) days. These values CAN be left blank
-# if you are not planning on use them.
-CLEAN="7"
-TAG=""
-DESTINATION=""
-
-# The variable "LOGGING" is "yes" by default. If you don't want logs to be saved
-# at .rescript/logs directory just change the "yes" to "no". This will only save
-# a log when the script is run; options and commands do not save logs.
-LOGGING="yes"
-
-# From v1.7 onwards the exclusion file is located at '.rescript/config' directory
-
-# AFTER THIS LINE YOU DO NOT NEED TO DO ANYTHING ELSE, YOU'RE DONE NOW
-# PUT THE SCRIPT TO WORK (remember to give the right to execute with 
-# 'chmod 700 rescript') AND GO BACK TO YOUR LIFE
-# =============================================================================== #
-#                  H E R E   B E G I N S   T H E   S C R I P T
-# =============================================================================== #
-YELLOW="\033[33m"
-ENDCOLOR="\033[0m"
-LOCK="$HOME/.rescript/lock/$(basename "$0").lock"
-DATEFILE="$HOME/.rescript/config/$(basename "$0")-datefile"
-EXCLUDES="$HOME/.rescript/config/$(basename "$0")-exclusions"
-LOG="$HOME/.rescript/logs/$(basename "$0")-log-$(date +%Y-%m-%d-%H:%M)"
-SECONDS=0
-
-# Export Password and Repo
-export RESTIC_PASSWORD=$RESTIC_PASSWORD
-export RESTIC_REPOSITORY=$RESTIC_REPO
-export B2_ACCOUNT_ID=$B2_ID
-export B2_ACCOUNT_KEY=$B2_KEY
-
-# Set PATH so it includes user's private bin if it exists
-if [ -d "$HOME/bin" ] ; then
-    PATH="$HOME/bin:$PATH"
-fi
-
-# Set PATH so it includes user's private bin if it exists
-if [ -d "$HOME/.local/bin" ] ; then
-    PATH="$HOME/.local/bin:$PATH"
-fi
-
-# Create a rescript directories
-if [[ ! -d "$HOME/.rescript" ]]; then
-  mkdir -p "$HOME/.rescript"
-fi
-if [[ ! -d "$HOME/.rescript/config" ]]; then
-  mkdir -p "$HOME/.rescript/config"
-fi
-if [[ ! -d "$HOME/.rescript/lock" ]]; then
-  mkdir -p "$HOME/.rescript/lock"
-fi
-if [[ ! -d "$HOME/.rescript/logs" ]]; then
-  mkdir -p "$HOME/.rescript/logs"
-fi
-
-# For v1.6 and older move the datefile to the [config] directory
-if [[ -f "$HOME/.rescript/logs/datefile-$(basename "$0")" ]] ; then
-  mv "$HOME/.rescript/logs/datefile-$(basename "$0")" "$HOME/.rescript/config/$(basename "$0")-datefile"
-fi
-
-# If there is no exclude file create one
-if [[ ! -e "$EXCLUDES" ]] ; then
-  touch "$EXCLUDES"
-  {
-    echo "# These are the default rescript exclusions:"
-    echo "$HOME/.cache/*"
-    echo "$HOME/.local/share/Trash/*"
-    echo "$HOME/.rescript/lock/*"
-    echo "$HOME/.Trash"
-    echo "$HOME/.Private"
-    echo "$HOME/.ecryptfs"
-    echo ""
-    echo "# Write your custom exclusions below:"
-  } > "$EXCLUDES"
-fi
-# If there is no date file create one
-if [[ ! -z "$CLEAN" ]] ; then
-  if [[ ! -e "$DATEFILE" ]]; then
-    touch "$DATEFILE"
-    date -R > "$DATEFILE"
-  fi
-fi
-# ------------------------------------------------------------------------------- #
-Version="rescript-v1.8"
-Usage='Author		: Sulfuror, Copyright (c) 2018 <sulfuror@gmail.com>
-License		: BSD 2-clause "Simplified" License
-Version		: rescript-v1.8
+Version="rescript-v1.9"
+Usage="
+Author		: Sulfuror, Copyright (c) 2018 <sulfuror@gmail.com>
+License		: BSD 2-clause 'Simplified' License
+Version		: $Version
 Description	: rescript is a bash script created to manage
 		  backups made with restic program.
 
-"restic is a backup program which allows saving multiple revisions 
+'restic is a backup program which allows saving multiple revisions 
 of files and directories in an encrypted repository 
-stored on different backends."
+stored on different backends.'
 
 For more information about restic visit https://restic.net
 
 Note that these commands only work when you have already set
 the required values correctly.
 
-All restic commands are available within this script except for:
-  backup			This will take a new snapshot according to your
-				options in this script
-  help				This will display rescript help
-  version			This wil display the rescript version
+All restic commands are available within this script except for
+[backup] which exists but it will use your configuration file to
+perform a backup.
 
 For restic help type in you terminal emulator [restic help]. For
 other restic commands help you can type:
@@ -146,6 +29,19 @@ OR
 
 Commands usage:
   rescript [command] [flags] [options]
+  
+Rescript commands:
+  config, --config		This will open the configuration file
+  				where you need to set your variables
+  help, --help			Rescript help
+  install, --install		Install rescript (this just move the script
+  				to your .local/bin directory for convenience)
+  logs, --logs			This command needs a flag to view, list
+  				or delete your log files
+  	--cat			display output of selected log file
+  	--list			list all log files saved
+  	--remove		remove all log files			
+  version, --version		Rescript version
 
 Rescript options:
   -b, -backup			Take a snapshot
@@ -187,7 +83,253 @@ For [-r] with flags:
 
 For more information about the usage check out the following link:
 https://gitlab.com/sulfuror/rescript.sh/blob/master/README.md#usage
-'
+"
+# ------------------------------------------------------------------------------- #
+YELLOW="\033[33m"
+ENDCOLOR="\033[0m"
+LOCK="$HOME/.rescript/lock/$(basename "$0").lock"
+DATEFILE="$HOME/.rescript/config/$(basename "$0")-datefile"
+EXCLUDES="$HOME/.rescript/config/$(basename "$0")-exclusions"
+LOG="$HOME/.rescript/logs/$(basename "$0")-log-$(date +%Y-%m-%d-%H:%M)"
+SECONDS=0
+CONFIG="$HOME/.rescript/config/$(basename "$0").conf"
+
+# Create a rescript directories if they are not present
+if [[ ! -d "$HOME/.rescript" ]]; then
+  mkdir -p "$HOME/.rescript"
+fi
+if [[ ! -d "$HOME/.rescript/config" ]]; then
+  mkdir -p "$HOME/.rescript/config"
+fi
+if [[ ! -d "$HOME/.rescript/lock" ]]; then
+  mkdir -p "$HOME/.rescript/lock"
+fi
+if [[ ! -d "$HOME/.rescript/logs" ]]; then
+  mkdir -p "$HOME/.rescript/logs"
+fi
+
+# For v1.6 and older move the datefile to the [config] directory
+if [[ -f "$HOME/.rescript/logs/datefile-$(basename "$0")" ]] ; then
+  mv "$HOME/.rescript/logs/datefile-$(basename "$0")" "$HOME/.rescript/config/$(basename "$0")-datefile"
+fi
+
+# If there is no config file create one
+if [[ ! -e "$CONFIG" ]] ; then
+  touch "$CONFIG"
+  {
+    echo "# =============================================================================== #"
+    echo "#                   R E S C R I P T    C O N F I G U R A T I O N                  #"
+    echo "# =============================================================================== #"
+    echo "# You need to set your restic password (password for the repository), the"
+    echo "# directory for your repository, the backup directory (by default the backup"
+    echo "# directory is your Home directory), the destination name of your backup"
+    echo "# (local, S3, B2, Wasabi, remote host, etc.), your tag (empty by default if used)"
+    echo "# and your "keep" and "excludes" policies."
+    echo "# ------------------------------------------------------------------------------- #"
+    echo "#                              R E P O    I N F O                                 #"
+    echo "# ------------------------------------------------------------------------------- #"
+    echo "# You MUST set these values. "KEEP" values CANNOT be left blank; if you are not"
+    echo "# going to use "KEEP" policies the value must be set to "0"."
+    echo 'RESTIC_PASSWORD=""'
+    echo 'RESTIC_REPO=""'
+    echo 'BACKUP_DIR="$HOME"'
+    echo 'KEEP_LAST="0"'
+    echo 'KEEP_HOURLY="8"'
+    echo 'KEEP_DAILY="7"'
+    echo 'KEEP_WEEKLY="4"'
+    echo 'KEEP_MONTHLY="12"'
+    echo 'KEEP_YEARLY="10"'
+    echo ""
+    echo "# B2 Credentials"
+    echo 'B2_ID=""'
+    echo 'B2_KEY=""'
+    echo ""
+    echo "# Optional values; The "DESTINATION" value is just use in this script to display"
+    echo "# in the output the name of your destination (e.g.: Google Drive, Amazon, B2, Wasabi,"
+    echo "# etc.). The "TAG" value will tag your snapshots with any name/tag you want."
+    echo "# The "CLEAN" value determine when it will execute the forget, prune and check"
+    echo "# commands; this value must be set in days and by default the number 7 means"
+    echo "# it will do these tasks every seven (7) days. These values CAN be left blank"
+    echo "# if you are not planning on use them."
+    echo 'CLEAN="7"'
+    echo 'TAG=""'
+    echo 'DESTINATION=""'
+    echo ""
+    echo "# The variable "LOGGING" is "yes" by default. If you don't want logs to be saved"
+    echo "# at .rescript/logs directory just change the "yes" to "no". This will only save"
+    echo "# a log when the script is run; options and commands do not save logs."
+    echo 'LOGGING="yes"'
+    } > "$CONFIG"
+    chmod 700 "$CONFIG"
+fi
+
+# If there is no exclude file create one
+if [[ ! -e "$EXCLUDES" ]] ; then
+  touch "$EXCLUDES"
+  {
+    echo "# These are the default rescript exclusions:"
+    echo "$HOME/.cache/*"
+    echo "$HOME/.local/share/Trash/*"
+    echo "$HOME/.rescript/lock/*"
+    echo "$HOME/.Trash"
+    echo "$HOME/.Private"
+    echo "$HOME/.ecryptfs"
+    echo ""
+    echo "# Write your custom exclusions below:"
+  } > "$EXCLUDES"
+fi
+# If there is no date file create one
+if [[ ! -e "$DATEFILE" ]] ; then
+  touch "$DATEFILE"
+  date -R > "$DATEFILE"
+fi
+
+# Set PATH so it includes user's private bin if it exists
+if [ -d "$HOME/bin" ] ; then
+    PATH="$HOME/bin:$PATH"
+fi
+
+# Set PATH so it includes user's private bin if it exists
+if [ -d "$HOME/.local/bin" ] ; then
+    PATH="$HOME/.local/bin:$PATH"
+fi
+
+# Set config file source
+source "$CONFIG"
+
+# Export Password and Repo
+export RESTIC_PASSWORD=$RESTIC_PASSWORD
+export RESTIC_REPOSITORY=$RESTIC_REPO
+export B2_ACCOUNT_ID=$B2_ID
+export B2_ACCOUNT_KEY=$B2_KEY
+# ------------------------------------------------------------------------------- #
+# Config, help, init and version commands
+if [[ "$1" == "config" || "$1" == "--config" ]] ; then
+    if [ -e "$LOCK" ]; then
+	echo -e "$YELLOW""WARNING:""$ENDCOLOR" "$(basename "$0") is already running..."
+	echo -e "If you are sure $(basename "$0") is not running, type"
+	echo -e " "
+	echo -e "	$(basename "$0") -u"
+	echo -e "OR"
+	echo -e "	$(basename "$0") -unlock"
+	echo -e " "
+	echo -e "This will remove the lock for $(basename "$0")"
+        exit
+    fi
+    touch "$LOCK"
+    trap 'rm -rf "$LOCK"' INT QUIT TERM EXIT
+    xdg-open "$CONFIG" 2> /dev/null
+    exit
+elif [[ "$1" == "help" || "$1" == "--help" ]] ; then
+    if [ -e "$LOCK" ]; then
+	echo -e "$YELLOW""WARNING:""$ENDCOLOR" "$(basename "$0") is already running..."
+	echo -e "If you are sure $(basename "$0") is not running, type"
+	echo -e " "
+	echo -e "	$(basename "$0") -u"
+	echo -e "OR"
+	echo -e "	$(basename "$0") -unlock"
+	echo -e " "
+	echo -e "This will remove the lock for $(basename "$0")"
+        exit
+    fi
+    touch "$LOCK"
+    trap 'rm -rf "$LOCK"' INT QUIT TERM EXIT
+    echo "$Usage"
+    exit
+elif [[ "$1" == "init" ]] ; then
+    if [[ -z "$RESTIC_PASSWORD" || -z "$RESTIC_REPO" || -z "$BACKUP_DIR" ]] ; then
+      echo "You have not set your restic repo, password or backup directory."
+      echo "Run [rescript config] to open your configuration file."
+      echo "Make sure to set all needed variables."
+      exit
+    elif [ -e "$LOCK" ]; then
+	echo -e "$YELLOW""WARNING:""$ENDCOLOR" "$(basename "$0") is already running..."
+	echo -e "If you are sure $(basename "$0") is not running, type"
+	echo -e " "
+	echo -e "	$(basename "$0") -u"
+	echo -e "OR"
+	echo -e "	$(basename "$0") -unlock"
+	echo -e " "
+	echo -e "This will remove the lock for $(basename "$0")"
+        exit
+    fi
+    touch "$LOCK"
+    trap 'rm -rf "$LOCK"' INT QUIT TERM EXIT
+    restic init
+    echo ""
+    echo "RESCRIPT NOTE:"
+    echo "Before continuing make sure to edit your exclude file. To open it"
+    echo "type [rescript -e edit]. To see other options regarding to your"
+    echo "exclude file type [rescript -e --help]".
+    echo ""
+    exit
+elif [[ "$1" == "install" || "$1" == "--install" ]] ; then
+    if [[ -d "$HOME/bin" ]] ; then
+      mv $(basename "$0") $HOME/bin/$(basename "$0")
+      echo "The script was moved to $HOME/bin directory"
+      exit
+    elif [[ ! -d "$HOME/.local/bin" ]]; then
+      mkdir -p "$HOME/.local/bin"
+    fi
+    mv $(basename "$0") $HOME/.local/bin/$(basename "$0")
+    echo "The script was moved to $HOME/.local/bin directory"
+    exit
+elif [[ "$1" == "logs" || "$1" == "--logs" ]] ; then
+    if [[ "$2" == "--cat" ]] ; then
+      cat $HOME/.rescript/logs/"$3"
+      exit
+    elif [[ "$2" == "--help" ]] ; then
+      echo "[logs] is for log files saved by rescript"
+      echo "Usage:"
+      echo "	rescript logs [flag]"
+      echo "OR"
+      echo "	rescript logs [flag] [logfile]"
+      echo "Available flags:"
+      echo "	--cat		display output of selected log file"
+      echo "	--list		list all log files saved"
+      echo "	--remove	remove all log files"
+      exit      
+    elif [[ "$2" == "--list" ]] ; then
+      ls $HOME/.rescript/logs
+      echo ""
+      echo "Your logs are saved at $HOME/.rescript/logs"
+      exit
+    elif [[ "$2" == "--remove" ]] ; then
+      rm -rf $HOME/.rescript/logs/$(basename "$0")-log-*
+      echo "Log files removed"
+      exit
+    else
+      echo "You need to indicate an option:"
+      echo "	--cat		display output of selected log file"
+      echo "	--list		list all log files saved"
+      echo "	--remove	remove all log files"
+      exit
+    fi
+elif [[ "$1" == "version" || "$1" == "--version" ]] ; then
+    if [ -e "$LOCK" ]; then
+	echo -e "$YELLOW""WARNING:""$ENDCOLOR" "$(basename "$0") is already running..."
+	echo -e "If you are sure $(basename "$0") is not running, type"
+	echo -e " "
+	echo -e "	$(basename "$0") -u"
+	echo -e "OR"
+	echo -e "	$(basename "$0") -unlock"
+	echo -e " "
+	echo -e "This will remove the lock for $(basename "$0")"
+        exit
+    fi
+    touch "$LOCK"
+    trap 'rm -rf "$LOCK"' INT QUIT TERM EXIT
+    echo "$Version"
+    exit
+fi
+
+# Check if variables are set
+if [[ -z "$RESTIC_PASSWORD" || -z "$RESTIC_REPO" || -z "$BACKUP_DIR" ]] ; then
+  echo "You have not set your restic repo, password or backup directory."
+  echo "Run [rescript config] to open your configuration file."
+  echo "Make sure to set all needeed variables."
+  exit
+fi
 # ------------------------------------------------------------------------------- #
 # Options
 while getopts ":bcde:hmnr:uv" o
@@ -216,7 +358,7 @@ while getopts ":bcde:hmnr:uv" o
 		if [[ "$DESTINATION" ]] ; then
 		  echo -e "$YELLOW""Backup Destination:""$ENDCOLOR" "$DESTINATION"
 		else
-		  echo -e "$YELLOW""Backup Destination:""$ENDCOLOR" "$BACKUP_DIR"
+		  echo -e "$YELLOW""Backup Destination:""$ENDCOLOR" "$RESTIC_REPO"
 		fi
 		echo -e "----------------------------------------------------------------------"
 		restic backup "$BACKUP_DIR" --tag "$TAG" --verbose --exclude-caches --exclude-file="$EXCLUDES"
@@ -260,7 +402,7 @@ while getopts ":bcde:hmnr:uv" o
 			if [[ "$DESTINATION" ]] ; then
 			  echo -e "$YELLOW""Backup Destination:""$ENDCOLOR" "$DESTINATION"
 			else
-			  echo -e "$YELLOW""Backup Destination:""$ENDCOLOR" "$BACKUP_DIR"
+			  echo -e "$YELLOW""Backup Destination:""$ENDCOLOR" "$RESTIC_REPO"
 			fi
 			echo -e "----------------------------------------------------------------------"
 		        restic forget --keep-last $KEEP_LAST --keep-hourly $KEEP_HOURLY --keep-daily $KEEP_DAILY --keep-weekly $KEEP_WEEKLY --keep-monthly $KEEP_MONTHLY --keep-yearly $KEEP_YEARLY
@@ -442,7 +584,7 @@ while getopts ":bcde:hmnr:uv" o
 		exit
 		done
 		while [[ "$OPTARG" == "edit" ]] ; do
-		  nano "$EXCLUDES"
+		  xdg-open "$EXCLUDES" 2> /dev/null
 		exit
 		done
 		while [[ "$OPTARG" == "list" ]] ; do
@@ -541,7 +683,7 @@ while getopts ":bcde:hmnr:uv" o
 		    if [[ "$DESTINATION" ]] ; then
 		      echo -e "$YELLOW""Backup Destination:""$ENDCOLOR" "$DESTINATION"
 		    else
-		      echo -e "$YELLOW""Backup Destination:""$ENDCOLOR" "$BACKUP_DIR"
+		      echo -e "$YELLOW""Backup Destination:""$ENDCOLOR" "$RESTIC_REPO"
 		    fi
 		    echo -e "----------------------------------------------------------------------"
 		    if [[ "$DESTINATION" ]] ; then
@@ -583,7 +725,7 @@ while getopts ":bcde:hmnr:uv" o
 		  if [[ "$DESTINATION" ]] ; then
 		    echo -e "$YELLOW""Backup Destination:""$ENDCOLOR" "$DESTINATION"
 		  else
-		    echo -e "$YELLOW""Backup Destination:""$ENDCOLOR" "$BACKUP_DIR"
+		    echo -e "$YELLOW""Backup Destination:""$ENDCOLOR" "$RESTIC_REPO"
 		  fi
 		  echo -e "----------------------------------------------------------------------"
 		  if [[ "$DESTINATION" ]] ; then
@@ -648,8 +790,8 @@ while getopts ":bcde:hmnr:uv" o
     exit
   done
 shift $((OPTIND - 1))
-
-# Commands
+# ------------------------------------------------------------------------------- #
+# Parse restic commands
 if [[ -n "$1" ]] ; then
   if [[ "$1" == "-" ]] ; then
     if [ -e "$LOCK" ]; then
@@ -665,41 +807,9 @@ if [[ -n "$1" ]] ; then
     fi
     touch "$LOCK"
     trap 'rm -rf "$LOCK"' INT QUIT TERM EXIT
-    echo "Unknown option [-$OPTARG]; use [-h] or [help] for available commands and options"
+    echo "Unknown option [-$OPTARG]; use [help] or [--help] for available commands and options"
     exit
-  elif [[ "$1" == "help" ]] ; then
-    if [ -e "$LOCK" ]; then
-	echo -e "$YELLOW""WARNING:""$ENDCOLOR" "$(basename "$0") is already running..."
-	echo -e "If you are sure $(basename "$0") is not running, type"
-	echo -e " "
-	echo -e "	$(basename "$0") -u"
-	echo -e "OR"
-	echo -e "	$(basename "$0") -unlock"
-	echo -e " "
-	echo -e "This will remove the lock for $(basename "$0")"
-        exit
-    fi
-    touch "$LOCK"
-    trap 'rm -rf "$LOCK"' INT QUIT TERM EXIT
-    echo "$Usage"
-    exit
-  elif [[ "$1" == "version" ]] ; then
-    if [ -e "$LOCK" ]; then
-	echo -e "$YELLOW""WARNING:""$ENDCOLOR" "$(basename "$0") is already running..."
-	echo -e "If you are sure $(basename "$0") is not running, type"
-	echo -e " "
-	echo -e "	$(basename "$0") -u"
-	echo -e "OR"
-	echo -e "	$(basename "$0") -unlock"
-	echo -e " "
-	echo -e "This will remove the lock for $(basename "$0")"
-        exit
-    fi
-    touch "$LOCK"
-    trap 'rm -rf "$LOCK"' INT QUIT TERM EXIT
-    echo "$Version"
-    exit
-  elif [[ "$1" == "backup" ]] ; then
+  elif [[ "$1" == "backup" || "$1" == "--backup" ]] ; then
     if [ -e "$LOCK" ]; then
       echo -e "$YELLOW""WARNING:""$ENDCOLOR" "$(basename "$0") is already running..."
       echo -e "If you are sure $(basename "$0") is not running, type"
@@ -722,7 +832,7 @@ if [[ -n "$1" ]] ; then
     if [[ "$DESTINATION" ]] ; then
       echo -e "$YELLOW""Backup Destination:""$ENDCOLOR" "$DESTINATION"
     else
-      echo -e "$YELLOW""Backup Destination:""$ENDCOLOR" "$BACKUP_DIR"
+      echo -e "$YELLOW""Backup Destination:""$ENDCOLOR" "$RESTIC_REPO"
     fi
     echo -e "----------------------------------------------------------------------"
     restic backup "$BACKUP_DIR" --tag "$TAG" --verbose --exclude-caches --exclude-file="$EXCLUDES"
@@ -744,15 +854,15 @@ if [[ -n "$1" ]] ; then
     exit
   else
     if [ -e "$LOCK" ]; then
-	echo -e "$YELLOW""WARNING:""$ENDCOLOR" "$(basename "$0") is already running..."
-	echo -e "If you are sure $(basename "$0") is not running, type"
-	echo -e " "
-	echo -e "	$(basename "$0") -u"
-	echo -e "OR"
-	echo -e "	$(basename "$0") -unlock"
-	echo -e " "
-	echo -e "This will remove the lock for $(basename "$0")"
-        exit
+      echo -e "$YELLOW""WARNING:""$ENDCOLOR" "$(basename "$0") is already running..."
+      echo -e "If you are sure $(basename "$0") is not running, type"
+      echo -e " "
+      echo -e "		$(basename "$0") -u"
+      echo -e "OR"
+      echo -e "		$(basename "$0") -unlock"
+      echo -e " "
+      echo -e "This will remove the lock for $(basename "$0")"
+      exit 
     fi
     touch "$LOCK"
     trap 'rm -rf "$LOCK"' INT QUIT TERM EXIT
@@ -793,7 +903,7 @@ echo -e "$YELLOW""Hostname:""$ENDCOLOR" "$HOSTNAME"
 if [[ "$DESTINATION" ]] ; then
   echo -e "$YELLOW""Backup Destination:""$ENDCOLOR" "$DESTINATION"
 else
-  echo -e "$YELLOW""Backup Destination:""$ENDCOLOR" "$BACKUP_DIR"
+  echo -e "$YELLOW""Backup Destination:""$ENDCOLOR" "$RESTIC_REPO"
 fi
 echo -e "----------------------------------------------------------------------"
 
