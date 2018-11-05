@@ -15,6 +15,10 @@ the date it started, date ended, where are you backing up, excluded files,
 the days left for the next "cleanup" run, the days it'll run the next "cleanup"
 operation and the duration of the whole operation.
 
+Note that running `rescript` alone (without any commands or options) will run all these
+`restic` commands. You can parse `restic` commands but the script was originally
+made to automate these `restic` commands.
+
 ## Keep in mind
 1. If you use this script is at your own risk. If you do something wrong, that's on you.
    You should take the time to study the script and see if it can help you
@@ -74,11 +78,24 @@ your computer in order for this work. The same applies if you needed to copy and
 If you have different repos you can just change the name of the script and use
 one for every repo. For example:
 
-* For a B2 repo change `rescript` to `rescript_b2` so when you type `rescript_b2`
-   you're referring to the B2 repo.
+* For a B2 repo, copy `rescript` and rename it from `rescript` to `rescript_b2`.
+* For a Google Drive repo make another copy of `rescript` and change its name from
+  `rescript` to `rescript_gd`.
 
-Using rescript, this is the best approach because all files realted to this instance will be named the same as your script;
-so if you rename the script after you set up everythig it will not recognize the configuration file, exclude file and datefile.
+If you did this then every time you type `rescript_b2` in your terminal, all actions
+will be referring to your B2 repository and if you type `rescript_gd` all actions
+will be referring to your Google Drive repository. Obviously, you can change the name
+of the script for whatever name you want to use. Make sure to give the permissions
+to execute using `chmod 700 rescript_b2` OR `chmod 700 rescript_gd` after you change
+its name.
+
+Using rescript, this is the best approach if you have different repositories.
+Also, because all files realted to one instance will be named the same as your script,
+it is better to rename the script before configuring everyting because if you 
+rename the script after you have set up everythig it will not recognize the 
+configuration file, which will be called `nameofyourscript.conf`, the exclude file,
+which will be also named `nameofyourscript-exclusions` and datefile also will be
+called `nameofyourscript-datefile`. These files will be located at `$HOME/.rescript/config`.
 
 ## Usage:
 
@@ -115,7 +132,11 @@ These variables are optional because the script will still work if you don't wan
 * `DESTINATION=""`: Put the name of your backup destination between the "" 
    (something like S3, Google Drive, External Drive, FriendServerName, etc.). If you don't want to use
    it just leave it blank. This is just used for output purposes.
-
+* `LOGGING="yes"`: By default `rescript` will create a log for every run of the script
+   and logs will be located at `$HOME/.rescript/logs`. Commands and options will not
+   create a log; logs only will be created when you run the script without any
+   command and option. You can turn logging off by swtiching this variable from
+   "yes" to "no".
 
 
 **Exclusions**:
@@ -250,28 +271,23 @@ After that you need to add a new cronjob like `10 */2 * * * /PATH/TO/YOUR/rescri
 This cron job will execute every two hours at the 10th minute. If you want to change it for every four hours;
 for example, at the 0 minute just write `0 */4 * * * /PATH/TO/YOUR/rescript`.
 
-Also, you can create a log file so the cron job can store the output in a
-plaintext file. You can do this by adding in the cron job file the following
-after the cron job you've just created:
-
-```
->> /home/YOURUSERNAME/.rescript/logs/rescript-log_$(date +\%Y-\%m-\%d-\%H:00) 2>&1
-```
-That will create a plain text file in the directory `/home/YOURUSERNAME/.rescript/logs`.
-Let's say the system ran the job at 12:00 a.m. in January 1, 2018; then this
-past line on your `crontab` will create a file called 
-rescript-log_2018-01-01-12:00 with all the script process output.
-
 If you do this your `crontab` will look like this:
 
 ```
-0 */4 * * * /PATH/TO/YOUR/rescript >> /home/YOURUSERNAME/.rescript/logs/rescript-log_$(date +\%Y-\%m-\%d-\%H:00) 2>&1
+0 */4 * * * /PATH/TO/YOUR/rescript
 ```
 
 If you want to just do backups with this script without the need to run
 the entire script, you can set up a cron job including the `-b` option,
-just to run a backup and anything else, like this:
+just to run a backup and anything else. It will look as follows:
 
+```
+0 */4 * * * /PATH/TO/YOUR/rescript -b
+```
+Because commands and options will not create any log, you will not have a log
+for this cron job. You can redirect the ouput to a log file for this cron job
+that will actually create a log when using commands. If you want this in your
+`crontab` you can do this as follows:
 ```
 0 */4 * * * /PATH/TO/YOUR/rescript -b >> /home/YOURUSERNAME/.rescript/logs/rescript-log_$(date +\%Y-\%m-\%d-\%H:00) 2>&1
 ```
@@ -279,46 +295,39 @@ just to run a backup and anything else, like this:
 You can read more about how `crontab` works in [here](https://help.ubuntu.com/community/CronHowto).
 
 ## Some things worth to mention
-This script will create one (1) directory and two (2) files when it runs. 
+This script will create one (1) directory (`.rescript`) in your $HOME and
+three (3) subdirectories: `config`, `lock` and `logs`.
+
+`config` directory will contain the `rescript` `rescript.conf` file, the `rescript-datefile`
+and the `rescript-exclusions`. If you have multiple repositories, this subdirectory
+will contain those three files for every script (one script for every repo).
 One is temporary and it is a `lock` file that will be deleted by the script
 at the end of it. The other file is a `datefile` created by the script. 
 This `datefile` is not temporary and if it is deleted the script will create 
 it again on the next run.
 
-**Why the new directory?**
+`lock` directory will always be empty except when `rescript` is running. `rescript`
+creates a temporarily file called `rescript.lock` every time it runs and the file
+should be removed at the end of every operation. This "lock" prevents another
+processes to run if `rescript` is already running and is not finished yet. For example:
+you set scheduled jobs but you forgot and tried to make a `prune`. If the scheduled
+job is not finished it will display a message telling you that `rescript` is already
+running so you'll have to wait until `rescript` finish to do what you want to do.
+This way you interrupt a process preventing possible problems with your repository.
 
-I was looking for something more generic than adding three files in the `/home`
-directory. So the script will create a directory called `.rescript` in your `/home` directory.
-Inside this new directory will be three  directories called `config`, `lock` and `logs`. If it already exists, it will do
-nothing. Inside the`config` directory will be placed the `datefile` and the `exclusion-file`.
-Inside the `lock` directory will be placed the `lock` file. The `logs` directory is for you to place
-the logs created by your cron jobs.
-
-**Why the `lock` file?**
-
-The lock file will be a 0kb (it contains literally nothing) and the name of 
-the file will be `nameofscript.lock`. This `lock` file will be inside 
-`/.local/tmp`. Why is it there? Well, I was having trouble with some cron jobs 
-that started and the latest run was not finished yet. That leads me to some 
-errors in my repo (nothing to be worried in my case). That's why I created 
-the `lock` file. When the script start, first it'll check if the
-`lock` file is present;  if it is present then it will not execute and it'll show you
-a message telling you that the _"nameofscript is already running..."_. That way the script
-will not run if it's already running and it's not finished yet. If you kill the script, shut down
-your computer, kill restic or something similar the script will delete the file so
-you don't have to delete it manually for the next run.
+`logs` directory is used to save `rescript` logs.
 
 **Why the `datefile`?**
 
 The `datefile` is created by the script in the first run. This file will be placed 
-inside `.rescript/config` and it will be called `datefile_nameofscript`. 
-Why is it there? I liked the way my script was but I really didn't wanted to do
+inside `.rescript/config` and it will be called `nameofscript-datefile`. 
+_**Why is it there?**_ I liked the way my script was but I really didn't wanted to do
 the `check`, `forget` and `prune` commands every day or even in every run of the script.
 So, I find a way to play with the dates to make this happen and it was creating a 
 file where the script could read and write dates. The `datefile` will only contain
 one date and that is 7 days from the moment you run the script for the first time
 (this 7 days is by default but you can change it in the "CLEAN" value).
-So, what does this mean? It means that every time the script runs, before running
+_**So, what does this mean?**_ It means that every time the script runs, before running
 `check`, `forget` and `prune` it will read the date in your `datefile` and if those
 seven days have not passed yet (again, you can change the days), then it'll not run
 the `check`, `forget` and `prune`. When it's time to run `check`, `forget` and `prune`
@@ -326,12 +335,10 @@ the script will run all three operations and it'll override the date in the file
 created. If, for some reason the file is deleted then the script will not know 
 and it will run `check`, `forget` and `prune` according to your policies and 
 it will create the `datefile` again adding the date for the next "cleaning" run.
+If you do not wish to use this option you can leave the "CLEAN" variable _blank_;
+the `datefile` will be created anyways but it will do nothing.
 
-If you were using v1.6 the datefile will be automatically moved from `logs` to `config`.
-
-**Why so much trouble to do something that I could have achieve with a cron job?**
-
-Because is cool and all the kids are doing it.
+_**NOTE**: If you were using v1.6 the datefile will be automatically moved from `logs` to `config`._
 
 ## Having problems?
 If you have any problem with the script you can reach out so it can be fixed.
