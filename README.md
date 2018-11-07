@@ -139,10 +139,11 @@ These variables are optional because the script will still work if you don't wan
    "yes" to "no".
 
 **Headless server**:
+
 If you're using `rescript` in a headless, after running `rescript config` there is 
 a chance it will do nothing. So after running `rescript config` (you need to run
 it anyways so the configuration file is created) just navigate to `$HOME/.rescript/config`
-and open the configuration files from there with your text editor.
+and open the configuration file from there with your text editor.
 
 
 **Exclusions**:
