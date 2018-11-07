@@ -90,7 +90,7 @@ to execute using `chmod 700 rescript_b2` OR `chmod 700 rescript_gd` after you ch
 its name.
 
 Using rescript, this is the best approach if you have different repositories.
-Also, because all files realted to one instance will be named the same as your script,
+Also, because all files related to one instance will be named the same as your script,
 it is better to rename the script before configuring everyting because if you 
 rename the script after you have set up everythig it will not recognize the 
 configuration file, which will be called `nameofyourscript.conf`, the exclude file,
@@ -137,6 +137,12 @@ These variables are optional because the script will still work if you don't wan
    create a log; logs only will be created when you run the script without any
    command and option. You can turn logging off by swtiching this variable from
    "yes" to "no".
+
+**Headless server**:
+If you're using `rescript` in a headless, after running `rescript config` there is 
+a chance it will do nothing. So after running `rescript config` (you need to run
+it anyways so the configuration file is created) just navigate to `$HOME/.rescript/config`
+and open the configuration files from there with your text editor.
 
 
 **Exclusions**:
@@ -301,10 +307,6 @@ three (3) subdirectories: `config`, `lock` and `logs`.
 `config` directory will contain the `rescript` `rescript.conf` file, the `rescript-datefile`
 and the `rescript-exclusions`. If you have multiple repositories, this subdirectory
 will contain those three files for every script (one script for every repo).
-One is temporary and it is a `lock` file that will be deleted by the script
-at the end of it. The other file is a `datefile` created by the script. 
-This `datefile` is not temporary and if it is deleted the script will create 
-it again on the next run.
 
 `lock` directory will always be empty except when `rescript` is running. `rescript`
 creates a temporarily file called `rescript.lock` every time it runs and the file
