@@ -28,8 +28,8 @@ made to automate these `restic` commands.
    probably have to edit some things depending on your system.
 4. I'm not a developer, programmer or anything related; I'm just a regular user
    sharing my basic knowledge. I created this for my personal use but decided
-   to share it because when I was looking for something like this, I didn't really
-   found something that could fill my expectations. I know maybe there are some things
+   to share it because when I was looking for something like this, I did not
+   find something that could fulfill my expectations. I know maybe there are some things
    in my script that can be done in a different way, better or even more easily but
    unfortunately I don't have enough knowledge. You're more than welcome to get in touch
    if you want to contribute something, fix something or whatever.
