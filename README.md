@@ -23,14 +23,16 @@ made to automate these `restic` commands.
 1. If you use this script is at your own risk. If you do something wrong, that's on you.
    You should take the time to study the script and see if it can help you
    for what you need; if you use it without knowing what you're doing, that's on you too.
-2. You need `restic 0.9.2` installed to use this script (I think `stats` are not in older versions of `restic`).
+2. You need `restic 0.9.2` or latest installed to use this script (`stats` are not in older versions of `restic`).
 3. This script was made for GNU/Linux use. You could use it for other systems but you'll
    probably have to edit some things depending on your system.
 4. I'm not a developer, programmer or anything related; I'm just a regular user
-   sharing my basic knowledge.
-5. This script was made with an external HDD, sftp connection or using rclone in mind.
-   If you need to backup to a S3, B2, or any other service using the service that make use
-   of credentials in order to access your repository, make sure to add an export of your credentials.
+   sharing my basic knowledge. I created this for my personal use but decided
+   to share it because when I was looking for something like this, I didn't really
+   found something that could fill my expectations. I know maybe there are some things
+   in my script that can be done in a different way, better or even more easily but
+   unfortunately I don't have enough knowledge. You're more than welcome to get in touch
+   if you want to contribute something, fix something or whatever.
 
 ## Installation:
 
@@ -89,13 +91,15 @@ of the script for whatever name you want to use. Make sure to give the permissio
 to execute using `chmod 700 rescript_b2` OR `chmod 700 rescript_gd` after you change
 its name.
 
-Using rescript, this is the best approach if you have different repositories.
-Also, because all files related to one instance will be named the same as your script,
-it is better to rename the script before configuring everyting because if you 
+`rescript` will create all files related to it (conf, datefile, exclude and lock)
+with the same name you give your script (basename), so if you're going to use
+it for more than one repo it is better to rename the script before configuring everyting because if you 
 rename the script after you have set up everythig it will not recognize the 
 configuration file, which will be called `nameofyourscript.conf`, the exclude file,
 which will be also named `nameofyourscript-exclusions` and datefile also will be
 called `nameofyourscript-datefile`. These files will be located at `$HOME/.rescript/config`.
+If you renamed the script after configuring it, just go to your `$HOME/.rescript/config` folder
+and manually rename your configuration file to `whatervernameyougaveyourscript.conf`.
 
 ## Usage:
 
@@ -140,11 +144,11 @@ These variables are optional because the script will still work if you don't wan
 
 **Headless server**:
 
-If you're using `rescript` in a headless, after running `rescript config` there is 
-a chance it will do nothing. So after running `rescript config` (you need to run
+If you're using `rescript` in a headless server, after running `rescript config` there is 
+a chance that it will do nothing. If that is your case, after running `rescript config` (you need to run
 it anyways so the configuration file is created) just navigate to `$HOME/.rescript/config`
-and open the configuration file from there with your text editor.
-
+and open the configuration file from there with your text editor. This also applies to
+the exclusion list.
 
 **Exclusions**:
 
@@ -316,7 +320,7 @@ processes to run if `rescript` is already running and is not finished yet. For e
 you set scheduled jobs but you forgot and tried to make a `prune`. If the scheduled
 job is not finished it will display a message telling you that `rescript` is already
 running so you'll have to wait until `rescript` finish to do what you want to do.
-This way you interrupt a process preventing possible problems with your repository.
+This way `rescript` prevents possible problems with your repository.
 
 `logs` directory is used to save `rescript` logs.
 
