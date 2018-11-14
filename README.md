@@ -103,15 +103,29 @@ and manually rename your configuration file to `whatervernameyougaveyourscript.c
 
 ## Usage:
 
-First thing to do is to edit your configuration file. This script will automatically create one but you need
-to put the correct values. To edit your configuration file you need to use the following command:
+First thing to do is to edit select the text editor you want to use
+to open your configuration files and edit the configuration files and exclusion
+list. This script will automatically create those but you need to put the 
+correct values int the configuration file and edit the exclusion list,
+if you want to exclude any additional files, directories or patterns.
+To edit your configuration file you need to use the following command:
 
 ```
 rescript config
 ```
-The configuration file will be opened in your default text editor.
+This command will display a dialog where you'll be asked to select a text editor
+you want to use. The list of editors are: Nano, Vim, Gedit, Mousepad, Leafpad,
+Pluma and Kate (the default text editors for almost any DE). If you want to use
+another text editor just create a variable in your configuration file called
+"EDITOR" pointing to your text editor (e.g.: EDITOR="geany").
 
-**Things you need to change**:
+Once the text editor is set, then it will display 3 options: 1) Configuration,
+2) Exclusions, 3) Exit. Select 1 to open the configuration file, 2 to open the 
+exclusion list and 3 to exit the dialog. Once you've done that you can start
+using the script. If you don't have any repo remember to run `rescript init`
+after configuring `rescript`.
+
+**Things you need to change in your configuration file**:
 
 * `RESTIC_PASSWORD=""`: Put your restic password between the "".
 * `RESTIC_REPO=""`: Put your repository directory.
@@ -217,7 +231,7 @@ Please see restic `help` and [documentation](https://restic.readthedocs.io/en/st
 
 **Rescript Commands**:
 
-1. `config, --config`: this will open the configuration file.
+1. `config, --config`: this will open the configuration dialog.
 2. `install, --install`: this will place rescript in your `$PATH` (in your home directory).
 3. `logs, --logs`: this command needs an option. Options are as follows:
 	1. `--cat`: display output of selected log file (you need to copy and paste the filename to display it).
