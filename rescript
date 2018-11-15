@@ -1,6 +1,6 @@
 #!/bin/bash
 # ------------------------------------------------------------------------------- #
-Version="rescript-v1.9"
+Version="rescript-v2.0"
 Usage="
 Author		: Sulfuror, Copyright (c) 2018 <sulfuror@gmail.com>
 License		: BSD 2-clause 'Simplified' License
@@ -31,8 +31,9 @@ Commands usage:
   rescript [command] [flags] [options]
   
 Rescript commands:
-  config, --config		This will open the configuration file
-  				where you need to set your variables
+  config, --config		Rescript configuration; set your default
+  				text editor and open your configuration
+  				and exclusion files
   help, --help			Rescript help
   install, --install		Install rescript (this just move the script
   				to your .local/bin directory for convenience)
@@ -218,7 +219,104 @@ if [[ "$1" == "config" || "$1" == "--config" ]] ; then
     fi
     touch "$LOCK"
     trap 'rm -rf "$LOCK"' INT QUIT TERM EXIT
-    xdg-open "$CONFIG" 2> /dev/null
+    if [[ -z "$EDITOR" ]] ; then
+      echo "Please select the text editor you wish to use. After this,"
+      echo "the configuration file and exclusion list will always be"
+      echo "opened with your chosen text editor. If you wish to use another"
+      echo "editor not listed here open the configuration file, write a new"
+      echo "variable called EDITOR and assign to it the executable name of"
+      echo "the program you wish to use."
+      echo ""
+      echo "Configuration file location:"
+      echo "$CONFIG"
+      echo ""
+      PS3='Select an option and press Enter: '
+      options=("Nano" "Vim" "Gedit" "Mousepad" "Leafpad" "Pluma" "Kate" "Exit")
+      select opt in "${options[@]}"; do
+        case "$opt,$REPLY" in
+        Nano,*|*,Nano,*|nano,*|*,nano)
+        	{
+        	 echo ""
+        	 echo "# Text Editor"
+        	 echo 'EDITOR="nano"'
+        	} >> $CONFIG;
+        	break
+        	;;
+        Vim,*|*,Vim,*|vim,*|*,vim)
+        	{
+        	 echo ""
+        	 echo "# Text Editor"
+        	 echo 'EDITOR="vim"'
+        	} >> $CONFIG;
+        	break
+        	;;
+        Gedit,*|*,Gedit,*|gedit,*|*,gedit)
+        	{
+        	 echo ""
+        	 echo "# Text Editor"
+        	 echo 'EDITOR="gedit"'
+        	} >> $CONFIG;
+        	break
+        	;;
+        Mousepad,*|*,Mousepad,*|mousepad,*|*,mousepad)
+        	{
+        	 echo ""
+        	 echo "# Text Editor"
+        	 echo 'EDITOR="mousepad"'
+        	} >> $CONFIG;
+        	break
+        	;;
+        Leafpad,*|*,Leafpad,*|leafpad,*|*,leafpad)
+        	{
+        	 echo ""
+        	 echo "# Text Editor"
+        	 echo 'EDITOR="leafpad"'
+        	} >> $CONFIG;
+        	break
+        	;;
+        Pluma,*|*,Pluma,*|pluma,*|*,pluma)
+        	{
+        	 echo ""
+        	 echo "# Text Editor"
+        	 echo 'EDITOR="pluma"'
+        	} >> $CONFIG;
+        	break
+        	;;
+        Kate,*|*,Kate,*|kate,*|*,kate)
+        	{
+        	 echo ""
+        	 echo "# Text Editor"
+        	 echo 'EDITOR="kate"'
+        	} >> $CONFIG;
+        	break
+        	;;
+        Exit,*|*,Exit,*|exit,*|*,exit)
+		exit;
+        	break
+        	;;      	
+        esac
+      done
+    source "$CONFIG"
+    echo "You have selected ["$EDITOR"] as your default text editor."
+    fi
+    echo "Configuration files are listed as follows. Select one of the following"
+    echo "options to open and edit your configuration file:" 
+    PS3='Select an option and press Enter: '
+    options=("Configuration" "Exclusions" "Exit")
+      select opt in "${options[@]}"; do
+        case "$opt,$REPLY" in
+        Configuration,*|*,Configuration,*|configuration,*|*,configuration)
+        	"$EDITOR" "$CONFIG" 2> /dev/null;
+        	;;
+        Exclusions,*|*,Exclusions,*|exclusions,*|*,exclusions)
+		"$EDITOR" "$EXCLUDES" 2> /dev/null;
+        	;;
+        Exit,*|*,Exit,*|exit,*|*,exit)
+        	exit;
+        	break
+        	;;
+        esac
+      done
     exit
 elif [[ "$1" == "help" || "$1" == "--help" ]] ; then
     if [ -e "$LOCK" ]; then
@@ -238,9 +336,10 @@ elif [[ "$1" == "help" || "$1" == "--help" ]] ; then
     exit
 elif [[ "$1" == "init" ]] ; then
     if [[ -z "$RESTIC_PASSWORD" || -z "$RESTIC_REPO" || -z "$BACKUP_DIR" ]] ; then
-      echo "You have not set your restic repo, password or backup directory."
-      echo "Run [rescript config] to open your configuration file."
-      echo "Make sure to set all needed variables."
+      echo "You have not yet configured your restic repository,"
+      echo "password or backup directory. Run [rescript config]"
+      echo "to open your configuration file. Make sure to set"
+      echo "all needed variables."
       exit
     elif [ -e "$LOCK" ]; then
 	echo -e "$YELLOW""WARNING:""$ENDCOLOR" "$(basename "$0") is already running..."
@@ -265,18 +364,25 @@ elif [[ "$1" == "init" ]] ; then
     exit
 elif [[ "$1" == "install" || "$1" == "--install" ]] ; then
     if [[ -d "$HOME/bin" ]] ; then
-      mv $(basename "$0") $HOME/bin/$(basename "$0")
+      cp $(basename "$0") $HOME/bin/$(basename "$0")
+      chmod 700 $HOME/bin/$(basename "$0")
       echo "The script was moved to $HOME/bin directory"
       exit
     elif [[ ! -d "$HOME/.local/bin" ]]; then
       mkdir -p "$HOME/.local/bin"
     fi
-    mv $(basename "$0") $HOME/.local/bin/$(basename "$0")
+    cp $(basename "$0") $HOME/.local/bin/$(basename "$0")
+    chmod 700 $HOME/.local/bin/$(basename "$0")
     echo "The script was moved to $HOME/.local/bin directory"
     exit
 elif [[ "$1" == "logs" || "$1" == "--logs" ]] ; then
     if [[ "$2" == "--cat" ]] ; then
-      cat $HOME/.rescript/logs/"$3"
+      if [[ ! "$3" ]] ; then
+        echo "No log file indicated; please copy the name of the log you wish to see"
+        echo "and paste it after [--cat]. To list all log files type [$(basename "$0") logs --list]."
+      else
+        cat $HOME/.rescript/logs/"$3"
+      fi
       exit
     elif [[ "$2" == "--help" ]] ; then
       echo "[logs] is for log files saved by rescript"
@@ -290,13 +396,21 @@ elif [[ "$1" == "logs" || "$1" == "--logs" ]] ; then
       echo "	--remove	remove all log files"
       exit      
     elif [[ "$2" == "--list" ]] ; then
-      ls $HOME/.rescript/logs
-      echo ""
-      echo "Your logs are saved at $HOME/.rescript/logs"
+      if ls $HOME/.rescript/logs/"$(basename "$0")"-* 1> /dev/null 2>&1 ; then
+        ls $HOME/.rescript/logs/ | grep -e "$(basename "$0")"
+        echo ""
+        echo "Your logs are saved at $HOME/.rescript/logs"
+      else
+        echo "There are no log files to list for ["$(basename "$0")"]"
+      fi
       exit
     elif [[ "$2" == "--remove" ]] ; then
-      rm -rf $HOME/.rescript/logs/$(basename "$0")-log-*
-      echo "Log files removed"
+      if ls $HOME/.rescript/logs/"$(basename "$0")"-* 1> /dev/null 2>&1 ; then
+        rm -rf $HOME/.rescript/logs/$(basename "$0")-log-*
+        echo "Log files removed"
+      else
+        echo "There are no log files to remove for ["$(basename "$0")"]" 
+      fi
       exit
     else
       echo "You need to indicate an option:"
@@ -325,9 +439,10 @@ fi
 
 # Check if variables are set
 if [[ -z "$RESTIC_PASSWORD" || -z "$RESTIC_REPO" || -z "$BACKUP_DIR" ]] ; then
-  echo "You have not set your restic repo, password or backup directory."
-  echo "Run [rescript config] to open your configuration file."
-  echo "Make sure to set all needeed variables."
+  echo "You have not yet configured your restic repository,"
+  echo "password or backup directory. Run [rescript config]"
+  echo "to open your configuration file. Make sure to set"
+  echo "all needed variables."
   exit
 fi
 # ------------------------------------------------------------------------------- #
@@ -584,7 +699,7 @@ while getopts ":bcde:hmnr:uv" o
 		exit
 		done
 		while [[ "$OPTARG" == "edit" ]] ; do
-		  xdg-open "$EXCLUDES" 2> /dev/null
+		  "$EDITOR" "$EXCLUDES" 2> /dev/null
 		exit
 		done
 		while [[ "$OPTARG" == "list" ]] ; do
