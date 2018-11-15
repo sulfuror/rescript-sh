@@ -1,5 +1,5 @@
 # November 14, 2018
-**Changes**:
+**Changes and Fixes**:
 
 1. Added dialog when you run `rescript config` to choose the text editor and 
    open configuration files.
