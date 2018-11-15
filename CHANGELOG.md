@@ -1,3 +1,12 @@
+# November 14, 2018
+**Changes**:
+
+1. Added dialog when you run `rescript config` to choose the text editor and 
+   open configuration files.
+2. Fixed `logs` command when running `--list` or `--remove`. From now on if your
+   `recript` instance doesn't have any log it will display a message telling you
+   that there are not any log files to list or remove.
+
 # November 3, 2018
 **Changes**:
 
