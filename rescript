@@ -1,10 +1,11 @@
 #!/bin/bash
-# ------------------------------------------------------------------------------- #
-Version="rescript-v2.0"
-Usage="
+# ============================================================== #
+version=rescript-v3.0
+usage="
 Author		: Sulfuror, Copyright (c) 2018 <sulfuror@gmail.com>
+URL		: https://gitlab.com/sulfuror/rescript.sh
 License		: BSD 2-clause 'Simplified' License
-Version		: $Version
+Version		: $version
 Description	: rescript is a bash script created to manage
 		  backups made with restic program.
 
@@ -14,87 +15,62 @@ stored on different backends.'
 
 For more information about restic visit https://restic.net
 
-Note that these commands only work when you have already set
-the required values correctly.
+This script will run backup, snapshots, forget, prune, check and
+stats commands automatically by just indicating the name given
+to your repository. e.g.:
 
-All restic commands are available within this script except for
-[backup] which exists but it will use your configuration file to
-perform a backup.
+  rescript [repo_name]
 
-For restic help type in you terminal emulator [restic help]. For
-other restic commands help you can type:
-  restic help [command]
-OR
-  rescript [restic_command] --help
+That said, all restic commands are available within this script
+except for [backup], which exists but it will use your configuration
+file to perform a backup.
 
-Commands usage:
-  rescript [command] [flags] [options]
+Usage:
+  rescript [repo_name] [commands] [--flags]
   
 Rescript commands:
-  config, --config		Rescript configuration; set your default
-  				text editor and open your configuration
-  				and exclusion files
-  help, --help			Rescript help
-  install, --install		Install rescript (this just move the script
-  				to your .local/bin directory for convenience)
-  logs, --logs			This command needs a flag to view, list
-  				or delete your log files
-  	--cat			display output of selected log file
-  	--list			list all log files saved
-  	--remove		remove all log files			
-  version, --version		Rescript version
+  backup		Take a snapshot using the values set in
+  			your configuration file.
+  cleanup		Forget and prune according to the policies
+  			in your configuration file.
+  config		Rescript configuration; set your default
+  			text editor, open, delete or modify your
+  			configuration and exclusion files.
+  editor		Change the default rescript text editor used
+  			to open your configuration and exclusions files.
+  help			Display rescript help and usage.
+  install		Install rescript (this just move the script
+  			to your .local/bin directory for convenience.
+  logs			This command needs a flag to view, list
+			or delete your log files.
+  mounter		Mount a restic repo.
+  restorer		Restore a restic snapshot.			
+  unlocker		Remove lock created by rescript.
+  version		Display rescript version.
 
-Rescript options:
-  -b, -backup			Take a snapshot
-  -c, -cleanup			Forget and prune [using your policies]
-  -d, -deep-check		Check repository with [--read-data] flag
-  -e,				Manage exclusions file
-	--build			this flag requires one option [home|sys]
-				to build an exclusion list based on common
-				exclusions patterns, files and directories
-	--help			help for [-e]
-	edit			this will open your exclusion file
-				for you to add, remove or edit your
-				exclusion list
-	list			list exclusions
-  -h, -help			Help for this script
-  -m, -mount			Mount your restic repo
-  -n, -next-cleanup		Display when it will do the next cleanup
-  -u, -unlock			Remove lock created by script [this will
-				NOT unlock your repo]
-  -r				Restore a snapshot; this option will create
-				a folder in your home directory, restore
-				the snapshot you want to restore and
-				run [--verify] flag
-	--help			help for [-r]
-	--host			only consider snapshots for this host
-				when snapshot-ID is [latest]
-	--path			only consider snapshots which include
-				this [absolute] path for snapshot-ID [latest]
-	--tag			only consider snapshots which include this
-				taglist for snapshot-ID [latest]
-  -v, -version			Version of this script
-
-Rescript options usage:
-  rescript [-o|-option]
-For [-e] and [-r]:
-  rescript [-e|-r] [option|snapshot-ID]
-For [-r] with flags:
-  rescript -r [--flag] [option]
-
-For more information about the usage check out the following link:
-https://gitlab.com/sulfuror/rescript.sh/blob/master/README.md#usage
+Rescript flags:
+  --help		This flag is available for all rescript commands
+  			and it can be used to display the usage for every
+  			single rescript command.
+  --log			This flag is available only for [backup], [cleanup],
+  			[restorer] and [check] when using [--random] flag.
+  			If used, it must be after all commands, flags and
+  			options; this will create a log file with the
+  			command output.
+  --random		This flag is available for [check] command only;
+  			it will execute check using [--read-data-subset]
+  			selecting a random number between 1-10 out of 10
+  			groups.
 "
-# ------------------------------------------------------------------------------- #
+# ============================================================== #
 YELLOW="\033[33m"
 ENDCOLOR="\033[0m"
-LOCK="$HOME/.rescript/lock/$(basename "$0").lock"
-DATEFILE="$HOME/.rescript/config/$(basename "$0")-datefile"
-EXCLUDES="$HOME/.rescript/config/$(basename "$0")-exclusions"
-LOG="$HOME/.rescript/logs/$(basename "$0")-log-$(date +%Y-%m-%d-%H:%M)"
 SECONDS=0
-CONFIG="$HOME/.rescript/config/$(basename "$0").conf"
-
+EXCLUDES="$HOME/.rescript/config/$1-exclusions"
+LOCK="$HOME/.rescript/lock/$1.lock"
+RMOUNT="$HOME/"$1"-repo-$(date +%s)"
+REPO="$1"
+EDITOR=""
 # Create a rescript directories if they are not present
 if [[ ! -d "$HOME/.rescript" ]]; then
   mkdir -p "$HOME/.rescript"
@@ -108,838 +84,1245 @@ fi
 if [[ ! -d "$HOME/.rescript/logs" ]]; then
   mkdir -p "$HOME/.rescript/logs"
 fi
-
-# For v1.6 and older move the datefile to the [config] directory
-if [[ -f "$HOME/.rescript/logs/datefile-$(basename "$0")" ]] ; then
-  mv "$HOME/.rescript/logs/datefile-$(basename "$0")" "$HOME/.rescript/config/$(basename "$0")-datefile"
-fi
-
-# If there is no config file create one
-if [[ ! -e "$CONFIG" ]] ; then
-  touch "$CONFIG"
-  {
-    echo "# =============================================================================== #"
-    echo "#                   R E S C R I P T    C O N F I G U R A T I O N                  #"
-    echo "# =============================================================================== #"
-    echo "# You need to set your restic password (password for the repository), the"
-    echo "# directory for your repository, the backup directory (by default the backup"
-    echo "# directory is your Home directory), the destination name of your backup"
-    echo "# (local, S3, B2, Wasabi, remote host, etc.), your tag (empty by default if used)"
-    echo "# and your "keep" and "excludes" policies."
-    echo "# ------------------------------------------------------------------------------- #"
-    echo "#                              R E P O    I N F O                                 #"
-    echo "# ------------------------------------------------------------------------------- #"
-    echo "# You MUST set these values. "KEEP" values CANNOT be left blank; if you are not"
-    echo "# going to use "KEEP" policies the value must be set to "0"."
-    echo 'RESTIC_PASSWORD=""'
-    echo 'RESTIC_REPO=""'
-    echo 'BACKUP_DIR="$HOME"'
-    echo 'KEEP_LAST="0"'
-    echo 'KEEP_HOURLY="8"'
-    echo 'KEEP_DAILY="7"'
-    echo 'KEEP_WEEKLY="4"'
-    echo 'KEEP_MONTHLY="12"'
-    echo 'KEEP_YEARLY="10"'
-    echo ""
-    echo "# B2 Credentials"
-    echo 'B2_ID=""'
-    echo 'B2_KEY=""'
-    echo ""
-    echo "# Optional values; The "DESTINATION" value is just use in this script to display"
-    echo "# in the output the name of your destination (e.g.: Google Drive, Amazon, B2, Wasabi,"
-    echo "# etc.). The "TAG" value will tag your snapshots with any name/tag you want."
-    echo "# The "CLEAN" value determine when it will execute the forget, prune and check"
-    echo "# commands; this value must be set in days and by default the number 7 means"
-    echo "# it will do these tasks every seven (7) days. These values CAN be left blank"
-    echo "# if you are not planning on use them."
-    echo 'CLEAN="7"'
-    echo 'TAG=""'
-    echo 'DESTINATION=""'
-    echo ""
-    echo "# The variable "LOGGING" is "yes" by default. If you don't want logs to be saved"
-    echo "# at .rescript/logs directory just change the "yes" to "no". This will only save"
-    echo "# a log when the script is run; options and commands do not save logs."
-    echo 'LOGGING="yes"'
-    } > "$CONFIG"
-    chmod 700 "$CONFIG"
-fi
-
-# If there is no exclude file create one
-if [[ ! -e "$EXCLUDES" ]] ; then
-  touch "$EXCLUDES"
-  {
-    echo "# These are the default rescript exclusions:"
-    echo "$HOME/.cache/*"
-    echo "$HOME/.local/share/Trash/*"
-    echo "$HOME/.rescript/lock/*"
-    echo "$HOME/.Trash"
-    echo "$HOME/.Private"
-    echo "$HOME/.ecryptfs"
-    echo ""
-    echo "# Write your custom exclusions below:"
-  } > "$EXCLUDES"
-fi
-# If there is no date file create one
-if [[ ! -e "$DATEFILE" ]] ; then
-  touch "$DATEFILE"
-  date -R > "$DATEFILE"
-fi
-
-# Set PATH so it includes user's private bin if it exists
-if [ -d "$HOME/bin" ] ; then
-    PATH="$HOME/bin:$PATH"
-fi
-
-# Set PATH so it includes user's private bin if it exists
-if [ -d "$HOME/.local/bin" ] ; then
-    PATH="$HOME/.local/bin:$PATH"
-fi
-
-# Set config file source
-source "$CONFIG"
-
-# Export Password and Repo
-export RESTIC_PASSWORD=$RESTIC_PASSWORD
-export RESTIC_REPOSITORY=$RESTIC_REPO
-export B2_ACCOUNT_ID=$B2_ID
-export B2_ACCOUNT_KEY=$B2_KEY
-# ------------------------------------------------------------------------------- #
-# Config, help, init and version commands
-if [[ "$1" == "config" || "$1" == "--config" ]] ; then
-    if [ -e "$LOCK" ]; then
-	echo -e "$YELLOW""WARNING:""$ENDCOLOR" "$(basename "$0") is already running..."
-	echo -e "If you are sure $(basename "$0") is not running, type"
-	echo -e " "
-	echo -e "	$(basename "$0") -u"
-	echo -e "OR"
-	echo -e "	$(basename "$0") -unlock"
-	echo -e " "
-	echo -e "This will remove the lock for $(basename "$0")"
-        exit
-    fi
-    touch "$LOCK"
-    trap 'rm -rf "$LOCK"' INT QUIT TERM EXIT
-    if [[ -z "$EDITOR" ]] ; then
-      echo "Please select the text editor you wish to use. After this,"
-      echo "the configuration file and exclusion list will always be"
-      echo "opened with your chosen text editor. If you wish to use another"
-      echo "editor not listed here open the configuration file, write a new"
-      echo "variable called EDITOR and assign to it the executable name of"
-      echo "the program you wish to use."
-      echo ""
-      echo "Configuration file location:"
-      echo "$CONFIG"
-      echo ""
-      PS3='Select an option and press Enter: '
-      options=("Nano" "Vim" "Gedit" "Mousepad" "Leafpad" "Pluma" "Kate" "Exit")
-      select opt in "${options[@]}"; do
-        case "$opt,$REPLY" in
-        Nano,*|*,Nano,*|nano,*|*,nano)
-        	{
-        	 echo ""
-        	 echo "# Text Editor"
-        	 echo 'EDITOR="nano"'
-        	} >> $CONFIG;
-        	break
-        	;;
-        Vim,*|*,Vim,*|vim,*|*,vim)
-        	{
-        	 echo ""
-        	 echo "# Text Editor"
-        	 echo 'EDITOR="vim"'
-        	} >> $CONFIG;
-        	break
-        	;;
-        Gedit,*|*,Gedit,*|gedit,*|*,gedit)
-        	{
-        	 echo ""
-        	 echo "# Text Editor"
-        	 echo 'EDITOR="gedit"'
-        	} >> $CONFIG;
-        	break
-        	;;
-        Mousepad,*|*,Mousepad,*|mousepad,*|*,mousepad)
-        	{
-        	 echo ""
-        	 echo "# Text Editor"
-        	 echo 'EDITOR="mousepad"'
-        	} >> $CONFIG;
-        	break
-        	;;
-        Leafpad,*|*,Leafpad,*|leafpad,*|*,leafpad)
-        	{
-        	 echo ""
-        	 echo "# Text Editor"
-        	 echo 'EDITOR="leafpad"'
-        	} >> $CONFIG;
-        	break
-        	;;
-        Pluma,*|*,Pluma,*|pluma,*|*,pluma)
-        	{
-        	 echo ""
-        	 echo "# Text Editor"
-        	 echo 'EDITOR="pluma"'
-        	} >> $CONFIG;
-        	break
-        	;;
-        Kate,*|*,Kate,*|kate,*|*,kate)
-        	{
-        	 echo ""
-        	 echo "# Text Editor"
-        	 echo 'EDITOR="kate"'
-        	} >> $CONFIG;
-        	break
-        	;;
-        Exit,*|*,Exit,*|exit,*|*,exit)
-		exit;
-        	break
-        	;;      	
-        esac
-      done
-    source "$CONFIG"
-    echo "You have selected ["$EDITOR"] as your default text editor."
-    fi
-    echo "Configuration files are listed as follows. Select one of the following"
-    echo "options to open and edit your configuration file:" 
-    PS3='Select an option and press Enter: '
-    options=("Configuration" "Exclusions" "Exit")
-      select opt in "${options[@]}"; do
-        case "$opt,$REPLY" in
-        Configuration,*|*,Configuration,*|configuration,*|*,configuration)
-        	"$EDITOR" "$CONFIG" 2> /dev/null;
-        	;;
-        Exclusions,*|*,Exclusions,*|exclusions,*|*,exclusions)
-		"$EDITOR" "$EXCLUDES" 2> /dev/null;
-        	;;
-        Exit,*|*,Exit,*|exit,*|*,exit)
-        	exit;
-        	break
-        	;;
-        esac
-      done
-    exit
-elif [[ "$1" == "help" || "$1" == "--help" ]] ; then
-    if [ -e "$LOCK" ]; then
-	echo -e "$YELLOW""WARNING:""$ENDCOLOR" "$(basename "$0") is already running..."
-	echo -e "If you are sure $(basename "$0") is not running, type"
-	echo -e " "
-	echo -e "	$(basename "$0") -u"
-	echo -e "OR"
-	echo -e "	$(basename "$0") -unlock"
-	echo -e " "
-	echo -e "This will remove the lock for $(basename "$0")"
-        exit
-    fi
-    touch "$LOCK"
-    trap 'rm -rf "$LOCK"' INT QUIT TERM EXIT
-    echo "$Usage"
-    exit
-elif [[ "$1" == "init" ]] ; then
-    if [[ -z "$RESTIC_PASSWORD" || -z "$RESTIC_REPO" || -z "$BACKUP_DIR" ]] ; then
-      echo "You have not yet configured your restic repository,"
-      echo "password or backup directory. Run [rescript config]"
-      echo "to open your configuration file. Make sure to set"
-      echo "all needed variables."
-      exit
-    elif [ -e "$LOCK" ]; then
-	echo -e "$YELLOW""WARNING:""$ENDCOLOR" "$(basename "$0") is already running..."
-	echo -e "If you are sure $(basename "$0") is not running, type"
-	echo -e " "
-	echo -e "	$(basename "$0") -u"
-	echo -e "OR"
-	echo -e "	$(basename "$0") -unlock"
-	echo -e " "
-	echo -e "This will remove the lock for $(basename "$0")"
-        exit
-    fi
-    touch "$LOCK"
-    trap 'rm -rf "$LOCK"' INT QUIT TERM EXIT
-    restic init
-    echo ""
-    echo "RESCRIPT NOTE:"
-    echo "Before continuing make sure to edit your exclude file. To open it"
-    echo "type [rescript -e edit]. To see other options regarding to your"
-    echo "exclude file type [rescript -e --help]".
-    echo ""
-    exit
-elif [[ "$1" == "install" || "$1" == "--install" ]] ; then
-    if [[ -d "$HOME/bin" ]] ; then
-      cp $(basename "$0") $HOME/bin/$(basename "$0")
-      chmod 700 $HOME/bin/$(basename "$0")
-      echo "The script was moved to $HOME/bin directory"
-      exit
-    elif [[ ! -d "$HOME/.local/bin" ]]; then
-      mkdir -p "$HOME/.local/bin"
-    fi
-    cp $(basename "$0") $HOME/.local/bin/$(basename "$0")
-    chmod 700 $HOME/.local/bin/$(basename "$0")
-    echo "The script was moved to $HOME/.local/bin directory"
-    exit
-elif [[ "$1" == "logs" || "$1" == "--logs" ]] ; then
-    if [[ "$2" == "--cat" ]] ; then
-      if [[ ! "$3" ]] ; then
-        echo "No log file indicated; please copy the name of the log you wish to see"
-        echo "and paste it after [--cat]. To list all log files type [$(basename "$0") logs --list]."
-      else
-        cat $HOME/.rescript/logs/"$3"
-      fi
-      exit
-    elif [[ "$2" == "--help" ]] ; then
-      echo "[logs] is for log files saved by rescript"
-      echo "Usage:"
-      echo "	rescript logs [flag]"
-      echo "OR"
-      echo "	rescript logs [flag] [logfile]"
-      echo "Available flags:"
-      echo "	--cat		display output of selected log file"
-      echo "	--list		list all log files saved"
-      echo "	--remove	remove all log files"
-      exit      
-    elif [[ "$2" == "--list" ]] ; then
-      if ls $HOME/.rescript/logs/"$(basename "$0")"-* 1> /dev/null 2>&1 ; then
-        ls $HOME/.rescript/logs/ | grep -e "$(basename "$0")"
-        echo ""
-        echo "Your logs are saved at $HOME/.rescript/logs"
-      else
-        echo "There are no log files to list for ["$(basename "$0")"]"
-      fi
-      exit
-    elif [[ "$2" == "--remove" ]] ; then
-      if ls $HOME/.rescript/logs/"$(basename "$0")"-* 1> /dev/null 2>&1 ; then
-        rm -rf $HOME/.rescript/logs/$(basename "$0")-log-*
-        echo "Log files removed"
-      else
-        echo "There are no log files to remove for ["$(basename "$0")"]" 
-      fi
+# ============================================================== #
+# Menu								 #
+# ============================================================== #
+# Select Editor Menu
+function select_editor {
+  clear
+  echo "======================"
+  echo "  Select Text Editor  "
+  echo "======================"
+  echo " [1] Nano             "
+  echo " [2] Vim              "
+  echo " [3] Gedit            "
+  echo " [4] Mousepad         "
+  echo " [5] Leafpad          "
+  echo " [6] Pluma            "
+  echo " [7] Kate             "
+  echo " [8] Other            "
+  echo " [9] Exit             "
+  echo "======================"
+  read -p "Select the Text Editor you want to use: " texteditor
+  if [[ -e "$HOME/bin/$(basename "$0")" ]] ; then
+    if [[ "$texteditor" == "1" || "$texteditor" == "Nano" || "$texteditor" == "nano" ]] ; then
+      sed -i 's/^\(EDITOR=\).*/\1"nano"/' "$HOME/bin/$(basename "$0")"
+      echo "You have selected [Nano] as your default text editor."
+    elif [[ "$texteditor" == "2" || "$texteditor" == "Vim" || "$texteditor" == "vim" ]] ; then
+      sed -i 's/^\(EDITOR=\).*/\1"vim"/' "$HOME/bin/$(basename "$0")"
+      echo "You have selected [Vim] as your default text editor."
+    elif [[ "$texteditor" == "3" || "$texteditor" == "Gedit" || "$texteditor" == "gedit" ]] ; then
+      sed -i 's/^\(EDITOR=\).*/\1"gedit"/' "$HOME/bin/$(basename "$0")"
+      echo "You have selected [Gedit] as your default text editor."
+    elif [[ "$texteditor" == "4" || "$texteditor" == "Mousepad" || "$texteditor" == "mousepad" ]] ; then
+      sed -i 's/^\(EDITOR=\).*/\1"mousepad"/' "$HOME/bin/$(basename "$0")"
+      echo "You have selected [Mousepad] as your default text editor."
+    elif [[ "$texteditor" == "5" || "$texteditor" == "Leafpad" || "$texteditor" == "leafpad" ]] ; then
+      sed -i 's/^\(EDITOR=\).*/\1"leafpad"/' "$HOME/bin/$(basename "$0")"
+      echo "You have selected [Leafpad] as your default text editor."
+    elif [[ "$texteditor" == "6" || "$texteditor" == "Pluma" || "$texteditor" == "pluma" ]] ; then
+      sed -i 's/^\(EDITOR=\).*/\1"pluma"/' "$HOME/bin/$(basename "$0")"
+      echo "You have selected [Pluma] as your default text editor."
+    elif [[ "$texteditor" == "7" || "$texteditor" == "Kate" || "$texteditor" == "kate" ]] ; then
+      sed -i 's/^\(EDITOR=\).*/\1"kate"/' "$HOME/bin/$(basename "$0")"
+      echo "You have selected [Kate] as your default text editor."
+    elif [[ "$texteditor" == "8" || "$texteditor" == "Other" || "$texteditor" == "other" ]] ; then
+      read -p "Type the executable name of the Text Editor you want to use: " othertextedit
+      sed -i "s/^\(EDITOR=\).*/\1"$othertextedit"/" "$HOME/bin/$(basename "$0")"
+      echo "You have selected [$othertextedit] as your default text editor."
+    elif [[ "$texteditor" == "9" || "$texteditor" == "Exit" || "$texteditor" == "exit" ]] ; then
+      echo "Exiting..."
       exit
     else
-      echo "You need to indicate an option:"
-      echo "	--cat		display output of selected log file"
-      echo "	--list		list all log files saved"
-      echo "	--remove	remove all log files"
+      echo "Invalid option; exiting..."  
       exit
     fi
-elif [[ "$1" == "version" || "$1" == "--version" ]] ; then
-    if [ -e "$LOCK" ]; then
-	echo -e "$YELLOW""WARNING:""$ENDCOLOR" "$(basename "$0") is already running..."
-	echo -e "If you are sure $(basename "$0") is not running, type"
-	echo -e " "
-	echo -e "	$(basename "$0") -u"
-	echo -e "OR"
-	echo -e "	$(basename "$0") -unlock"
-	echo -e " "
-	echo -e "This will remove the lock for $(basename "$0")"
-        exit
+  elif [[ -e "$HOME/.local/bin/$(basename "$0")" ]] ; then
+      if [[ "$texteditor" == "1" || "$texteditor" == "Nano" || "$texteditor" == "nano" ]] ; then
+      sed -i 's/^\(EDITOR=\).*/\1"nano"/' "$HOME/.local/bin/$(basename "$0")"
+      echo "You have selected [Nano] as your default text editor."
+    elif [[ "$texteditor" == "2" || "$texteditor" == "Vim" || "$texteditor" == "vim" ]] ; then
+      sed -i 's/^\(EDITOR=\).*/\1"vim"/' "$HOME/.local/bin/$(basename "$0")"
+      echo "You have selected [Vim] as your default text editor."
+    elif [[ "$texteditor" == "3" || "$texteditor" == "Gedit" || "$texteditor" == "gedit" ]] ; then
+      sed -i 's/^\(EDITOR=\).*/\1"gedit"/' "$HOME/.local/bin/$(basename "$0")"
+      echo "You have selected [Gedit] as your default text editor."
+    elif [[ "$texteditor" == "4" || "$texteditor" == "Mousepad" || "$texteditor" == "mousepad" ]] ; then
+      sed -i 's/^\(EDITOR=\).*/\1"mousepad"/' "$HOME/.local/bin/$(basename "$0")"
+      echo "You have selected [Mousepad] as your default text editor."
+    elif [[ "$texteditor" == "5" || "$texteditor" == "Leafpad" || "$texteditor" == "leafpad" ]] ; then
+      sed -i 's/^\(EDITOR=\).*/\1"leafpad"/' "$HOME/.local/bin/$(basename "$0")"
+      echo "You have selected [Leafpad] as your default text editor."
+    elif [[ "$texteditor" == "6" || "$texteditor" == "Pluma" || "$texteditor" == "pluma" ]] ; then
+      sed -i 's/^\(EDITOR=\).*/\1"pluma"/' "$HOME/.local/bin/$(basename "$0")"
+      echo "You have selected [Pluma] as your default text editor."
+    elif [[ "$texteditor" == "7" || "$texteditor" == "Kate" || "$texteditor" == "kate" ]] ; then
+      sed -i 's/^\(EDITOR=\).*/\1"kate"/' "$HOME/.local/bin/$(basename "$0")"
+      echo "You have selected [Kate] as your default text editor."
+    elif [[ "$texteditor" == "8" || "$texteditor" == "Other" || "$texteditor" == "other" ]] ; then
+      read -p "Type the executable name of the Text Editor you want to use: " othertextedit
+      sed -i "s/^\(EDITOR=\).*/\1"$othertextedit"/" "$HOME/.local/bin/$(basename "$0")"
+      echo "You have selected [$othertextedit] as your default text editor."
+    elif [[ "$texteditor" == "9" || "$texteditor" == "Exit" || "$texteditor" == "exit" ]] ; then
+      echo "Exiting..."
+      exit
+    else
+      echo "Invalid option; exiting..."  
+      exit
     fi
-    touch "$LOCK"
-    trap 'rm -rf "$LOCK"' INT QUIT TERM EXIT
-    echo "$Version"
-    exit
-fi
+  else
+      if [[ "$texteditor" == "1" || "$texteditor" == "Nano" || "$texteditor" == "nano" ]] ; then
+      sed -i 's/^\(EDITOR=\).*/\1"nano"/' "$(basename "$0")"
+      echo "You have selected [Nano] as your default text editor."
+    elif [[ "$texteditor" == "2" || "$texteditor" == "Vim" || "$texteditor" == "vim" ]] ; then
+      sed -i 's/^\(EDITOR=\).*/\1"vim"/' "$(basename "$0")"
+      echo "You have selected [Vim] as your default text editor."
+    elif [[ "$texteditor" == "3" || "$texteditor" == "Gedit" || "$texteditor" == "gedit" ]] ; then
+      sed -i 's/^\(EDITOR=\).*/\1"gedit"/' "$(basename "$0")"
+      echo "You have selected [Gedit] as your default text editor."
+    elif [[ "$texteditor" == "4" || "$texteditor" == "Mousepad" || "$texteditor" == "mousepad" ]] ; then
+      sed -i 's/^\(EDITOR=\).*/\1"mousepad"/' "$(basename "$0")"
+      echo "You have selected [Mousepad] as your default text editor."
+    elif [[ "$texteditor" == "5" || "$texteditor" == "Leafpad" || "$texteditor" == "leafpad" ]] ; then
+      sed -i 's/^\(EDITOR=\).*/\1"leafpad"/' "$(basename "$0")"
+      echo "You have selected [Leafpad] as your default text editor."
+    elif [[ "$texteditor" == "6" || "$texteditor" == "Pluma" || "$texteditor" == "pluma" ]] ; then
+      sed -i 's/^\(EDITOR=\).*/\1"pluma"/' "$(basename "$0")"
+      echo "You have selected [Pluma] as your default text editor."
+    elif [[ "$texteditor" == "7" || "$texteditor" == "Kate" || "$texteditor" == "kate" ]] ; then
+      sed -i 's/^\(EDITOR=\).*/\1"kate"/' "$(basename "$0")"
+      echo "You have selected [Kate] as your default text editor."
+    elif [[ "$texteditor" == "8" || "$texteditor" == "Other" || "$texteditor" == "other" ]] ; then
+      read -p "Type the executable name of the Text Editor you want to use: " othertextedit
+      sed -i "s/^\(EDITOR=\).*/\1"$othertextedit"/" "$(basename "$0")"
+      echo "You have selected [$othertextedit] as your default text editor."
+    elif [[ "$texteditor" == "9" || "$texteditor" == "Exit" || "$texteditor" == "exit" ]] ; then
+      echo "Exiting..."
+      exit
+    else
+      echo "Invalid option; exiting..."  
+      exit
+    fi
+  fi
+}
 
-# Check if variables are set
-if [[ -z "$RESTIC_PASSWORD" || -z "$RESTIC_REPO" || -z "$BACKUP_DIR" ]] ; then
-  echo "You have not yet configured your restic repository,"
-  echo "password or backup directory. Run [rescript config]"
-  echo "to open your configuration file. Make sure to set"
-  echo "all needed variables."
+# Main menu
+function main_menu {
+  echo "======================"
+  echo "        Menu          "
+  echo "======================"
+  echo " [1] Configuration    "
+  echo " [2] Exclusions       "
+  echo " [3] Exit             "
+  echo "======================"
+  read -p "Select an option and press Enter: " main
+  if [[ "$main" == "1" || "$main" == "Configuration" || "$main" == "configuration" ]] ; then
+    clear
+    config_menu
+  elif [[ "$main" == "2" || "$main" == "Exclusions" || "$main" == "exclusions" ]] ; then
+    clear
+    exclusion_menu    
+  elif [[ "$main" == "3" || "$main" == "Exit" || "$main" == "exit" ]] ; then
+    echo "Exiting..."
+    exit    
+  else
+    clear
+    echo "No valid option..."
+    main_menu
+  fi
+}
+
+# Configuration menu
+function config_menu {
+  echo "======================"
+  echo "       Options        "
+  echo "======================"
+  echo " [1] Edit Existing    "
+  echo " [2] New Repository   "
+  echo " [3] Delete Config    "
+  echo " [4] Back to Main Menu"
+  echo " [5] Exit             "
+  echo "======================"
+  read -p "Select an option and press Enter: " cfgopt
+  if [[ "$cfgopt" == "1" || "$cfgopt" == "Edit" || "$cfgopt" == "edit" ]] ; then
+    clear
+    edit_config_files
+  elif [[ "$cfgopt" == "2" || "$cfgopt" == "New" || "$cfgopt" == "new" ]] ; then
+    new_config_file
+  elif [[ "$cfgopt" == "3" || "$cfgopt" == "Delete" || "$cfgopt" == "delete" ]] ; then
+    clear
+    delete_config_file
+  elif [[ "$cfgopt" == "4" || "$cfgopt" == "Back" || "$cfgopt" == "back" ]] ; then
+    clear
+    main_menu
+  elif [[ "$cfgopt" == "5" || "$cfgopt" == "Exit" || "$cfgopt" == "exit" ]] ; then
+    echo "Exiting..."
+    exit
+  else
+    clear
+    echo "No valid selection; try again..."
+    config_menu
+  fi
+}
+
+function edit_config_files {
+  echo "======================"
+  echo "     Config Files     "
+  echo "======================"
+  echo " [1] Back to Main Menu"
+  echo " [2] Exit             "
+  echo "----------------------"
+  ls $HOME/.rescript/config | grep -e '.conf' | sed -e 's/\.conf$//'
+  echo "======================"
+  read -p "Write the name of the repo file to open or one of the options above: " conf
+  if [[ "$conf" == "1" || "$conf" == "Back" || "$conf" == "back" ]] ; then
+    clear
+    config_menu
+  elif [[ "$conf" == "2" || "$conf" == "Exit" || "$conf" == "exit" ]] ; then
+    echo "Exiting..."
+    exit
+  elif [[ -e $HOME/.rescript/config/$conf.conf ]] ; then
+    "$EDITOR" $HOME/.rescript/config/$conf.conf 2> /dev/null
+    clear
+    edit_config_files
+  else
+    clear
+    echo "There is no repo called ["$conf"]; try again with the correct name."
+    edit_config_files
+  fi
+}  
+
+function new_config_file {
+  new_repo="$HOME/.rescript/config/.new"
+  touch "$new_repo"
+  trap 'rm -rf "$new_repo"' INT QUIT TERM EXIT
+  {
+  echo "# =============================================================================== #"
+  echo "#                   R E S C R I P T    C O N F I G U R A T I O N                  #"
+  echo "# =============================================================================== #"
+  echo "# You need to set your restic password (password for the repository), the"
+  echo "# directory for your repository, the backup directory (by default the backup"
+  echo "# directory is your Home directory), the destination name of your backup"
+  echo "# (local, S3, B2, Wasabi, remote host, etc.), your tag (empty by default if used)"
+  echo "# and your "keep" and "excludes" policies."
+  echo "# ------------------------------------------------------------------------------- #"
+  echo "#                              R E P O    I N F O                                 #"
+  echo "# ------------------------------------------------------------------------------- #"
+  echo "# You MUST set these values. "KEEP" values CANNOT be left blank; if you are not"
+  echo "# going to use "KEEP" policies the value must be set to "0"."
+  echo 'RESTIC_PASSWORD=""'
+  echo 'RESTIC_REPO=""'
+  echo 'BACKUP_DIR="$HOME"'
+  echo 'KEEP_LAST="0"'
+  echo 'KEEP_HOURLY="8"'
+  echo 'KEEP_DAILY="7"'
+  echo 'KEEP_WEEKLY="4"'
+  echo 'KEEP_MONTHLY="12"'
+  echo 'KEEP_YEARLY="10"'
+  echo ""
+  echo "# B2 Credentials (leave blank if not used)"
+  echo 'B2_ID=""'
+  echo 'B2_KEY=""'
+  echo ""
+  echo "# AWS Credentials (leave blank if not used)"
+  echo 'AWS_ID=""'
+  echo 'AWS_KEY=""'
+  echo ""
+  echo "# Optional values; The "DESTINATION" value is just use in this script to display"
+  echo "# in the output the name of your destination (e.g.: Google Drive, Amazon, B2, Wasabi,"
+  echo "# etc.). The "TAG" value will tag your snapshots with any name/tag you want."
+  echo "# The "CLEAN" value determine when it will execute the forget, prune and check"
+  echo "# commands; this value must be set in days and by default the number 7 means"
+  echo "# it will do these tasks every seven (7) days. These values CAN be left blank"
+  echo "# if you are not planning on use them."
+  echo 'CLEAN="7"'
+  echo 'TAG=""'
+  echo 'DESTINATION=""'
+  echo ""
+  echo "# The variable "LOGGING" is "yes" by default. If you don't want logs to be saved"
+  echo "# at .rescript/logs directory just change the "yes" to "no". This will only save"
+  echo "# a log when the script is run; options and commands do not save logs."
+  echo 'LOGGING="yes"'
+  } > "$new_repo"
+  chmod 700 "$new_repo"
+  read -p "Write the name for your new repository (case sensitive): " repo_name
+  if [[ $repo_name ]] ; then
+    mv "$new_repo" $HOME/.rescript/config/$repo_name.conf
+    touch $HOME/.rescript/config/$repo_name-exclusions
+    touch $HOME/.rescript/config/$repo_name-datefile
+    date -R > $HOME/.rescript/config/$repo_name-datefile
+    {
+     echo "# These are the default rescript exclusions:"
+     echo "$HOME/.cache/*"
+     echo "$HOME/.local/share/Trash/*"
+     echo "$HOME/.rescript/lock/*"
+     echo "$HOME/.Trash"
+     echo "$HOME/.Private"
+     echo "$HOME/.ecryptfs"
+     echo ""
+     echo "# Write your custom exclusions below:"
+    } > $HOME/.rescript/config/$repo_name-exclusions
+    date -R > $HOME/.rescript/config/$repo_name-datefile
+    echo "["$repo_name"] config file have been created. If this is a new repository,"
+    echo "you must run [rescript "$repo_name" init] to initialize your new repository"
+    echo "before executing any other command. You also need to edit your new config"
+    echo "file to proceed."
+    read -p "Would you like to open ["$repo_name"] config file now? y/n " answer
+    if [[ "$answer" == "y" || "$answer" == "yes" || "$answer" == "Yes" || "$answer" == "YES" || "$answer" == "Y" ]] ; then
+      "$EDITOR" $HOME/.rescript/config/$repo_name.conf 2> /dev/null
+      clear
+      config_menu
+    elif [[ "$answer" == "n" || "$answer" == "no" || "$answer" == "No" || "$answer" == "NO" || "$answer" == "N" ]] ; then
+      echo "Remember to configure your repo file before continuing!"
+      exit
+    else
+      clear
+      echo "Invalid action..."
+      config_menu
+    fi
+  else
+    rm -rf "$new_repo"
+    echo "Exiting..."
+    exit
+  fi
+}
+
+function delete_config_file {
+  echo "======================"
+  echo "     Config Files     "
+  echo "======================"
+  echo " [1] Back to Main Menu"
+  echo " [2] Exit             "
+  echo "----------------------"
+  ls $HOME/.rescript/config | grep -e '.conf' | sed -e 's/\.conf$//'
+  echo "======================"
+  read -p "Type the name of the repo file you wish to delete: " del
+  if [[ "$del" == "1" || "$del" == "Back" ||"$del" == "back" ]] ; then
+    clear
+    config_menu
+  elif [[ "$del" == "2" || "$del" == "Exit" ||"$del" == "exit" ]] ; then
+    echo "Exiting..."
+    exit
+  elif [[ "$HOME/.rescript/config/$del.conf" ]] ; then
+    read -p "Are you sure you want to delete ["$del"]? y/n: " ans
+    if [[ "$ans" == "y" || "$ans" == "yes" || "$ans" == "Yes" || "$ans" == "YES" || "$ans" == "Y" ]] ; then
+      rm -rf $HOME/.rescript/config/$del.conf
+      rm -rf $HOME/.rescript/config/$del-exclusions
+      rm -rf $HOME/.rescript/config/$del-datefile
+      clear
+      echo "[$del] repository configuration have been removed."
+      delete_config_file
+    elif [[ "$ans" == "n" || "$ans" == "no" || "$ans" == "No" || "$ans" == "NO" || "$ans" == "N" ]] ; then
+      clear
+      delete_config_file
+    elif [[ "$ans" == "exit" || "$ans" == "Exit" ]] ; then
+      echo "Exiting..."
+      exit
+    else
+      echo "No action indicated; exiting..."
+      exit
+    fi
+  else
+    clear
+    echo "No action indicated..."
+    exit
+  fi
+}
+
+# Exclusions menu
+function exclusion_menu {
+  echo "======================"
+  echo "  Exclusions Options  "
+  echo "======================"
+  echo " [1] Edit Existing    "
+  echo " [2] Build Exclusions "
+  echo " [3] Back to Main Menu"
+  echo " [4] Exit             "
+  echo "======================"
+  read -p "Select an option and press Enter: " excl_opt
+  if [[ "$excl_opt" == "1" || "$excl_opt" == "Edit" ||"$excl_opt" == "edit" ]] ; then
+    clear
+    edit_exclusions
+  elif [[ "$excl_opt" == "2" || "$excl_opt" == "Build" ||"$excl_opt" == "build" ]] ; then
+    clear
+    build_exclusions
+  elif [[ "$excl_opt" == "3" || "$excl_opt" == "Back" ||"$excl_opt" == "back" ]] ; then
+    clear
+    main_menu
+  elif [[ "$excl_opt" == "4" || "$excl_opt" == "Exit" ||"$excl_opt" == "exit" ]] ; then
+    echo "Exiting..."
+    exit
+  else
+    clear
+    echo "No valid action indicated..."
+    exclusion_menu
+  fi
+}
+
+function edit_exclusions {
+  echo "======================"
+  echo "   Exclusion Files    "
+  echo "======================"
+  echo " [1] Back             "
+  echo " [2] Exit             "
+  echo "----------------------"
+  ls $HOME/.rescript/config | grep -e '-exclusions' | sed -e 's/\-exclusions$//'
+  echo "======================"
+  read -p "Type the name of the exclusions file you wish to open: " excl_edit
+  if [[ "$excl_edit" == "1" || "$excl_edit" == "Back" ||"$excl_edit" == "back" ]] ; then
+    clear
+    exclusion_menu
+  elif [[ "$excl_edit" == "2" || "$excl_edit" == "Exit" ||"$excl_edit" == "exit" ]] ; then
+    echo "Exiting..."
+    exit
+  elif [[ -e "$HOME/.rescript/config/$excl_edit-exclusions" ]] ; then
+    "$EDITOR" "$HOME/.rescript/config/$excl_edit-exclusions" 2> /dev/null
+    clear
+    edit_exclusions
+  else
+    clear
+    echo "There is no exclusion file called ["$excl_edit"]; try again with the correct name."
+    edit_exclusions
+  fi  
+}
+
+function build_exclusions {
+  echo "======================"
+  echo "    Build Options     "
+  echo "======================"
+  echo " [1] For Home Dir     "
+  echo " [2] For System Dir   "
+  echo " [3] Back             "
+  echo " [4] Exit             "
+  echo "======================"
+  read -p "Select an option and press Enter: " excl_bld
+  if [[ "$excl_bld" == "1" || "$excl_bld" == "Home" ||"$excl_bld" == "home" ]] ; then
+    clear
+    echo "======================"
+    echo " Exclusion Files List "
+    echo "======================"
+    echo " [1] Back             "
+    echo " [2] Exit             "
+    echo "----------------------"    
+    ls $HOME/.rescript/config | grep -e '-exclusions' | sed -e 's/\-exclusions$//'
+    echo "======================"
+    read -p "Type the name of the exclusion file you want to build: " excl_file
+    if [[ "$excl_file" ]] ; then
+      echo "This action will override your existing exclusion file."
+      read -p "Are you sure you want to proceed? y/n: " ans_excl
+      if [[ "$ans_excl" == "yes" || "$ans_excl" == "y" || "$ans_excl" == "Yes" || "$ans_excl" == "Y" || "$ans_excl" == "YES" ]] ; then
+        if [[ -e "$HOME/.rescript/config/$excl_file-exclusions" ]] ; then
+	  {
+	  echo "# These are the default rescript exclusions for your home directory:"
+	  echo "$HOME/.cache/*"
+	  echo "$HOME/.local/share/Trash/*"
+	  echo "$HOME/.rescript/lock/*"
+	  echo "$HOME/.gvfs"
+	  echo "$HOME/.dbus"
+	  echo "$HOME/.local/share/gvfs-metadata"
+	  echo "$HOME/.Private"
+	  echo "$HOME/.Trash"
+	  echo "$HOME/.cddb"
+	  echo "$HOME/.aptitude"
+	  echo "$HOME/.adobe"
+	  echo "$HOME/.bash_history"
+	  echo "$HOME/.dropbox"
+	  echo "$HOME/.dropbox-dist"
+	  echo "$HOME/.macromedia"
+	  echo "$HOME/.xsession-errors"
+	  echo "$HOME/.recently-used"
+	  echo "$HOME/.recently-used.xbel"
+	  echo "$HOME/.local/share/recently-used*"
+	  echo "$HOME/.thumbnails/*"
+	  echo "$HOME/.Xauthority"
+	  echo "$HOME/.ICEauthority"
+	  echo "$HOME/.gksu.lock"
+	  echo "$HOME/.pulse"
+	  echo "$HOME/.pulse-cookie"
+	  echo "$HOME/.esd_auth"
+	  echo "$HOME/.ecryptfs"
+	  echo "$HOME/.mozilla"
+	  echo "$HOME/.config/google-chrome"
+	  echo "$HOME/.config/chromium"
+	  echo "$HOME/.opera"
+	  echo "$HOME/.npm"
+	  echo "$HOME/.gnupg/rnd"
+	  echo "$HOME/.gnupg/random_seed"
+	  echo "$HOME/.gnupg/.#*"
+	  echo "$HOME/.gnupg/*.lock"
+	  echo "$HOME/.gnupg/gpg-agent-info-*"
+	  echo "$HOME/.config/**/Cache"
+	  echo "$HOME/.config/**/GPUCache"
+	  echo "$HOME/.config/**/ShaderCache"
+	  echo "$HOME/snap/**/.config/**/Cache"
+	  echo "$HOME/snap/**/.config/**/GPUCache"
+	  echo "$HOME/snap/**/.config/**/ShaderCache"
+	  echo "$HOME/Downloads"
+	  echo "*.lock"
+	  echo "*.bak"
+	  echo "*.backup"
+	  echo "*.backup*"
+	  echo "*~"
+	  echo ""
+	  echo "# Write your custom exclusions below:"
+	  } > "$HOME/.rescript/config/$excl_file-exclusions"
+	  clear
+	  echo "Done building exclusion list for ["$excl_file"]."
+	  build_exclusions
+        elif [[ "$excl_file" == "1" || "$excl_file" == "Back" || "$excl_file" == "back" ]] ; then
+    	  clear
+    	  build_exclusions
+        elif [[ "$excl_file" == "2" || "$excl_file" == "Exit" || "$excl_file" == "exit" ]] ; then
+    	  echo "Exiting..."
+    	  exit
+        else
+	  clear
+	  echo "There is no exclusion file called ["$excl_file"]; try again with the correct name."
+	  build_exclusions
+        fi
+      elif [[ "$ans_excl" == "no" || "$ans_excl" == "n" || "$ans_excl" == "No" || "$ans_excl" == "N" || "$ans_excl" == "NO" ]] ; then
+        clear
+        echo "No changes made."
+        build_exclusions
+      fi
+    fi
+  elif [[ "$excl_bld" == "2" || "$excl_bld" == "System" ||"$excl_bld" == "system" ]] ; then
+    clear
+    echo "======================"
+    echo " Exclusion Files List "
+    echo "======================"
+    echo " [1] Back             "
+    echo " [2] Exit             "
+    echo "----------------------"    
+    ls $HOME/.rescript/config | grep -e '-exclusions' | sed -e 's/\-exclusions$//'
+    echo "======================"
+    read -p "Type the name of the exclusion file you want to build: " excl_file
+    if [[ "$excl_file" ]] ; then
+      echo "This action will override your existing exclusion file."
+      read -p "Are you sure you want to proceed? y/n: " ans_excl
+      if [[ "$ans_excl" == "yes" || "$ans_excl" == "y" || "$ans_excl" == "Yes" || "$ans_excl" == "Y" || "$ans_excl" == "YES" ]] ; then
+        if [[ -e "$HOME/.rescript/config/$excl_file-exclusions" ]] ; then
+	  {
+	  echo "# These are the default rescript exclusions for your system:"
+	  echo "/home/*"
+	  echo "/proc/*"
+	  echo "/sys/*"
+	  echo "/dev/*"
+	  echo "/run/*"
+	  echo "/mnt/*"
+	  echo "/media/*"
+	  echo "/etc/mtab"
+	  echo "/var/cache/apt/archives/*.deb"
+	  echo "lost+found/*"
+	  echo "/tmp/*"
+	  echo "/var/tmp/*"
+	  echo "/var/backups/*"
+	  echo ""
+	  echo "# Write your custom exclusions below:"
+	  } > "$HOME/.rescript/config/$excl_file-exclusions"
+	  clear
+	  echo "Done building exclusion list for ["$excl_file"]."
+	  build_exclusions
+        elif [[ "$excl_file" == "1" || "$excl_file" == "Back" || "$excl_file" == "back" ]] ; then
+    	  clear
+    	  build_exclusions
+        elif [[ "$excl_file" == "2" || "$excl_file" == "Exit" || "$excl_file" == "exit" ]] ; then
+    	  echo "Exiting..."
+    	  exit
+        else
+	  clear
+	  echo "There is no exclusion file called ["$excl_file"]; try again with the correct name."
+	  build_exclusions
+        fi
+      elif [[ "$ans_excl" == "no" || "$ans_excl" == "n" || "$ans_excl" == "No" || "$ans_excl" == "N" || "$ans_excl" == "NO" ]] ; then
+        clear
+        echo "No changes made."
+        build_exclusions
+      fi
+    fi
+  elif [[ "$excl_bld" == "3" || "$excl_bld" == "Back" ||"$excl_bld" == "back" ]] ; then
+    clear
+    exclusion_menu
+  elif [[ "$excl_bld" == "4" || "$excl_bld" == "Exit" ||"$excl_bld" == "exit" ]] ; then
+    echo "Exiting..."
+    exit
+  else
+    clear
+    echo "No valid action indicated..."
+    build_exclusions
+  fi
+}
+
+# ============================================================== #
+# Install							 #
+# ============================================================== #
+function install {
+  if [[ -d "$HOME/bin" ]] ; then
+    cp $(basename "$0") "$HOME/bin/$(basename "$0")"
+    chmod 700 "$HOME/bin/$(basename "$0")"
+    echo "The script was moved to "$HOME/bin" directory."
+    exit
+  elif [[ -d "$HOME/.local/bin" ]] ; then
+    cp $(basename "$0") "$HOME"/.local/bin/$(basename "$0")
+    chmod 700 "$HOME/.local/bin/$(basename "$0")"
+    echo "The script was moved to "$HOME/.local/bin" directory."
+    exit
+  else
+    echo "There is no [/bin] directory present in your "$HOME" directory."
+    read -p "Do you wish to create a [/bin] directory? y/n: " installation
+    if [[ "$installation" == "Yes" || "$installation" == "yes" || "$installation" == "y" || "$installation" == "YES" || "$installation" == "Y" ]] ; then
+      mkdir -p "$HOME/.local/bin"
+      cp $(basename "$0") "$HOME/.local/bin/$(basename "$0")"
+      chmod 700 "$HOME/.local/bin/$(basename "$0")"
+      echo "The script was moved to "$HOME/.local/bin" directory."
+      exit
+    elif [[ "$installation" == "No" || "$installation" == "no" || "$installation" == "n" || "$installation" == "NO" || "$installation" == "N" ]] ; then
+      echo "Exiting..."
+      exit
+    else
+      echo "No action indicated; exiting..."
+      exit
+    fi
+  fi
+}
+
+# ============================================================== #
+# Commands Help							 #
+# ============================================================== #
+function backup-help {
+  echo "[backup] is for [backup] command in restic"
+  echo ""
+  echo "This command will take a new snapshot using the values set"
+  echo "in your configuration file."
+  echo ""
+  echo "Usage:"
+  echo "  rescript [repo_name] backup [--flag]"
+  echo ""
+  echo "Available flags:"
+  echo "  --help		Display this help dialog."
+  echo "  --log			This will create a log file with"
+  echo "			the command output. Use only after all other"
+  echo "			commands, flags and options."
+  echo ""
+}
+
+function cleanup-help {
+  echo "[cleanup] is for [forget] and [prune] commands in restic"
+  echo ""
+  echo "This command will apply the [forget] policies set in your"
+  echo "configuration file and then execute [prune] to actually"
+  echo "delete the data that has been forgotten."
+  echo ""
+  echo "Usage:"
+  echo "  rescript [repo_name] cleanup [--flag]"
+  echo ""
+  echo "Available flags:"
+  echo "  --help		Display this help dialog."
+  echo "  --log			This will create a log file with"
+  echo "			the command output. Use only after all other"
+  echo "			commands, flags and options."
+  echo "  --next		Display next scheduled; work only when"
+  echo "			CLEANUP variable is set."
+  echo ""  
+}
+
+function config-help {
+  echo "[config] is an interactive command to make easy the to set up rescript"
+  echo "configuration and exclusions files. You can create, edit, list"
+  echo "and open your configuration and exclusions files."
+  echo ""
+  echo "Usage:"
+  echo "  rescript config [--flag]"
+  echo ""
+  echo "Available flags:"
+  echo "  --help		Display this help dialog."
+  echo ""
+}
+
+function editor-help {
+  echo "[editor] is to select or change the default text editor"
+  echo "to be used to open the rescript configuration and"
+  echo "exclusion files. This will list the most common text editors"
+  echo "used and also have an option to write the executable name"
+  echo "of your favorite text editor if not listed."
+  echo ""
+  echo "Usage:"
+  echo "  rescript editor [--flag]"
+  echo ""
+  echo "Available flags:"
+  echo "  --help		Display this help dialog."
+  echo ""
+}
+
+function install-help {
+  echo "[install] is to simply copy the script to your PATH directory"
+  echo "inside your HOME. If there is no PATH in your HOME then rescript"
+  echo "will ask you if you want to create one. If the answer is yes then"
+  echo "it will create a [/bin] directory inside your [./local] directory."
+  echo "If the answer is no then it will exit. If you don't want to use"
+  echo "rescript from your PATH then remember to use it indicating the"
+  echo "complete path where the script is located; if you have set another"
+  echo "location for your PATH then just copy the script and put it there."
+  echo ""
+  echo "Usage:"
+  echo "  rescript install [--flag]"
+  echo ""
+  echo "Available flags:"
+  echo "  --help		Display this help dialog."
+  echo ""
+}
+
+function logs-help {
+  echo "[logs] is for log files saved by rescript"
+  echo ""
+  echo "Usage:"
+  echo "  rescript [repo_name] logs [flag]"
+  echo "OR"
+  echo "  rescript [repo_name] logs [flag] [logfile]"
+  echo "Available flags:"
+  echo "  --cat			Display output of selected log file."
+  echo "  --help		Display this help dialog."
+  echo "  --list		List all log files saved."
+  echo "  --remove		Remove all log files."
+  echo ""
+}
+
+function mounter-help {
+  echo "[mounter] is to automatically mount your repository in your HOME"
+  echo "directory. This will create a temporary directory where the"
+  echo "repository will be mounted. After you quit the [mount] process"
+  echo "the temporary directory will be removed."
+  echo ""
+  echo "Usage:"
+  echo "  rescript [repo_name] mounter [--flag]"
+  echo ""
+  echo "Available flags:"
+  echo "  --help		Display this help dialog."
+  echo ""
+}
+
+function restorer-help {
+  echo "[restorer] is for [restore] command in restic"
+  echo ""
+  echo "This command will create a new directory in your "$HOME""
+  echo "directory containing the restored files. The new directory will"
+  echo "be named with a unique name so it will not conflict with your"
+  echo "existing directories."
+  echo ""
+  echo "Usage:"
+  echo "  rescript [repo_name] restorer [snapshot-ID]"
+  echo "Usage with flags:"
+  echo "  rescript [repo_name] restorer [flag] [host|path|tag]"
+  echo "Available flags:"
+  echo "  --log			This will create a log file with"
+  echo "			the command output. Use only after all other"
+  echo "			commands, flags and options."
+  echo "  --help		Display this help dialog."
+  echo "  --host		Only consider snapshots for this host"
+  echo "			when snapshot-ID is [latest]"
+  echo "  --path		Only consider snapshots which include"
+  echo "			this [absolute] path for snapshot-ID [latest]"
+  echo "  --tag			Only consider snapshots which include this"
+  echo "			taglist for snapshot-ID [latest]"
+  echo ""
+}
+
+function unlocker-help {
+  echo "[unlocker] is to remove the temporary lock created by rescript."
+  echo "When rescript is running it will create a temporary lock file"
+  echo "to prevent and warn about other processes that could be active"
+  echo "at the moment of executing another command within the same instance."
+  echo "If you are sure that are not any other processes running, then you"
+  echo "can safely remove the lock created by rescript using this command."
+  echo ""
+  echo "Usage:"
+  echo "  rescript [repo_name] unlocker [--flag]"
+  echo "Available flags:"
+  echo "  --help		Display this help dialog."
+  echo ""
+}
+
+# ============================================================== #
+# Rescript Commands						 #
+# ============================================================== #
+if [[ ! "$1"  ]] ; then
+  echo "You need to indicate the name of your repository or a"
+  echo "command; type [rescript help] for usage."
+  exit
+elif [[ "$1" == "backup" ]] ; then
+  echo "You have not indicated any repo for ["$1"]..."
+  echo ""
+  backup-help
+  exit
+elif [[ "$1" == "cleanup" ]] ; then
+  echo "You have not indicated any repo for ["$1"]..."
+  echo ""
+  cleanup-help
+  exit
+elif [[ "$1" == "config" ]] ; then
+  if [[ -z "$EDITOR" ]] ; then
+    select_editor
+    exit
+  fi
+  if [[ "$2" == "--help" || "$2" == "-h" ]] ; then
+    config-help
+    exit
+  else
+    clear
+    main_menu
+    exit
+  fi
+elif [[ "$1" == "editor" ]] ; then
+  if [[ "$2" == "--help" || "$2" == "-h" ]] ; then
+    editor-help
+    exit
+  else
+    select_editor
+    exit
+  fi
+elif [[ "$1" == "help" || "$1" == "--help" || "$1" == "-h" ]] ; then
+  echo "$usage"
+  exit
+elif [[ "$1" == "install" ]] ; then
+  if [[ "$2" == "--help" || "$2" == "-h" ]] ; then
+    install-help
+    exit
+  else
+    install
+    exit
+  fi
+elif [[ "$1" == "logs" ]] ; then
+  echo "You have not indicated any repo for ["$1"]..."
+  echo ""
+  logs-help
+  exit
+elif [[ "$1" == "mounter" ]] ; then
+  echo "You have not indicated any repo for ["$1"]..."
+  echo ""
+  mounter-help
+  exit
+elif [[ "$1" == "restorer" ]] ; then
+  echo "You have not indicated any repo for ["$1"]..."
+  echo ""
+  restorer-help
+  exit
+elif [[ "$1" == "unlocker" ]] ; then
+  echo "You have not indicated any repo for ["$1"]..."
+  echo ""
+  unlocker-help
+  exit
+elif [[ "$1" == "version" || "$1" == "--version" || "$1" == "-v" ]] ; then
+  echo "$version"
+  exit
+elif [[ ! -e "$HOME/.rescript/config/$1.conf" ]] ; then
+  echo "There is no repo or command for ["$1"]. Indicate a valid"
+  echo "repo or command name to proceed. Use [rescript help] for usage."
   exit
 fi
-# ------------------------------------------------------------------------------- #
-# Options
-while getopts ":bcde:hmnr:uv" o
-  do
-      case "$o" in
-	b|backup)
-		if [ -e "$LOCK" ]; then
-		  echo -e "$YELLOW""WARNING:""$ENDCOLOR" "$(basename "$0") is already running..."
-		  echo -e "If you are sure $(basename "$0") is not running, type"
-		  echo -e " "
-		  echo -e "	$(basename "$0") -u"
-		  echo -e "OR"
-		  echo -e "	$(basename "$0") -unlock"
-		  echo -e " "
-		  echo -e "This will remove the lock for $(basename "$0")"
-		  exit 
-		fi
-		touch "$LOCK"
-		trap 'rm -rf "$LOCK"' INT QUIT TERM EXIT
-		echo -e "======================================================================"
-		echo -e "| - - - - - - - > [ S T A R T I N G    B A C K U P ] < - - - - - - - |"
-		echo -e "======================================================================"
-		echo -e "$YELLOW""Date and Time:""$ENDCOLOR" "$(date +%a\ %b\ %d\ %Y\ %r)"
-		echo -e "$YELLOW""System:""$ENDCOLOR" "$(cat /etc/issue.net) $(uname -o) $(uname -r)"
-		echo -e "$YELLOW""Hostname:""$ENDCOLOR" "$HOSTNAME"
-		if [[ "$DESTINATION" ]] ; then
-		  echo -e "$YELLOW""Backup Destination:""$ENDCOLOR" "$DESTINATION"
-		else
-		  echo -e "$YELLOW""Backup Destination:""$ENDCOLOR" "$RESTIC_REPO"
-		fi
-		echo -e "----------------------------------------------------------------------"
-		restic backup "$BACKUP_DIR" --tag "$TAG" --verbose --exclude-caches --exclude-file="$EXCLUDES"
-		echo -e "----------------------------------------------------------------------"
-		echo -e "$YELLOW""End:""$ENDCOLOR" "$(date +%a\ %b\ %d\ %Y\ %r)"
-		HRS=$((SECONDS / 3600))
-		MIN=$(((SECONDS / 60) % 60))
-		SEC=$((SECONDS % 60))
-		if [[ "$HRS" -gt "0" ]] ; then
-		  echo -e "$YELLOW""Duration:""$ENDCOLOR" "$HRS hours $MIN minues $SEC seconds"
-		elif [[ "$MIN" -gt "0" ]] ; then
-		  echo -e "$YELLOW""Duration:""$ENDCOLOR" "$MIN minutes $SEC seconds"
-		else
-		  echo -e "$YELLOW""Duration:""$ENDCOLOR" "$SEC seconds"
-		fi
-		echo -e "======================================================================"
-		echo -e "| - - - - - - - - > [ B A C K U P      E N D E D ] < - - - - - - - - |"
-		echo -e "======================================================================"
-	        ;;
-	c|cleanup)
-		if [ -e "$LOCK" ]; then
-		  echo -e "$YELLOW""WARNING:""$ENDCOLOR" "$(basename "$0") is already running..."
-		  echo -e "If you are sure $(basename "$0") is not running, type"
-		  echo -e " "
-		  echo -e "	$(basename "$0") -u"
-		  echo -e "OR"
-		  echo -e "	$(basename "$0") -unlock"
-		  echo -e " "
-		  echo -e "This will remove the lock for $(basename "$0")"
-		  exit 
-		fi
-		touch "$LOCK"
-		trap 'rm -rf "$LOCK"' INT QUIT TERM EXIT
-		if [[ "$KEEP_LAST" -gt "0" || "$KEEP_HOURLY" -gt "0" || "$KEEP_DAILY" -gt "0" || "$KEEP_WEEKLY" -gt "0" || "$KEEP_MONTHLY" -gt "0" || "$KEEP_YEARLY" -gt "0" ]] ; then
-			echo -e "======================================================================"
-	  		echo -e "|- - - - - - - > [ S T A R T I N G    C L E A N U P ] < - - - - - - -|"
-			echo -e "======================================================================"
-			echo -e "$YELLOW""Date and Time:""$ENDCOLOR" "$(date +%a\ %b\ %d\ %Y\ %r)"
-			echo -e "$YELLOW""System:""$ENDCOLOR" "$(cat /etc/issue.net) $(uname -o) $(uname -r)"
-			echo -e "$YELLOW""Hostname:""$ENDCOLOR" "$HOSTNAME"
-			if [[ "$DESTINATION" ]] ; then
-			  echo -e "$YELLOW""Backup Destination:""$ENDCOLOR" "$DESTINATION"
-			else
-			  echo -e "$YELLOW""Backup Destination:""$ENDCOLOR" "$RESTIC_REPO"
-			fi
-			echo -e "----------------------------------------------------------------------"
-		        restic forget --keep-last $KEEP_LAST --keep-hourly $KEEP_HOURLY --keep-daily $KEEP_DAILY --keep-weekly $KEEP_WEEKLY --keep-monthly $KEEP_MONTHLY --keep-yearly $KEEP_YEARLY
-		        restic prune --cleanup-cache
-			if [[ -f "$DATEFILE" || "$CLEAN" -gt "0" ]] ; then
-			  NOW=$(date +"%s")
-			  NEXT=$(date -f "$DATEFILE" "+%s")
-			  RESULT=$((NEXT-NOW))
-			  DAYS=$((RESULT / 86400))
-			  HOURS=$(((RESULT / 3600) % 24))
-			  MINUTES=$(((RESULT / 60) % 60))
-			  if [[ "$DAYS" -gt "0" ]] ; then
-			    echo -e "$YELLOW""[Next check and cleanup in $DAYS days $HOURS hours and $MINUTES minutes...]""$ENDCOLOR"
-			  elif [[ "$HOURS" -gt "0" ]] ; then
-			    echo -e "$YELLOW""[Next check and cleanup in $HOURS hours and $MINUTES minutes...]""$ENDCOLOR"
-			  elif [[ "$MINUTES" -gt "0" ]] ; then
-			    echo -e "$YELLOW""[Next check and cleanup in $MINUTES minutes...]""$ENDCOLOR"
-			  else
-			    echo -e "$YELLOW""[Repo will be checked and cleaned in the next run...]""$ENDCOLOR"
-			  fi
-			fi
-			echo -e "----------------------------------------------------------------------"
-			echo -e "$YELLOW""End:""$ENDCOLOR" "$(date +%a\ %b\ %d\ %Y\ %r)"
-			HRS=$((SECONDS / 3600))
-			MIN=$(((SECONDS / 60) % 60))
-			SEC=$((SECONDS % 60))
-			if [[ "$HRS" -gt "0" ]] ; then
-			  echo -e "$YELLOW""Duration:""$ENDCOLOR" "$HRS hours $MIN minues $SEC seconds"
-			elif [[ "$MIN" -gt "0" ]] ; then
-			  echo -e "$YELLOW""Duration:""$ENDCOLOR" "$MIN minutes $SEC seconds"
-			else
-			  echo -e "$YELLOW""Duration:""$ENDCOLOR" "$SEC seconds"
-			fi
-			echo -e "======================================================================"
-			echo -e "| - - - - - - - - > [ C L E A N U P    E N D E D ] < - - - - - - - - |"
-			echo -e "======================================================================"
-		else
-			echo -e "$YELLOW""You have not indicated any policy value...""$ENDCOLOR"
-			echo "If you want to use -c, -cleanup option you need to set the [KEEP] variables."
-			echo "For more information about the Usage check out the following link:"
-			echo "https://gitlab.com/sulfuror/rescript.sh/blob/master/README.md#usage"
-		fi
-		;;
-	d|deep-check)
-		if [ -e "$LOCK" ]; then
-		  echo -e "$YELLOW""WARNING:""$ENDCOLOR" "$(basename "$0") is already running..."
-		  echo -e "If you are sure $(basename "$0") is not running, type"
-		  echo -e " "
-		  echo -e "	$(basename "$0") -u"
-		  echo -e "OR"
-		  echo -e "	$(basename "$0") -unlock"
-		  echo -e " "
-		  echo -e "This will remove the lock for $(basename "$0")"
-		  exit 
-		fi
-		touch "$LOCK"
-		trap 'rm -rf "$LOCK"' INT QUIT TERM EXIT
-		restic check --read-data
-		;;
-	e)
-		if [ -e "$LOCK" ]; then
-		  echo -e "$YELLOW""WARNING:""$ENDCOLOR" "$(basename "$0") is already running..."
-		  echo -e "If you are sure $(basename "$0") is not running, type"
-		  echo -e " "
-		  echo -e "	$(basename "$0") -u"
-		  echo -e "OR"
-		  echo -e "	$(basename "$0") -unlock"
-		  echo -e " "
-		  echo -e "This will remove the lock for $(basename "$0")"
-		  exit 
-		fi
-		touch "$LOCK"
-		trap 'rm -rf "$LOCK"' INT QUIT TERM EXIT
-		while [[ "$OPTARG" == "--help" ]] ; do
-		  echo "[-e] is for the [exclusion] restic list"
-		  echo "Usage:"
-		  echo "  rescript -e [option]"
-		  echo "OR"
-		  echo "  rescript -e [--flag] [option]"
-		  echo "Available options:"
-		  echo "  --build		this flag requires one option [home|sys]"
-		  echo "			to build an exclusion list based on common"
-		  echo "			exclusions patterns, files and directories"
-		  echo "	home		this will build a generic exclusion list"
-		  echo "			for your [home] directory"
-		  echo "	sys		this will build a generic exclusion list"
-		  echo "			for your [system] directories"
-		  echo "  --help		help for [-e]"
-		  echo "  edit			this will open your exclusion file"
-		  echo "			for you to add, remove or edit your"
-		  echo "			exclusion list"
-		  echo "  list			list exclusions"
-		  echo ""
-		  echo "WARNING: the [--build home] and [--build sys] options will override"
-		  echo "any existing list in your rescript/config directory; if you already have"
-		  echo "an exclusion list in this directory make a backup before using this two options"
-		exit
-		done
-		while [[ "$OPTARG" == "--build" ]] ; do
-		  if [[ -z "$3" ]] ; then
-			echo "No [$OPTARG] indicated; use [-e --help] for usage."
-		  elif [[ "$3" == "home" ]] ; then
-			{
-				echo "# These are the default rescript exclusions for your home directory:"
-		  		echo "$HOME/.cache/*"
-		  		echo "$HOME/.local/share/Trash/*"
-		  		echo "$HOME/.rescript/lock/*"
-		  		echo "$HOME/.gvfs"
-		  		echo "$HOME/.dbus"
-		  		echo "$HOME/.local/share/gvfs-metadata"
-		  		echo "$HOME/.Private"
-		  		echo "$HOME/.Trash"
-		  		echo "$HOME/.cddb"
-		  		echo "$HOME/.aptitude"
-		  		echo "$HOME/.adobe"
-		  		echo "$HOME/.bash_history"
-		  		echo "$HOME/.dropbox"
-		  		echo "$HOME/.dropbox-dist"
-		  		echo "$HOME/.macromedia"
-		  		echo "$HOME/.xsession-errors"
-		  		echo "$HOME/.recently-used"
-		  		echo "$HOME/.recently-used.xbel"
-		  		echo "$HOME/.local/share/recently-used*"
-		  		echo "$HOME/.thumbnails/*"
-		  		echo "$HOME/.Xauthority"
-		  		echo "$HOME/.ICEauthority"
-		  		echo "$HOME/.gksu.lock"
-		  		echo "$HOME/.pulse"
-		  		echo "$HOME/.pulse-cookie"
-		  		echo "$HOME/.esd_auth"
-		  		echo "$HOME/.ecryptfs"
-		  		echo "$HOME/.mozilla"
-		  		echo "$HOME/.config/google-chrome"
-		  		echo "$HOME/.config/chromium"
-		  		echo "$HOME/.opera"
-		  		echo "$HOME/.npm"
-		  		echo "$HOME/.gnupg/rnd"
-		  		echo "$HOME/.gnupg/random_seed"
-		  		echo "$HOME/.gnupg/.#*"
-		  		echo "$HOME/.gnupg/*.lock"
-		  		echo "$HOME/.gnupg/gpg-agent-info-*"
-				echo "$HOME/.config/**/Cache"
-				echo "$HOME/.config/**/GPUCache"
-				echo "$HOME/.config/**/ShaderCache"
-				echo "$HOME/snap/**/.config/**/Cache"
-				echo "$HOME/snap/**/.config/**/GPUCache"
-				echo "$HOME/snap/**/.config/**/ShaderCache"
-		  		echo "$HOME/Downloads"
-		  		echo "*.lock"
-		  		echo "*.bak"
-		  		echo "*.backup"
-		  		echo "*.backup*"
-		  		echo "*~"
-		  		echo ""
-		  		echo "# Write your custom exclusions below:"
-			} > "$EXCLUDES"
-			echo "Done biulding home exclusion list; type [-e edit] to edit your list or [-e list] to view exclusions added."
-		  elif [[ "$3" == "sys" ]] ; then
-			{
-				echo "# These are the default rescript exclusions for your system:"
-				echo "/home/*"
-				echo "/proc/*"
-				echo "/sys/*"
-				echo "/dev/*"
-				echo "/run/*"
-				echo "/mnt/*"
-				echo "/media/*"
-				echo "/etc/mtab"
-				echo "/var/cache/apt/archives/*.deb"
-				echo "lost+found/*"
-				echo "/tmp/*"
-				echo "/var/tmp/*"
-				echo "/var/backups/*"
-				echo ""
-				echo "# Write your custom exclusions below:"
-			} > "$EXCLUDES"
-			echo "Done biulding system exclusion list; type [-e edit] to edit your list or [-e list] to view exclusions added."
-		  fi
-		exit
-		done
-		while [[ "$OPTARG" == "edit" ]] ; do
-		  "$EDITOR" "$EXCLUDES" 2> /dev/null
-		exit
-		done
-		while [[ "$OPTARG" == "list" ]] ; do
-		  grep -E -v '(^#|^\s*$|^\s*\t*#)' "$EXCLUDES"
-		exit
-		done
-		;;
-	h|help)
-		echo "$Usage"
-      		;;
-	m|mount)
-		if [ -e "$LOCK" ]; then
-		  echo -e "$YELLOW""WARNING:""$ENDCOLOR" "$(basename "$0") is already running..."
-		  echo -e "If you are sure $(basename "$0") is not running, type"
-		  echo -e " "
-		  echo -e "	$(basename "$0") -u"
-		  echo -e "OR"
-		  echo -e "	$(basename "$0") -unlock"
-		  echo -e " "
-		  echo -e "This will remove the lock for $(basename "$0")"
-		  exit 
-		fi
-		touch "$LOCK"
-		trap 'rm -rf "$LOCK"' INT QUIT TERM EXIT
-		rmount="$HOME/$(basename "$0")-$(date +%s)"
-		mkdir "$rmount"
-		restic mount "$rmount"
-		rm -rf "$rmount"
-		;;
-	n|next-cleanup)
-		if [[ -z "$CLEAN" || "$CLEAN" -lt "1" ]] ; then
-		  echo -e "$YELLOW""You have not indicated any policy for the CLEAN value...""$ENDCOLOR"
-		  echo "The scrip will run check, forget and prune every time it runs"
-		  echo "unless you change the CLEAN variable at the beginning of this script."
-		  echo "The number indicated in the CLEAN variable must be in days."
-		  echo "For more information about the usage check out the following link:"
-		  echo "https://gitlab.com/sulfuror/rescript.sh/blob/master/README.md#usage"
-		else
-		NOW=$(date +"%s")
-		NEXT=$(date -f "$DATEFILE" "+%s")
-		RESULT=$((NEXT-NOW))
-		DAYS=$((RESULT / 86400))
-		HOURS=$(((RESULT / 3600) % 24))
-		MINUTES=$(((RESULT / 60) % 60))
-		  if [[ "$DAYS" -gt "0" ]] ; then
-		    echo -e "$YELLOW""Next check and cleanup in $DAYS days $HOURS hours and $MINUTES minutes...""$ENDCOLOR"
-		  elif [[ "$HOURS" -gt "0" ]] ; then
-		    echo -e "$YELLOW""Next check and cleanup in $HOURS hours and $MINUTES minutes...""$ENDCOLOR"
-		  elif [[ "$MINUTES" -gt "0" ]] ; then
-		    echo -e "$YELLOW""Next check and cleanup in $MINUTES minutes...""$ENDCOLOR"
-		  else
-		    echo -e "$YELLOW""Repo will be checked and cleaned in the next run...""$ENDCOLOR"
-		  fi
-		fi
-		;;
-	r)
-		if [ -e "$LOCK" ]; then
-		  echo -e "$YELLOW""WARNING:""$ENDCOLOR" "$(basename "$0") is already running..."
-		  echo -e "If you are sure $(basename "$0") is not running, type"
-		  echo -e " "
-		  echo -e "	$(basename "$0") -u"
-		  echo -e "OR"
-		  echo -e "	$(basename "$0") -unlock"
-		  echo -e " "
-		  echo -e "This will remove the lock for $(basename "$0")"
-		  exit 
-		fi
-		touch "$LOCK"
-		trap 'rm -rf "$LOCK"' INT QUIT TERM EXIT
-		while [[ "$OPTARG" == "--help" ]] ; do
-		  echo "[-r] is for [restore] command in restic"
-		  echo "Usage:"
-		  echo "  rescript -r [snapshot-ID]"
-		  echo "Usage with flags:"
-		  echo "  rescript -r [flag] [host|path|tag]"
-		  echo "Available flags:"
-		  echo "  --help		help for -r"
-		  echo "  --host		only consider snapshots for this host"
-		  echo "			when snapshot-ID is [latest]"
-		  echo "  --path		only consider snapshots which include"
-		  echo "			this [absolute] path for snapshot-ID [latest]"
-		  echo "  --tag			only consider snapshots which include this"
-		  echo "			taglist for snapshot-ID [latest]"
-		exit
-		done
-		while [[ "$OPTARG" == "--host" || "$OPTARG" == "--tag" || "$OPTARG" == "--path" ]] ; do
-		  if [[ -z "$3" ]] ; then
-		    echo "No [$OPTARG] indicated; use [-r --help] for usage."
-		  else
-		    echo -e "======================================================================"
-		    echo -e "|- - - - - - - > [ S T A R T I N G    R E S T O R E ] < - - - - - - -|"
-		    echo -e "======================================================================"
-		    echo -e "$YELLOW""Date and Time:""$ENDCOLOR" "$(date +%a\ %b\ %d\ %Y\ %r)"
-		    echo -e "$YELLOW""System:""$ENDCOLOR" "$(cat /etc/issue.net) $(uname -o) $(uname -r)"
-		    echo -e "$YELLOW""Hostname:""$ENDCOLOR" "$HOSTNAME"
-		    if [[ "$DESTINATION" ]] ; then
-		      echo -e "$YELLOW""Backup Destination:""$ENDCOLOR" "$DESTINATION"
-		    else
-		      echo -e "$YELLOW""Backup Destination:""$ENDCOLOR" "$RESTIC_REPO"
-		    fi
-		    echo -e "----------------------------------------------------------------------"
-		    if [[ "$DESTINATION" ]] ; then
-		      echo -e "$YELLOW""Restoring latest snapshot [$OPTARG: $3] from:""$ENDCOLOR" "$DESTINATION..."
-		    else
-		      echo -e "$YELLOW""Restoring latest snapshot [$OPTARG: $3] from:""$ENDCOLOR" "$BACKUP_DIR"
-		    fi
-		    if [[ "$OPTARG" == "--path" ]] ; then
-		      restic_restore="$HOME/restore-latest-by-path-$(date +%s)"
-		    else
-		      restic_restore="$HOME/restore-latest-$3-$(date +%s)"
-		    fi
-		    restic restore --verify "$OPTARG" "$3" latest --target "$restic_restore"
-		    echo -e "----------------------------------------------------------------------"
-		    echo -e "$YELLOW""End:""$ENDCOLOR" "$(date +%a\ %b\ %d\ %Y\ %r)"
-		    HRS=$((SECONDS / 3600))
-		    MIN=$(((SECONDS / 60) % 60))
-		    SEC=$((SECONDS % 60))
-		    if [[ "$HRS" -gt "0" ]] ; then
-		      echo -e "$YELLOW""Duration:""$ENDCOLOR" "$HRS hours $MIN minues $SEC seconds"
-		    elif [[ "$MIN" -gt "0" ]] ; then
-		      echo -e "$YELLOW""Duration:""$ENDCOLOR" "$MIN minutes $SEC seconds"
-		    else
-		      echo -e "$YELLOW""Duration:""$ENDCOLOR" "$SEC seconds"
-		    fi
-		    echo -e "======================================================================"
-		    echo -e "| - - - - - - > [ R E S T O R E    C O M P L E T E D ] < - - - - - - |"
-		    echo -e "======================================================================"
-		  fi
-		exit
-		done
-		while [[ "$OPTARG" ]] ; do
-		  echo -e "======================================================================"
-		  echo -e "|- - - - - - - > [ S T A R T I N G    R E S T O R E ] < - - - - - - -|"
-		  echo -e "======================================================================"
-		  echo -e "$YELLOW""Date and Time:""$ENDCOLOR" "$(date +%a\ %b\ %d\ %Y\ %r)"
-		  echo -e "$YELLOW""System:""$ENDCOLOR" "$(cat /etc/issue.net) $(uname -o) $(uname -r)"
-		  echo -e "$YELLOW""Hostname:""$ENDCOLOR" "$HOSTNAME"
-		  if [[ "$DESTINATION" ]] ; then
-		    echo -e "$YELLOW""Backup Destination:""$ENDCOLOR" "$DESTINATION"
-		  else
-		    echo -e "$YELLOW""Backup Destination:""$ENDCOLOR" "$RESTIC_REPO"
-		  fi
-		  echo -e "----------------------------------------------------------------------"
-		  if [[ "$DESTINATION" ]] ; then
-		    if [[ "$3" ]] ; then
-		      echo -e "$YELLOW""Restoring latest snapshot [$OPTARG: $3] from:""$ENDCOLOR" "$DESTINATION..."
-		    else
-		      echo -e "$YELLOW""Restoring $OPTARG snapshot from:""$ENDCOLOR" "$DESTINATION..."
-		    fi
-		  else
-		    if [[ "$3" ]] ; then
-		      echo -e "$YELLOW""Restoring latest snapshot [$OPTARG: $3] from:""$ENDCOLOR" "$BACKUP_DIR"
-		    else
-		      echo -e "$YELLOW""Restoring $OPTARG snapshot from:""$ENDCOLOR" "$BACKUP_DIR"
-		    fi
-		  fi
-		  restic_restore="$HOME/restore-$OPTARG-$(date +%s)"
-		  restic restore --verify "$OPTARG" --target "$restic_restore"
-		  echo -e "----------------------------------------------------------------------"
-		  echo -e "$YELLOW""End:""$ENDCOLOR" "$(date +%a\ %b\ %d\ %Y\ %r)"
-		  HRS=$((SECONDS / 3600))
-		  MIN=$(((SECONDS / 60) % 60))
-		  SEC=$((SECONDS % 60))
-		  if [[ "$HRS" -gt "0" ]] ; then
-		    echo -e "$YELLOW""Duration:""$ENDCOLOR" "$HRS hours $MIN minues $SEC seconds"
-		  elif [[ "$MIN" -gt "0" ]] ; then
-		    echo -e "$YELLOW""Duration:""$ENDCOLOR" "$MIN minutes $SEC seconds"
-		  else
-		    echo -e "$YELLOW""Duration:""$ENDCOLOR" "$SEC seconds"
-		  fi
-		  echo -e "======================================================================"
-		  echo -e "| - - - - - - > [ R E S T O R E    C O M P L E T E D ] < - - - - - - |"
-		  echo -e "======================================================================"
-		exit
-		done
-		;;
-	v|version)
-	        echo "$Version"
-        	;;
-	u|unlock)
-		if [[ ! -e "$LOCK" ]]; then
-			echo -e "$YELLOW""No locks found...""$ENDCOLOR"
-		   else
-			rm -rf "$LOCK"
-			echo -e "$YELLOW""Script unlocked...""$ENDCOLOR"
-		fi
-		;;
-	\?)
-	        echo "Unknown option [-$OPTARG]; use [-h] or [help] for available commands and options"
-	        ;;
-	:)
-		echo "You have not indicated any option for [-$OPTARG]"
-		echo "	-e requires an option to edit / build your exclusion list"
-		echo "	   [use -e --help for usage and available options]"
-		echo "	-r requires a snapshot-ID to restore [use -r --help for"
-		echo "	   usage and available flags]"
-	        ;;
-	*)
-	        echo "Unknown error while processing options"
-		echo "$Usage"
-	        ;;
-      esac
+
+# ============================================================== #
+# Functions							 #
+# ============================================================== #
+source "$HOME/.rescript/config/$1.conf"
+export RESTIC_PASSWORD="$RESTIC_PASSWORD"
+export RESTIC_REPOSITORY="$RESTIC_REPO"
+export B2_ACCOUNT_ID="$B2_ID"
+export B2_ACCOUNT_KEY="$B2_KEY"
+export AWS_ACCESS_KEY_ID="$AWS_ID"
+export AWS_SECRET_ACCESS_KEY="$AWS_KEY"
+
+function automatic {
+  LOG="$HOME/.rescript/logs/"$REPO"-log-$(date +%Y-%m-%d-%H:%M)"
+  if [ -e "$LOCK" ]; then
+    echo -e "WARNING: "$REPO" repo is already running..."
+    echo -e "If you are sure "$REPO" is not running, type"
+    echo -e " "
+    echo -e "	rescript "$REPO" unlock"
+    echo -e " "
+    echo -e "This will remove the lock for "$REPO""
     exit
-  done
-shift $((OPTIND - 1))
-# ------------------------------------------------------------------------------- #
-# Parse restic commands
-if [[ -n "$1" ]] ; then
-  if [[ "$1" == "-" ]] ; then
-    if [ -e "$LOCK" ]; then
-	echo -e "$YELLOW""WARNING:""$ENDCOLOR" "$(basename "$0") is already running..."
-	echo -e "If you are sure $(basename "$0") is not running, type"
-	echo -e " "
-	echo -e "	$(basename "$0") -u"
-	echo -e "OR"
-	echo -e "	$(basename "$0") -unlock"
-	echo -e " "
-	echo -e "This will remove the lock for $(basename "$0")"
-        exit
+  fi
+  touch "$LOCK"
+  trap 'rm -rf "$LOCK"' INT QUIT TERM EXIT
+  if [[ "$LOGGING" == "yes" ]] ; then
+    exec > >(tee -a "$LOG") 2>&1
+  elif [[ "$LOGGING" == "no" ]] ; then
+    echo > /dev/null
+  fi
+  echo -e "======================================================================"
+  echo -e "| - - - - - - - > [ S T A R T I N G    B A C K U P ] < - - - - - - - |"
+  echo -e "======================================================================"
+  echo -e "$YELLOW""Date and Time:""$ENDCOLOR" "$(date +%a\ %b\ %d\ %Y\ %r)"
+  echo -e "$YELLOW""System:""$ENDCOLOR" "$(cat /etc/issue.net) $(uname -o) $(uname -r)"
+  echo -e "$YELLOW""Hostname:""$ENDCOLOR" "$HOSTNAME"
+  if [[ "$DESTINATION" ]] ; then
+    echo -e "$YELLOW""Backup Destination:""$ENDCOLOR" "$DESTINATION"
+  else
+    echo -e "$YELLOW""Backup Destination:""$ENDCOLOR" "$RESTIC_REPO"
+  fi
+  echo -e "----------------------------------------------------------------------"
+
+  # Backup and exclusions
+  echo -e "$YELLOW""[Taking a Snapshot...]""$ENDCOLOR"
+  restic backup "$BACKUP_DIR" --tag "$TAG" --verbose --exclude-caches --exclude-file="$EXCLUDES"
+
+  EXCLUSIONS=$(grep -E -v -n -c '(^#|^\s*$|^\s*\t*#)' "$EXCLUDES")
+  echo -e "$YELLOW""There are $EXCLUSIONS exclusion rules...""$ENDCOLOR"
+
+  echo -e "----------------------------------------------------------------------"
+  # Snapshot List
+  echo -e "$YELLOW""[Snapshots List...]""$ENDCOLOR"
+  restic snapshots
+
+  # Check and Clean Repo Based on User's Policy
+  if [[ -f "$HOME/.rescript/config/"$REPO"-datefile" || "$CLEAN" -gt "0" ]]; then
+    NOW=$(date +"%s")
+    NEXT=$(date -f "$HOME/.rescript/config/"$REPO"-datefile" "+%s")
+    RESULT=$((NEXT-NOW))
+    DAYS=$((RESULT / 86400))
+    HOURS=$(((RESULT / 3600) % 24))
+    MINUTES=$(((RESULT / 60) % 60))
+    if [[ "$NOW" -lt "$NEXT" ]] ; then
+      if [[ "$DAYS" -gt "0" ]] ; then
+        echo -e "$YELLOW""[Next cleanup and check in $DAYS days $HOURS hours and $MINUTES minutes...]""$ENDCOLOR"
+      elif [[ "$HOURS" -gt "0" ]] ; then
+        echo -e "$YELLOW""[Next cleanup and check in $HOURS hours and $MINUTES minutes...]""$ENDCOLOR"
+      elif [[ "$MINUTES" -gt "0" ]] ; then
+        echo -e "$YELLOW""[Next cleanup and check in $MINUTES minutes...]""$ENDCOLOR"
+      else
+        echo -e "$YELLOW""[Repo will be cleaned and checked in the next run...]""$ENDCOLOR"
+      fi
+    else 
+      if [[ "$KEEP_LAST" -gt "0" || "$KEEP_HOURLY" -gt "0" || "$KEEP_DAILY" -gt "0" || "$KEEP_WEEKLY" -gt "0" || "$KEEP_MONTHLY" -gt "0" || "$KEEP_YEARLY" -gt "0" ]] ; then
+        echo -e "$YELLOW""[Cleaning Repo...]""$ENDCOLOR"
+        restic forget --keep-last $KEEP_LAST --keep-hourly $KEEP_HOURLY --keep-daily $KEEP_DAILY --keep-weekly $KEEP_WEEKLY --keep-monthly $KEEP_MONTHLY --keep-yearly $KEEP_YEARLY
+        restic prune
+        echo -e "$YELLOW""[Checking for Errors in Repo...]""$ENDCOLOR"
+        restic check --cleanup-cache
+        if [[ "$CLEAN" -gt "0" ]] ; then
+          echo -e "$YELLOW""[Done Cleaning; Next Cleanup and Check Will Be Done in $CLEAN days...]""$ENDCOLOR"
+          date -d now+"$CLEAN"days > "$HOME/.rescript/config/"$REPO"-datefile"
+        fi
+      fi
     fi
-    touch "$LOCK"
-    trap 'rm -rf "$LOCK"' INT QUIT TERM EXIT
-    echo "Unknown option [-$OPTARG]; use [help] or [--help] for available commands and options"
+  else 
+      if [[ "$KEEP_LAST" -gt "0" || "$KEEP_HOURLY" -gt "0" || "$KEEP_DAILY" -gt "0" || "$KEEP_WEEKLY" -gt "0" || "$KEEP_MONTHLY" -gt "0" || "$KEEP_YEARLY" -gt "0" ]] ; then
+        echo -e "$YELLOW""[Cleaning Repo...]""$ENDCOLOR"
+        restic forget --keep-last $KEEP_LAST --keep-hourly $KEEP_HOURLY --keep-daily $KEEP_DAILY --keep-weekly $KEEP_WEEKLY --keep-monthly $KEEP_MONTHLY --keep-yearly $KEEP_YEARLY
+        restic prune
+        echo -e "$YELLOW""[Checking for Errors in Repo...]""$ENDCOLOR"
+        restic check --cleanup-cache
+      fi
+  fi
+
+  # Stats
+  echo -e "----------------------------------------------------------------------"
+  echo -e "$YELLOW""[Latest Snapshot Size for $(hostname)...]""$ENDCOLOR"
+  restic stats --host "$(hostname)" latest
+  echo -e "$YELLOW""[Deduplicated Size for Latest $(hostname) Snapshot...]""$ENDCOLOR"
+  restic stats --mode raw-data --host "$(hostname)" latest
+  echo -e "$YELLOW""[Original Files Size for All Snapshots...]""$ENDCOLOR"
+  restic stats
+  echo -e "$YELLOW""[Deduplicated Size for All Snapshots...]""$ENDCOLOR"
+  restic stats --mode raw-data
+  # Time and Runtime
+  echo -e "----------------------------------------------------------------------"
+  echo -e "$YELLOW""End:""$ENDCOLOR" "$(date +%a\ %b\ %d\ %Y\ %r)"
+  HRS=$((SECONDS / 3600))
+  MIN=$(((SECONDS / 60) % 60))
+  SEC=$((SECONDS % 60))
+  if [[ "$HRS" -gt "0" ]] ; then
+    echo -e "$YELLOW""Duration:""$ENDCOLOR" "$HRS hours $MIN minues $SEC seconds"
+  elif [[ "$MIN" -gt "0" ]] ; then
+    echo -e "$YELLOW""Duration:""$ENDCOLOR" "$MIN minutes $SEC seconds"
+  else
+    echo -e "$YELLOW""Duration:""$ENDCOLOR" "$SEC seconds"
+  fi
+  echo -e "======================================================================"
+  echo -e "| - - - - - - - - > [ B A C K U P      E N D E D ] < - - - - - - - - |"
+  echo -e "======================================================================"
+}
+
+function backup {
+  LOG="$HOME/.rescript/logs/"$REPO"-backup-log-$(date +%Y-%m-%d-%H:%M)"  
+  if [ -e "$LOCK" ]; then
+    echo -e "WARNING: "$REPO" repo is already running..."
+    echo -e "If you are sure "$REPO" is not running, type"
+    echo -e " "
+    echo -e "	rescript "$REPO" unlock"
+    echo -e " "
+    echo -e "This will remove the lock for "$REPO""
     exit
-  elif [[ "$1" == "backup" || "$1" == "--backup" ]] ; then
-    if [ -e "$LOCK" ]; then
-      echo -e "$YELLOW""WARNING:""$ENDCOLOR" "$(basename "$0") is already running..."
-      echo -e "If you are sure $(basename "$0") is not running, type"
-      echo -e " "
-      echo -e "		$(basename "$0") -u"
-      echo -e "OR"
-      echo -e "		$(basename "$0") -unlock"
-      echo -e " "
-      echo -e "This will remove the lock for $(basename "$0")"
-      exit 
+  fi
+  touch "$LOCK"
+  trap 'rm -rf "$LOCK"' INT QUIT TERM EXIT
+  if [[ "$LOGGER" ]] ; then
+    if [[ "$LOGGER" == "--log" ]] ; then
+      exec > >(tee -a "$LOG") 2>&1
+    else
+      echo "Invalid flag ["$LOGGER"]..."
+      echo ""
+      backup-help
+      exit
     fi
-    touch "$LOCK"
-    trap 'rm -rf "$LOCK"' INT QUIT TERM EXIT
+  else
+    echo > /dev/null
+  fi
+  echo -e "======================================================================"
+  echo -e "| - - - - - - - > [ S T A R T I N G    B A C K U P ] < - - - - - - - |"
+  echo -e "======================================================================"
+  echo -e "$YELLOW""Date and Time:""$ENDCOLOR" "$(date +%a\ %b\ %d\ %Y\ %r)"
+  echo -e "$YELLOW""System:""$ENDCOLOR" "$(cat /etc/issue.net) $(uname -o) $(uname -r)"
+  echo -e "$YELLOW""Hostname:""$ENDCOLOR" "$HOSTNAME"
+  if [[ "$DESTINATION" ]] ; then
+    echo -e "$YELLOW""Backup Destination:""$ENDCOLOR" "$DESTINATION"
+  else
+    echo -e "$YELLOW""Backup Destination:""$ENDCOLOR" "$RESTIC_REPO"
+  fi
+  echo -e "----------------------------------------------------------------------"
+  restic backup "$BACKUP_DIR" --tag "$TAG" --verbose --exclude-caches --exclude-file="$EXCLUDES"
+  echo -e "----------------------------------------------------------------------"
+  echo -e "$YELLOW""End:""$ENDCOLOR" "$(date +%a\ %b\ %d\ %Y\ %r)"
+  HRS=$((SECONDS / 3600))
+  MIN=$(((SECONDS / 60) % 60))
+  SEC=$((SECONDS % 60))
+  if [[ "$HRS" -gt "0" ]] ; then
+    echo -e "$YELLOW""Duration:""$ENDCOLOR" "$HRS hours $MIN minues $SEC seconds"
+  elif [[ "$MIN" -gt "0" ]] ; then
+    echo -e "$YELLOW""Duration:""$ENDCOLOR" "$MIN minutes $SEC seconds"
+  else
+    echo -e "$YELLOW""Duration:""$ENDCOLOR" "$SEC seconds"
+  fi
+  echo -e "======================================================================"
+  echo -e "| - - - - - - - - > [ B A C K U P      E N D E D ] < - - - - - - - - |"
+  echo -e "======================================================================"
+}
+
+function cleanup {
+  LOG="$HOME/.rescript/logs/"$REPO"-cleanup-log-$(date +%Y-%m-%d-%H:%M)"
+  if [ -e "$LOCK" ]; then
+    echo -e "WARNING: "$REPO" repo is already running..."
+    echo -e "If you are sure "$REPO" is not running, type"
+    echo -e " "
+    echo -e "	rescript "$REPO" unlock"
+    echo -e " "
+    echo -e "This will remove the lock for "$REPO""
+    exit
+  fi
+  touch "$LOCK"
+  trap 'rm -rf "$LOCK"' INT QUIT TERM EXIT
+  if [[ "$LOGGER" ]] ; then
+    if [[ "$LOGGER" == "--log" ]] ; then
+      exec > >(tee -a "$LOG") 2>&1
+    else
+      echo "Invalid flag ["$LOGGER"]..."
+      echo ""
+      cleanup-help
+      exit
+    fi
+  else
+    echo > /dev/null
+  fi
+  if [[ "$KEEP_LAST" -gt "0" || "$KEEP_HOURLY" -gt "0" || "$KEEP_DAILY" -gt "0" || "$KEEP_WEEKLY" -gt "0" || "$KEEP_MONTHLY" -gt "0" || "$KEEP_YEARLY" -gt "0" ]] ; then
+	echo -e "======================================================================"
+	echo -e "|- - - - - - - > [ S T A R T I N G    C L E A N U P ] < - - - - - - -|"
+	echo -e "======================================================================"
+	echo -e "$YELLOW""Date and Time:""$ENDCOLOR" "$(date +%a\ %b\ %d\ %Y\ %r)"
+	echo -e "$YELLOW""System:""$ENDCOLOR" "$(cat /etc/issue.net) $(uname -o) $(uname -r)"
+	echo -e "$YELLOW""Hostname:""$ENDCOLOR" "$HOSTNAME"
+	if [[ "$DESTINATION" ]] ; then
+	  echo -e "$YELLOW""Backup Destination:""$ENDCOLOR" "$DESTINATION"
+	else
+	  echo -e "$YELLOW""Backup Destination:""$ENDCOLOR" "$RESTIC_REPO"
+	fi
+	echo -e "----------------------------------------------------------------------"
+        restic forget --keep-last $KEEP_LAST --keep-hourly $KEEP_HOURLY --keep-daily $KEEP_DAILY --keep-weekly $KEEP_WEEKLY --keep-monthly $KEEP_MONTHLY --keep-yearly $KEEP_YEARLY
+        restic prune --cleanup-cache
+	if [[ -f "$HOME/.rescript/config/"$REPO"-datefile" || "$CLEAN" -gt "0" ]] ; then
+	  NOW=$(date +"%s")
+	  NEXT=$(date -f "$HOME/.rescript/config/"$REPO"-datefile" "+%s")
+	  RESULT=$((NEXT-NOW))
+	  DAYS=$((RESULT / 86400))
+	  HOURS=$(((RESULT / 3600) % 24))
+	  MINUTES=$(((RESULT / 60) % 60))
+	  if [[ "$DAYS" -gt "0" ]] ; then
+	    echo -e "$YELLOW""[Next check and cleanup in $DAYS days $HOURS hours and $MINUTES minutes...]""$ENDCOLOR"
+	  elif [[ "$HOURS" -gt "0" ]] ; then
+	    echo -e "$YELLOW""[Next check and cleanup in $HOURS hours and $MINUTES minutes...]""$ENDCOLOR"
+	  elif [[ "$MINUTES" -gt "0" ]] ; then
+	    echo -e "$YELLOW""[Next check and cleanup in $MINUTES minutes...]""$ENDCOLOR"
+	  else
+	    echo -e "$YELLOW""[Repo will be checked and cleaned in the next run...]""$ENDCOLOR"
+	  fi
+	fi
+	echo -e "----------------------------------------------------------------------"
+	echo -e "$YELLOW""End:""$ENDCOLOR" "$(date +%a\ %b\ %d\ %Y\ %r)"
+	HRS=$((SECONDS / 3600))
+	MIN=$(((SECONDS / 60) % 60))
+	SEC=$((SECONDS % 60))
+	if [[ "$HRS" -gt "0" ]] ; then
+	  echo -e "$YELLOW""Duration:""$ENDCOLOR" "$HRS hours $MIN minues $SEC seconds"
+	elif [[ "$MIN" -gt "0" ]] ; then
+	  echo -e "$YELLOW""Duration:""$ENDCOLOR" "$MIN minutes $SEC seconds"
+	else
+	  echo -e "$YELLOW""Duration:""$ENDCOLOR" "$SEC seconds"
+	fi
+	echo -e "======================================================================"
+	echo -e "| - - - - - - - - > [ C L E A N U P    E N D E D ] < - - - - - - - - |"
+	echo -e "======================================================================"
+  else
+	echo -e "$YELLOW""You have not indicated any policy value...""$ENDCOLOR"
+	echo "If you want to use [cleanup] option you need to set the [KEEP] variables."
+	echo "For more information about the Usage check out the following link:"
+	echo "https://gitlab.com/sulfuror/rescript.sh/blob/master/README.md#usage"
+  fi
+}
+
+function cleanup-next {
+  if [[ -z "$CLEAN" || "$CLEAN" -lt "1" ]] ; then
+    echo -e "$YELLOW""You have not indicated any policy for the CLEAN value...""$ENDCOLOR"		  echo "The scrip will run check, forget and prune every time it runs"
+    echo "unless you change the CLEAN variable at the beginning of this script."
+    echo "The number indicated in the CLEAN variable must be in days."
+    echo "For more information about the usage check out the following link:"
+    echo "https://gitlab.com/sulfuror/rescript.sh/blob/master/README.md#usage"
+  else
+    NOW=$(date +"%s")
+    NEXT=$(date -f "$HOME/.rescript/config/"$REPO"-datefile" "+%s")
+    RESULT=$((NEXT-NOW))
+    DAYS=$((RESULT / 86400))
+    HOURS=$(((RESULT / 3600) % 24))
+    MINUTES=$(((RESULT / 60) % 60))
+    if [[ "$DAYS" -gt "0" ]] ; then
+      echo -e "$YELLOW""Next cleanup and check in $DAYS days $HOURS hours and $MINUTES minutes...""$ENDCOLOR"
+    elif [[ "$HOURS" -gt "0" ]] ; then
+      echo -e "$YELLOW""Next cleanup and check in $HOURS hours and $MINUTES minutes...""$ENDCOLOR"
+    elif [[ "$MINUTES" -gt "0" ]] ; then
+      echo -e "$YELLOW""Next cleanup and check in $MINUTES minutes...""$ENDCOLOR"
+    else
+      echo -e "$YELLOW""Repo will be cleaned and checked in the next run...""$ENDCOLOR"
+    fi
+  fi
+}
+
+function logs {
+  if [[ "$FLAG" == "--cat" ]] ; then
+    if [[ "$LOGFILE" ]] ; then
+      cat $HOME/.rescript/logs/"$LOGFILE"
+    else
+      echo "No log file indicated..."
+      exit
+    fi
+  elif [[ "$FLAG" == "--help" ]] ; then
+    logs-help
+  elif [[ "$FLAG" == "--list" ]] ; then
+    if ls $HOME/.rescript/logs/"$REPO"-* 1> /dev/null 2>&1 ; then
+      ls $HOME/.rescript/logs/ | grep -e "$REPO"
+      echo ""
+      echo "Your logs are saved at $HOME/.rescript/logs"
+    else
+      echo "There are no log files to list for ["$REPO"]."
+    fi
+  elif [[ "$FLAG" == "--remove" ]] ; then
+    if ls $HOME/.rescript/logs/"$REPO"-* 1> /dev/null 2>&1 ; then
+      rm -rf $HOME/.rescript/logs/"$REPO"-*
+      echo "Log files removed for ["$REPO"]."
+    else
+      echo "There are no log files to remove for ["$REPO"]." 
+    fi
+  fi
+}
+
+function mounter {
+  if [ -e "$LOCK" ]; then
+    echo -e "WARNING: "$REPO" repo is already running..."
+    echo -e "If you are sure "$REPO" is not running, type"
+    echo -e " "
+    echo -e "	rescript "$REPO" unlock"
+    echo -e " "
+    echo -e "This will remove the lock for "$REPO""
+    exit
+  fi
+  touch "$LOCK"
+  trap 'rm -rf "$LOCK"' INT QUIT TERM EXIT
+  mkdir "$RMOUNT"
+  restic mount "$RMOUNT"
+  rm -rf "$RMOUNT"
+}
+
+function random-check {
+  LOG="$HOME/.rescript/logs/"$REPO"-check-random-log-$(date +%Y-%m-%d-%H:%M)"
+  if [ -e "$LOCK" ]; then
+    echo -e "WARNING: "$REPO" repo is already running..."
+    echo -e "If you are sure "$REPO" is not running, type"
+    echo -e " "
+    echo -e "	rescript "$REPO" unlock"
+    echo -e " "
+    echo -e "This will remove the lock for "$REPO""
+    exit
+  fi
+  touch "$LOCK"
+  trap 'rm -rf "$LOCK"' INT QUIT TERM EXIT
+  if [[ "$LOGGER" ]] ; then
+    if [[ "$LOGGER" == "--log" ]] ; then
+      exec > >(tee -a "$LOG") 2>&1
+    else
+      echo "Invalid flag ["$LOGGER"]..."
+      echo ""
+      echo "Usage:"
+      echo "  rescript "$REPO" check --random"
+      echo "OR"
+      echo "  rescript "$REPO" check --random --log"
+      echo ""
+      echo "NOTE:"
+      echo "If [--random] flag is used, you can't combine"
+      echo "other restic flags; the only flag available after"
+      echo "[--random] is [--log] flag if you want to create a"
+      echo "log for this specific process."
+      exit
+    fi
+  else
+    echo > /dev/null
+  fi
+  restic check --read-data-subset $(($RANDOM % 10 + 1))/10
+}
+
+function restorer {
+  LOG="$HOME/.rescript/logs/"$REPO"-restorer-log-$(date +%Y-%m-%d-%H:%M)"
+  if [ -e "$LOCK" ]; then
+    echo -e "WARNING: "$REPO" repo is already running..."
+    echo -e "If you are sure "$REPO" is not running, type"
+    echo -e " "
+    echo -e "	rescript "$REPO" unlock"
+    echo -e " "
+    echo -e "This will remove the lock for "$REPO""
+    exit
+  fi
+  touch "$LOCK"
+  trap 'rm -rf "$LOCK"' INT QUIT TERM EXIT
+  if [[ "$LOGGER" ]] ; then
+    if [[ "$LOGGER" == "--log" ]] ; then
+      exec > >(tee -a "$LOG") 2>&1
+    else
+      echo "Invalid flag ["$LOGGER"]..."
+      echo ""
+      restorer-help
+      exit
+    fi
+  else
+    echo > /dev/null
+  fi
+  if [[ "$FLAG" == "--host" ]] ; then
+    RESTIC_RESTORE="$HOME/restore-latest-host-"$HPT"-$(date +%s)"
+  elif [[ "$FLAG" == "--path" ]] ; then
+    RESTIC_RESTORE="$HOME/restore-latest-by-path-$(date +%s)"
+  elif [[ "$FLAG" == "--tag" ]] ; then
+    RESTIC_RESTORE="$HOME/restore-latest-tag-"$HPT"-$(date +%s)"
+  else
+    RESTIC_RESTORE="$HOME/restore-"$SID"-$(date +%s)"
+  fi
+  if [[ "$FLAG" ]] ; then
     echo -e "======================================================================"
-    echo -e "| - - - - - - - > [ S T A R T I N G    B A C K U P ] < - - - - - - - |"
+    echo -e "|- - - - - - - > [ S T A R T I N G    R E S T O R E ] < - - - - - - -|"
     echo -e "======================================================================"
     echo -e "$YELLOW""Date and Time:""$ENDCOLOR" "$(date +%a\ %b\ %d\ %Y\ %r)"
     echo -e "$YELLOW""System:""$ENDCOLOR" "$(cat /etc/issue.net) $(uname -o) $(uname -r)"
@@ -950,7 +1333,12 @@ if [[ -n "$1" ]] ; then
       echo -e "$YELLOW""Backup Destination:""$ENDCOLOR" "$RESTIC_REPO"
     fi
     echo -e "----------------------------------------------------------------------"
-    restic backup "$BACKUP_DIR" --tag "$TAG" --verbose --exclude-caches --exclude-file="$EXCLUDES"
+    if [[ "$DESTINATION" ]] ; then
+      echo -e "$YELLOW""Restoring latest snapshot for ["$HPT"] from:""$ENDCOLOR" "$DESTINATION..."
+    else
+      echo -e "$YELLOW""Restoring latest snapshot for ["$HPT"] from:""$ENDCOLOR" "$RESTIC_REPO"
+    fi
+    restic restore latest --target "$RESTIC_RESTORE" "$FLAG" "$HPT" --verify
     echo -e "----------------------------------------------------------------------"
     echo -e "$YELLOW""End:""$ENDCOLOR" "$(date +%a\ %b\ %d\ %Y\ %r)"
     HRS=$((SECONDS / 3600))
@@ -964,147 +1352,166 @@ if [[ -n "$1" ]] ; then
       echo -e "$YELLOW""Duration:""$ENDCOLOR" "$SEC seconds"
     fi
     echo -e "======================================================================"
-    echo -e "| - - - - - - - - > [ B A C K U P      E N D E D ] < - - - - - - - - |"
+    echo -e "| - - - - - - > [ R E S T O R E    C O M P L E T E D ] < - - - - - - |"
     echo -e "======================================================================"
+  else
+    echo -e "======================================================================"
+    echo -e "|- - - - - - - > [ S T A R T I N G    R E S T O R E ] < - - - - - - -|"
+    echo -e "======================================================================"
+    echo -e "$YELLOW""Date and Time:""$ENDCOLOR" "$(date +%a\ %b\ %d\ %Y\ %r)"
+    echo -e "$YELLOW""System:""$ENDCOLOR" "$(cat /etc/issue.net) $(uname -o) $(uname -r)"
+    echo -e "$YELLOW""Hostname:""$ENDCOLOR" "$HOSTNAME"
+    if [[ "$DESTINATION" ]] ; then
+      echo -e "$YELLOW""Backup Destination:""$ENDCOLOR" "$DESTINATION"
+    else
+      echo -e "$YELLOW""Backup Destination:""$ENDCOLOR" "$RESTIC_REPO"
+    fi
+    echo -e "----------------------------------------------------------------------"
+    if [[ "$DESTINATION" ]] ; then
+      echo -e "$YELLOW""Restoring snapshot ["$SID"] from:""$ENDCOLOR" "$DESTINATION..."
+    else
+      echo -e "$YELLOW""Restoring snapshot ["$SID"] from:""$ENDCOLOR" "$RESTIC_REPO"
+    fi
+    restic restore "$SID" --target "$RESTIC_RESTORE" --verify
+    echo -e "----------------------------------------------------------------------"
+    echo -e "$YELLOW""End:""$ENDCOLOR" "$(date +%a\ %b\ %d\ %Y\ %r)"
+    HRS=$((SECONDS / 3600))
+    MIN=$(((SECONDS / 60) % 60))
+    SEC=$((SECONDS % 60))
+    if [[ "$HRS" -gt "0" ]] ; then
+      echo -e "$YELLOW""Duration:""$ENDCOLOR" "$HRS hours $MIN minues $SEC seconds"
+    elif [[ "$MIN" -gt "0" ]] ; then
+      echo -e "$YELLOW""Duration:""$ENDCOLOR" "$MIN minutes $SEC seconds"
+    else
+      echo -e "$YELLOW""Duration:""$ENDCOLOR" "$SEC seconds"
+    fi
+    echo -e "======================================================================"
+    echo -e "| - - - - - - > [ R E S T O R E    C O M P L E T E D ] < - - - - - - |"
+    echo -e "======================================================================"
+  fi  
+}
+
+function unlocker {
+  if [[ ! -e "$LOCK" ]]; then
+    echo "No locks found..."
+  else
+    rm -rf "$LOCK"
+    echo "Script unlocked..."
+  fi
+}
+
+# ============================================================== #
+# Call Commands and Functions					 #
+# ============================================================== #
+if [[ "$2" == "" ]] ; then
+  automatic
+  exit
+elif [[ "$2" == "backup" ]] ; then
+  if [[ "$3" == "--help" ]] ; then
+    backup-help
     exit
   else
+    LOGGER="$3"
+    backup
+    exit
+  fi
+elif [[ "$2" == "check" ]] ; then
+  if [[ "$3" == "--random" ]] ; then
+    LOGGER="$4"
+    random-check
+  else
     if [ -e "$LOCK" ]; then
-      echo -e "$YELLOW""WARNING:""$ENDCOLOR" "$(basename "$0") is already running..."
-      echo -e "If you are sure $(basename "$0") is not running, type"
+      echo -e "WARNING: "$REPO" repo is already running..."
+      echo -e "If you are sure "$REPO" is not running, type"
       echo -e " "
-      echo -e "		$(basename "$0") -u"
-      echo -e "OR"
-      echo -e "		$(basename "$0") -unlock"
+      echo -e "	rescript "$REPO" unlock"
       echo -e " "
-      echo -e "This will remove the lock for $(basename "$0")"
-      exit 
+      echo -e "This will remove the lock for "$REPO""
+      exit
     fi
     touch "$LOCK"
     trap 'rm -rf "$LOCK"' INT QUIT TERM EXIT
-    restic "$@"
+    restic "${@:2}"
+  fi
+elif [[ "$2" == "cleanup" ]] ; then
+  if [[ "$3" == "--help" ]] ; then
+    cleanup-help
+    exit
+  elif [[ "$3" == "--next" ]] ; then
+    cleanup-next
+    exit
+  else
+    LOGGER="$3"
+    cleanup
     exit
   fi
-fi
-
-# Bail if script is already running
-if [ -e "$LOCK" ]; then
-  echo -e "$YELLOW""WARNING:""$ENDCOLOR" "$(basename "$0") is already running..."
-  echo -e "If you are sure $(basename "$0") is not running, type"
-  echo -e " "
-  echo -e "	$(basename "$0") -u"
-  echo -e "OR"
-  echo -e "	$(basename "$0") -unlock"
-  echo -e " "
-  echo -e "This will remove the lock for $(basename "$0")"
-  exit 
-fi
-
-touch "$LOCK"
-trap 'rm -rf "$LOCK"' INT QUIT TERM EXIT
-
-if [[ "$LOGGING" == "yes" ]] ; then
-  exec > >(tee -a "$LOG") 2>&1
-elif [[ "$LOGGING" == "no" ]] ; then
-  echo > /dev/null
-fi
-# ------------------------------------------------------------------------------- #
-
-echo -e "======================================================================"
-echo -e "| - - - - - - - > [ S T A R T I N G    B A C K U P ] < - - - - - - - |"
-echo -e "======================================================================"
-echo -e "$YELLOW""Date and Time:""$ENDCOLOR" "$(date +%a\ %b\ %d\ %Y\ %r)"
-echo -e "$YELLOW""System:""$ENDCOLOR" "$(cat /etc/issue.net) $(uname -o) $(uname -r)"
-echo -e "$YELLOW""Hostname:""$ENDCOLOR" "$HOSTNAME"
-if [[ "$DESTINATION" ]] ; then
-  echo -e "$YELLOW""Backup Destination:""$ENDCOLOR" "$DESTINATION"
-else
-  echo -e "$YELLOW""Backup Destination:""$ENDCOLOR" "$RESTIC_REPO"
-fi
-echo -e "----------------------------------------------------------------------"
-
-# Backup and exclusions
-echo -e "$YELLOW""[Taking a Snapshot...]""$ENDCOLOR"
-restic backup "$BACKUP_DIR" --tag "$TAG" --verbose --exclude-caches --exclude-file="$EXCLUDES"
-
-EXCLUSIONS=$(grep -E -v -n -c '(^#|^\s*$|^\s*\t*#)' "$EXCLUDES")
-echo -e "$YELLOW""There are $EXCLUSIONS exclusion rules...""$ENDCOLOR"
-
-echo -e "----------------------------------------------------------------------"
-# Snapshot List
-echo -e "$YELLOW""[Snapshots List...]""$ENDCOLOR"
-restic snapshots
-
-# Check and Clean Repo Based on User's Policy
-if [[ -f "$DATEFILE" || "$CLEAN" -gt "0" ]]; then
-  NOW=$(date +"%s")
-  NEXT=$(date -f "$DATEFILE" "+%s")
-  RESULT=$((NEXT-NOW))
-  DAYS=$((RESULT / 86400))
-  HOURS=$(((RESULT / 3600) % 24))
-  MINUTES=$(((RESULT / 60) % 60))
-  if [[ "$NOW" -lt "$NEXT" ]] ; then
-    if [[ "$DAYS" -gt "0" ]] ; then
-      echo -e "$YELLOW""[Next check and cleanup in $DAYS days $HOURS hours and $MINUTES minutes...]""$ENDCOLOR"
-    elif [[ "$HOURS" -gt "0" ]] ; then
-      echo -e "$YELLOW""[Next check and cleanup in $HOURS hours and $MINUTES minutes...]""$ENDCOLOR"
-    elif [[ "$MINUTES" -gt "0" ]] ; then
-      echo -e "$YELLOW""[Next check and cleanup in $MINUTES minutes...]""$ENDCOLOR"
-    else
-      echo -e "$YELLOW""[Repo will be checked and cleaned in the next run...]""$ENDCOLOR"
-    fi
-  else 
-    if [[ "$KEEP_LAST" -gt "0" || "$KEEP_HOURLY" -gt "0" || "$KEEP_DAILY" -gt "0" || "$KEEP_WEEKLY" -gt "0" || "$KEEP_MONTHLY" -gt "0" || "$KEEP_YEARLY" -gt "0" ]] ; then
-      echo -e "$YELLOW""[Cleaning Repo...]""$ENDCOLOR"
-      restic forget --keep-last $KEEP_LAST --keep-hourly $KEEP_HOURLY --keep-daily $KEEP_DAILY --keep-weekly $KEEP_WEEKLY --keep-monthly $KEEP_MONTHLY --keep-yearly $KEEP_YEARLY
-      restic prune
-      echo -e "$YELLOW""[Checking for Errors in Repo...]""$ENDCOLOR"
-      restic check --cleanup-cache
-      if [[ "$CLEAN" -gt "0" ]] ; then
-        echo -e "$YELLOW""[Done Cleaning; Next Check and Cleanup Will Be Done in $CLEAN days...]""$ENDCOLOR"
-        date -d now+"$CLEAN"days > "$DATEFILE"
-      fi
-    fi
+elif [[ "$2" == "logs" ]] ; then
+  if [[ ! "$3" ]] ; then
+    echo "You have not indicated any option."
+    echo ""
+    logs-help
+    exit
+  else
+    REPO="$1"
+    FLAG="$3"
+    LOGFILE="$4"
+    logs
+    exit
   fi
-else 
-    if [[ "$KEEP_LAST" -gt "0" || "$KEEP_HOURLY" -gt "0" || "$KEEP_DAILY" -gt "0" || "$KEEP_WEEKLY" -gt "0" || "$KEEP_MONTHLY" -gt "0" || "$KEEP_YEARLY" -gt "0" ]] ; then
-      echo -e "$YELLOW""[Cleaning Repo...]""$ENDCOLOR"
-      restic forget --keep-last $KEEP_LAST --keep-hourly $KEEP_HOURLY --keep-daily $KEEP_DAILY --keep-weekly $KEEP_WEEKLY --keep-monthly $KEEP_MONTHLY --keep-yearly $KEEP_YEARLY
-      restic prune
-      echo -e "$YELLOW""[Checking for Errors in Repo...]""$ENDCOLOR"
-      restic check --cleanup-cache
+elif [[ "$2" == "mounter" ]] ; then
+  if [[ "$3" == "--help" ]] ; then
+    mounter-help
+    exit
+  else
+    mounter
+    exit
+  fi
+elif [[ "$2" == "restorer" ]] ; then
+  if [[ ! "$3" ]] ; then
+    echo "You have not indicated any [snapshot-ID] to restore."
+    echo ""
+    restorer-help
+    exit
+  elif [[ "$3" == "--help" ]] ; then
+    restorer-help
+    exit
+  elif [[ "$3" == "--host" || "$3" == "--path" || "$3" == "--tag" ]] ; then
+    if [[ ! "$4" ]] ; then
+      echo "No ["$3"] indicated."
+      echo ""
+      restorer-help
+      exit
+    else
+      FLAG="$3"
+      HPT="$4"
+      LOGGER="$5"
+      restorer
+      exit
     fi
-fi
-
-# Stats
-echo -e "----------------------------------------------------------------------"
-echo -e "$YELLOW""[Latest Snapshot Size for $(hostname)...]""$ENDCOLOR"
-restic stats --host "$(hostname)" latest
-echo -e "$YELLOW""[Deduplicated Size for Latest $(hostname) Snapshot...]""$ENDCOLOR"
-restic stats --mode raw-data --host "$(hostname)" latest
-echo -e "$YELLOW""[Original Files Size for All Snapshots...]""$ENDCOLOR"
-restic stats
-echo -e "$YELLOW""[Deduplicated Size for All Snapshots...]""$ENDCOLOR"
-restic stats --mode raw-data
-# Time and Runtime
-echo -e "----------------------------------------------------------------------"
-echo -e "$YELLOW""End:""$ENDCOLOR" "$(date +%a\ %b\ %d\ %Y\ %r)"
-HRS=$((SECONDS / 3600))
-MIN=$(((SECONDS / 60) % 60))
-SEC=$((SECONDS % 60))
-if [[ "$HRS" -gt "0" ]] ; then
-  echo -e "$YELLOW""Duration:""$ENDCOLOR" "$HRS hours $MIN minues $SEC seconds"
-elif [[ "$MIN" -gt "0" ]] ; then
-  echo -e "$YELLOW""Duration:""$ENDCOLOR" "$MIN minutes $SEC seconds"
+  else
+    SID="$3"
+    LOGGER="$4"
+    restorer
+  fi
+elif [[ "$2" == "unlocker" ]] ; then
+  if [[ "$3" == "--help" ]] ; then
+    unlocker-help
+    exit
+  else
+    unlocker
+    exit
+  fi
 else
-  echo -e "$YELLOW""Duration:""$ENDCOLOR" "$SEC seconds"
+  if [ -e "$LOCK" ]; then
+    echo -e "WARNING: "$REPO" repo is already running..."
+    echo -e "If you are sure "$REPO" is not running, type"
+    echo -e " "
+    echo -e "	rescript "$REPO" unlock"
+    echo -e " "
+    echo -e "This will remove the lock for "$REPO""
+    exit
+  fi
+  touch "$LOCK"
+  trap 'rm -rf "$LOCK"' INT QUIT TERM EXIT
+  restic "${@:2}"
 fi
-echo -e "======================================================================"
-echo -e "| - - - - - - - - > [ B A C K U P      E N D E D ] < - - - - - - - - |"
-echo -e "======================================================================"
-
-# Reset credentials
-export RESTIC_PASSWORD=""
-export B2_ACCOUNT_ID=""
-export B2_ACCOUNT_KEY=""
-
-exit 0
