@@ -1,3 +1,9 @@
+# November 25, 2018
+**Changes**
+
+Ended up redesigning the whole thing. Check the README.
+Now the script use functions, a whole new menu in `config`, new commands and flags.
+
 # November 14, 2018
 **Changes and Fixes**:
 
