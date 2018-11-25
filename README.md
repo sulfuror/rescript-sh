@@ -15,10 +15,6 @@ the date it started, date ended, where are you backing up, excluded files,
 the days left for the next "cleanup" run, the days it'll run the next "cleanup"
 operation and the duration of the whole operation.
 
-Note that running `rescript` alone (without any commands or options) will run all these
-`restic` commands. You can parse `restic` commands but the script was originally
-made to automate these `restic` commands.
-
 ## Keep in mind
 1. If you use this script is at your own risk. If you do something wrong, that's on you.
    You should take the time to study the script and see if it can help you
@@ -36,8 +32,9 @@ made to automate these `restic` commands.
 
 ## Installation:
 
-_**Note**: if you were using v1.8 or earlier make sure to backup your script before
-continuing._
+_**Note**: if you were using v2.0 or earlier make sure to backup your script before
+continuing and rename your config file to `repo_name.conf`, your exclusion to
+`repo_name-exclusions` and your datefile to `repo_name-datefile`._
 
 You can install the script easily using the following commands:
 
@@ -47,10 +44,9 @@ You can install the script easily using the following commands:
 ~$ chmod 700 rescript
 ~$ ./rescript install
 ```
-What you just did was to download the files and move the `rescript` to your `~/bin` or `~/.local/bin`
+What you just did was to download the files and move `rescript` to your `~/bin` or `~/.local/bin`
 directory. If the `~/bin` directory already exists it will move the script there. If not, it will move it to `~/.local/bin`.
-Both directories are located in your `home` directory. If you don't have any of these directories it will create the second
-one and move it there.
+If neither of these mentioned files is present, then it will ask you if you want to create it and it will create `~/.local/bin`.
 
 Note that you can just move the script to any location and use it from there if you know what you're doing but if you 
 use the install command it will move it to the directories mentioned before. Also, you need to already have your `$PATH`
@@ -77,53 +73,41 @@ your computer in order for this work. The same applies if you needed to copy and
 
 **Different repositories**:
 
-If you have different repos you can just change the name of the script and use
-one for every repo. For example:
-
-* For a B2 repo, copy `rescript` and rename it from `rescript` to `rescript_b2`.
-* For a Google Drive repo make another copy of `rescript` and change its name from
-  `rescript` to `rescript_gd`.
-
-If you did this then every time you type `rescript_b2` in your terminal, all actions
-will be referring to your B2 repository and if you type `rescript_gd` all actions
-will be referring to your Google Drive repository. Obviously, you can change the name
-of the script for whatever name you want to use. Make sure to give the permissions
-to execute using `chmod 700 rescript_b2` OR `chmod 700 rescript_gd` after you change
-its name.
-
-`rescript` will create all files related to it (conf, datefile, exclude and lock)
-with the same name you give your script (basename), so if you're going to use
-it for more than one repo it is better to rename the script before configuring everyting because if you 
-rename the script after you have set up everythig it will not recognize the 
-configuration file, which will be called `nameofyourscript.conf`, the exclude file,
-which will be also named `nameofyourscript-exclusions` and datefile also will be
-called `nameofyourscript-datefile`. These files will be located at `$HOME/.rescript/config`.
-If you renamed the script after configuring it, just go to your `$HOME/.rescript/config` folder
-and manually rename your configuration file to `whatervernameyougaveyourscript.conf`.
+You can use `rescript` to easily manage different repositories by creating a
+configuration file for every repository (it is done via `rescript config`) and
+assigning an easy name to remember for each repository.
 
 ## Usage:
 
-First thing to do is to edit select the text editor you want to use
-to open your configuration files and edit the configuration files and exclusion
-list. This script will automatically create those but you need to put the 
-correct values int the configuration file and edit the exclusion list,
-if you want to exclude any additional files, directories or patterns.
-To edit your configuration file you need to use the following command:
+You can use this script using an **_automatic_** function that will run `backup`,
+`snapshots`, `forget`, `prune`, `check` and `stats` using your configuration
+file. If your "LOGGING" variable is "yes" it will also create a log file with
+the output. If you want to use the automatic function just type the following:
+
+```
+rescript [repo_name]
+```
+
+If you want to run a specific `rescript` or `restic` command:
+
+```
+rescript [repo_name] [command] [--flags]
+```
+
+First thing to do is to to configure your repository by typing:
 
 ```
 rescript config
 ```
 This command will display a dialog where you'll be asked to select a text editor
 you want to use. The list of editors are: Nano, Vim, Gedit, Mousepad, Leafpad,
-Pluma and Kate (the default text editors for almost any DE). If you want to use
-another text editor just create a variable in your configuration file called
-"EDITOR" pointing to your text editor (e.g.: EDITOR="geany").
+Pluma and Kate (the default text editors for almost any DE).
 
 Once the text editor is set, then it will display 3 options: 1) Configuration,
 2) Exclusions, 3) Exit. Select 1 to open the configuration file, 2 to open the 
 exclusion list and 3 to exit the dialog. Once you've done that you can start
-using the script. If you don't have any repo remember to run `rescript init`
-after configuring `rescript`.
+using the script. If you don't have any repo remember to run `rescript [repo_name} init`
+after configuring `rescript` or else it will fail to do anything.
 
 **Things you need to change in your configuration file**:
 
@@ -156,43 +140,14 @@ These variables are optional because the script will still work if you don't wan
    command and option. You can turn logging off by swtiching this variable from
    "yes" to "no".
 
-**Headless server**:
-
-If you're using `rescript` in a headless server, after running `rescript config` there is 
-a chance that it will do nothing. If that is your case, after running `rescript config` (you need to run
-it anyways so the configuration file is created) just navigate to `$HOME/.rescript/config`
-and open the configuration file from there with your text editor. This also applies to
-the exclusion list.
+The configuration file also have variables for B2 and AWS ID's and Keys. If not required
+just leave it blank.
 
 **Exclusions**:
 
 By default, rescript create a very simple exclusion file. You can tell rescript to build another
 more complete exclusion file for you that will contain common exclusions patterns and directories.
-You can chose to create an exclusion list for your home directory or for your system with the 
-following commands:
-
-```
-rescript -e --build home
-OR
-rescript -e --build sys
-```
-Once created you can add, remove or edit whatever is inside the exclusion list with the following command:
-
-```
-rescript -e edit
-```
-This will open the exclusion file in your default text editor. The [-e] options are explained as follows:
-
-1. `--build`: this option will build an exclusion file to be used according to your choice. You can add,
-   edit or remove exclusions rules as needed. This option by itself will do nothing, you have to chose from
-   two other options: `	home` or `sys`. So you need to execute `rescript -e --build home` in order
-   to build an exclude generic file for your home directory.
-2. `--help`: this will display the help dialog for `-e`.
-3. `edit`: now, executing `rescript -e edit` will open your exclusion file so you can either look at it,
-   remove, add or edit the exclusion file.
-4. `list`: the list option will list the exclusions inside its file.
-
-If you had any exclusion list, copy your exclusion list before doing the change.
+This is all done via `rescript config`.
 
 ## Commands and Options:
 
@@ -203,7 +158,7 @@ You can pass any restic command after calling the script. For example, if you
 want to display your snapshots you just need to do this:
 
 ```
-rescript snapshots
+rescript [repo_name] snapshots
 ```
 You can use as many commands and flags as you want, as you were using restic but
 calling the name of the script before the option. There are three commands that will
@@ -217,104 +172,93 @@ As far as I've tested, all other restic commands will run as using restic alone.
 with restic commands type:
 
 ```
-restic help command
+restic help [command]
 OR
-rescript command --help
+rescript [repo_name] [command] --help
 ```
 
 For restic regular commands usage:
 
 ```
-rescript [command] [--flags] [options] [etc]
+rescript [repo_name] [command] [--flags] [options] [etc]
 ```
 Please see restic `help` and [documentation](https://restic.readthedocs.io/en/stable/) for more.
 
 **Rescript Commands**:
 
-1. `config, --config`: this will open the configuration dialog.
-2. `install, --install`: this will place rescript in your `$PATH` (in your home directory).
-3. `logs, --logs`: this command needs an option. Options are as follows:
+1. `backup`: take a snapshot using the values set in your configuration file.
+2. `cleanup`: this will perform `forget` according to the policies in your configuration file and `prune`.
+3. `config`: this will open the configuration dialog.
+4. `editor`: change the default rescript text editor (for configuration and exclusion files).
+5. `help`: display help dialog.
+6. `install`: this will place rescript in your `$PATH` (in your home directory).
+7. `logs`: this command needs an option. Options are as follows:
 	1. `--cat`: display output of selected log file (you need to copy and paste the filename to display it).
-	e.g.: `rescript logs --cat rescript-log-2018-01-01-00:00`
-	2. `--list`: list all log files saved.
+	e.g.: `rescript [repo_name] logs --cat rescript-log-2018-01-01-00:00`
+	2. `--help`: help for `logs`.
+	3. `--list`: list all log files saved.
 	3. `--remove`: remove all log files related to your script (if you have different scripts for different repositoies
 	  you need to call `--remove` for every instance).
-4. `version, --version`: display rescript version.
-
-**Rescript Options**:
-
-1. `-b, -backup`: this option is pretty basic; it does what it says... it'll
-   take a new snapshot.
-2. `-c, -cleanup`: this option will execute `forget` according to the policies
-   indicated in your script; also it'll execute the `prune` with `--cleanup-cache` flag so it'll
-   actually delete the forgotten snapshots and cleanup your cache.
-3. `-d, -deep-check`: Check repository with --read-data flag.
-4. `-e`: manage your exclusion file.
-5. `-h, -help`: this will bring up the help dialog on your terminal emulator.
-6. `-m, -mount`: this option will mount your repository; it'll create a 
+8. `mounter`: this option will mount your repository; it'll create a 
    directory in your `/home` so it can mount your repository. Once you quit
    the mount option with `Ctrl+c` it will delete the directory.
-7. `-n, -next-cleanup`: this will show you the time left for your next cleanup
-   according to your option in "CLEAN" days.
-8. `-v, -version`: this option will display the version you're using
-   of this script.
-9. `-u, -unlock`: this option WILL NOT unlock your repository. When you run this
+9. `restorer`: this command will restore the snapshot you want to restore. You need to indicate
+   the snapshot-ID you want to restore. With this command you don't need to indicate where to restore,
+   it will automatically create a new file in your home directory called `restore-snapshotID-randomnumber`.
+   It will do the random number so it will not conflict with maybe a file called the same in your
+   home directory. You can use `restorer` with the following restic flags: `--host`, `--path` and `--tag`.
+   For help type `rescript [repo_name] restorer --help`. This option will also run `--verify` flag.
+10. `unlocker`: this command WILL NOT unlock your repository. When you run this
    script it will create a separate lock just for the script (it has nothing
    to do with the restic locks), so if your latest run left a lock (which is
    very unlikely unless it occurs an abrupt shut down while the script was running)
    and you're trying to do something with the script, it will display that the
    script is already running and it will not run again until the lock file is removed.
-   If you're really sure the script is not running you can just run this option
+   If you're really sure the script is not running you can just run this command
    and it will delete the lock file so you can continue with your operation.
-10. `-r`: this option will restore the snapshot you want to restore. You need to indicate
-   the snapshot-ID you want to restore. With this option you don't need to indicate where to restore,
-   it will automatically create a new file in your home directory called `restore-snapshotID-randomnumber`.
-   It will do the random number so it will not conflict with maybe a file called the same in your
-   home directory. You can use `-r` with the following restic flags: `--host`, `--path` and `--tag`.
-   For help type `rescript -r --help`. This option will also run `--verify` flag.
+11. `version`: display rescript version.
 
-Rescript options usage:
+**Rescript Flags**:
 
-```
-rescript -b
-OR
-rescript -backup
-```
-
-For restore:
-
-```
-rescript -r [snapshot-ID]
-OR
-rescript -r [--flag] [host|path|tag]
-```
+1. `--help`: display help for a specific command.
+2. `--log`: if you set the "LOGGING" variable to "yes" you don't need this flag
+   when you run the automatic option (`rescript [repo_name]`); this flag is intended
+   to use when you run a `rescript` command. For example, you can run `rescript [repo_name] cleanup --log`
+   to create a logfile for this specific command. This is available for `backup`,
+   `cleanup`, `restorer` and `check` when used with `--random` flag. It is very important
+   that if you want to use this flag, you need to use it at the end of all other commands,
+   flags and options. e.g. `rescript [repo_name] restorer --tag [your_tag] --log`.
+3. `--random`: this flag is only available for `check` and if used, you can't combine
+   it with another `restic` flag; you can use `--log` when using this flag.
+   This flag will execute `check --read-data-subset #/10` and it will select a random
+   number between 1-10 out of 10 groups.
 
 ## Adding a Cron Job
 You can use a cron job to run backups automatically. You'll need to open your 
 terminal emulator and edit your crontab file writing `crontab -e` and `enter`.
-After that you need to add a new cronjob like `10 */2 * * * /PATH/TO/YOUR/rescript`.
+After that you need to add a new cronjob like `10 */2 * * * /PATH/TO/YOUR/rescript [repo_name]`.
 This cron job will execute every two hours at the 10th minute. If you want to change it for every four hours;
-for example, at the 0 minute just write `0 */4 * * * /PATH/TO/YOUR/rescript`.
+for example, at the 0 minute just write `0 */4 * * * /PATH/TO/YOUR/rescript [repo_name]`.
 
 If you do this your `crontab` will look like this:
 
 ```
-0 */4 * * * /PATH/TO/YOUR/rescript
+0 */4 * * * /PATH/TO/YOUR/rescript [repo_name]
 ```
 
 If you want to just do backups with this script without the need to run
-the entire script, you can set up a cron job including the `-b` option,
+the entire script, you can set up a cron job including the `backup` command,
 just to run a backup and anything else. It will look as follows:
 
 ```
-0 */4 * * * /PATH/TO/YOUR/rescript -b
+0 */4 * * * /PATH/TO/YOUR/rescript [repo_name] backup
 ```
 Because commands and options will not create any log, you will not have a log
-for this cron job. You can redirect the ouput to a log file for this cron job
-that will actually create a log when using commands. If you want this in your
+for this cron job. You can create one using the `--log` flag and that will create
+a log inside your `$HOME/.rescript/logs` directory. If you want this in your
 `crontab` you can do this as follows:
 ```
-0 */4 * * * /PATH/TO/YOUR/rescript -b >> /home/YOURUSERNAME/.rescript/logs/rescript-log_$(date +\%Y-\%m-\%d-\%H:00) 2>&1
+0 */4 * * * /PATH/TO/YOUR/rescript [repo_name] backup --log
 ```
 
 You can read more about how `crontab` works in [here](https://help.ubuntu.com/community/CronHowto).
@@ -323,12 +267,12 @@ You can read more about how `crontab` works in [here](https://help.ubuntu.com/co
 This script will create one (1) directory (`.rescript`) in your $HOME and
 three (3) subdirectories: `config`, `lock` and `logs`.
 
-`config` directory will contain the `rescript` `rescript.conf` file, the `rescript-datefile`
-and the `rescript-exclusions`. If you have multiple repositories, this subdirectory
-will contain those three files for every script (one script for every repo).
+`config` directory will contain the `rescript` `repo_name.conf` file, the `repo_name-datefile`
+and the `repo_name-exclusions`. If you have multiple repositories, this subdirectory
+will contain those three files for every repository.
 
 `lock` directory will always be empty except when `rescript` is running. `rescript`
-creates a temporarily file called `rescript.lock` every time it runs and the file
+creates a temporarily file called `repo_name.lock` every time it runs and the file
 should be removed at the end of every operation. This "lock" prevents another
 processes to run if `rescript` is already running and is not finished yet. For example:
 you set scheduled jobs but you forgot and tried to make a `prune`. If the scheduled
@@ -341,7 +285,7 @@ This way `rescript` prevents possible problems with your repository.
 **Why the `datefile`?**
 
 The `datefile` is created by the script in the first run. This file will be placed 
-inside `.rescript/config` and it will be called `nameofscript-datefile`. 
+inside `.rescript/config` and it will be called `repo_name-datefile`. 
 _**Why is it there?**_ I liked the way my script was but I really didn't wanted to do
 the `check`, `forget` and `prune` commands every day or even in every run of the script.
 So, I find a way to play with the dates to make this happen and it was creating a 
