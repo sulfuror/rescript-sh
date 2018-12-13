@@ -1,6 +1,6 @@
 #!/bin/bash
 # ============================================================== #
-version=rescript-v3.0
+version=rescript-v3.1
 usage="
 Author		: Sulfuror, Copyright (c) 2018 <sulfuror@gmail.com>
 URL		: https://gitlab.com/sulfuror/rescript.sh
@@ -26,7 +26,7 @@ except for [backup], which exists but it will use your configuration
 file to perform a backup.
 
 Usage:
-  rescript [repo_name] [commands] [--flags]
+  rescript [repo_name] [command]
   
 Rescript commands:
   backup		Take a snapshot using the values set in
@@ -83,6 +83,13 @@ if [[ ! -d "$HOME/.rescript/lock" ]]; then
 fi
 if [[ ! -d "$HOME/.rescript/logs" ]]; then
   mkdir -p "$HOME/.rescript/logs"
+fi
+# Set PATH so it includes user's private bin if it exists (cron jobs may require this)
+if [ -d "$HOME/bin" ] ; then
+    PATH="$HOME/bin:$PATH"
+fi
+if [ -d "$HOME/.local/bin" ] ; then
+    PATH="$HOME/.local/bin:$PATH"
 fi
 # ============================================================== #
 # Menu								 #
@@ -810,30 +817,30 @@ function restorer-help {
   echo "existing directories."
   echo ""
   echo "Usage:"
-  echo "  rescript [repo_name] restorer [snapshot-ID]"
-  echo "Usage with flags:"
-  echo "  rescript [repo_name] restorer [flag] [host|path|tag]"
+  echo "  rescript [repo_name] restorer [flag] [host|path|snapshot ID|tag]"
   echo "Available flags:"
   echo "  --log			This will create a log file with"
   echo "			the command output. Use only after all other"
   echo "			commands, flags and options."
   echo "  --help		Display this help dialog."
   echo "  --host		Only consider snapshots for this host"
-  echo "			when snapshot-ID is [latest]"
+  echo "			when snapshot-ID is [latest]."
   echo "  --path		Only consider snapshots which include"
-  echo "			this [absolute] path for snapshot-ID [latest]"
+  echo "			this [absolute] path for snapshot-ID [latest]."
+  echo "  --snapshot		Indicate snapshot-ID to restore."
   echo "  --tag			Only consider snapshots which include this"
-  echo "			taglist for snapshot-ID [latest]"
+  echo "			taglist for snapshot-ID [latest]."
   echo ""
 }
 
 function unlocker-help {
   echo "[unlocker] is to remove the temporary lock created by rescript."
   echo "When rescript is running it will create a temporary lock file"
-  echo "to prevent and warn about other processes that could be active"
-  echo "at the moment of executing another command within the same instance."
-  echo "If you are sure that are not any other processes running, then you"
-  echo "can safely remove the lock created by rescript using this command."
+  echo "to prevent the interruption of other processes that could be active"
+  echo "at the moment of executing another command within the same instance"
+  echo "(e.g. scheduled jobs). If you are sure there are not any other"
+  echo "processes running in the backgroup, then you can safely remove the"
+  echo "created by rescript using this command."
   echo ""
   echo "Usage:"
   echo "  rescript [repo_name] unlocker [--flag]"
@@ -848,6 +855,18 @@ function unlocker-help {
 if [[ ! "$1"  ]] ; then
   echo "You need to indicate the name of your repository or a"
   echo "command; type [rescript help] for usage."
+  exit
+elif [[ "$1" == "--log" ]] ; then
+  echo "[--log] flag must be indicated after other commands, flags and/or options."
+  echo "e.g."
+  echo "  rescript [repo_name] [command] [--flags] [options] --log"
+  echo "This flag is only available for the following rescript commands."
+  echo "  backup"
+  echo "  check (only when used with [--random] flag)"
+  echo "  cleanup"
+  echo "  restorer"
+  echo ""
+  echo "$usage"
   exit
 elif [[ "$1" == "backup" ]] ; then
   echo "You have not indicated any repo for ["$1"]..."
@@ -944,9 +963,9 @@ function automatic {
   fi
   touch "$LOCK"
   trap 'rm -rf "$LOCK"' INT QUIT TERM EXIT
-  if [[ "$LOGGING" == "yes" ]] ; then
+  if [[ "$LOGGING" == "yes" || "$LOGGING" == "YES" || "$LOGGING" == "Y" || "$LOGGING" == "y" ]] ; then
     exec > >(tee -a "$LOG") 2>&1
-  elif [[ "$LOGGING" == "no" ]] ; then
+  elif [[ "$LOGGING" == "no" || "$LOGGING" == "NO" || "$LOGGING" == "N" || "$LOGGING" == "n" ]] ; then
     echo > /dev/null
   fi
   echo -e "======================================================================"
@@ -1017,11 +1036,11 @@ function automatic {
 
   # Stats
   echo -e "----------------------------------------------------------------------"
-  echo -e "$YELLOW""[Latest Snapshot Size for $(hostname)...]""$ENDCOLOR"
-  restic stats --host "$(hostname)" latest
-  echo -e "$YELLOW""[Deduplicated Size for Latest $(hostname) Snapshot...]""$ENDCOLOR"
-  restic stats --mode raw-data --host "$(hostname)" latest
-  echo -e "$YELLOW""[Original Files Size for All Snapshots...]""$ENDCOLOR"
+  echo -e "$YELLOW""[Original Size for Latest Snapshot...]""$ENDCOLOR"
+  restic stats --host "" latest
+  echo -e "$YELLOW""[Deduplicated Size for Latest Snapshot...]""$ENDCOLOR"
+  restic stats --mode raw-data --host "" latest
+  echo -e "$YELLOW""[Original Size for All Snapshots...]""$ENDCOLOR"
   restic stats
   echo -e "$YELLOW""[Deduplicated Size for All Snapshots...]""$ENDCOLOR"
   restic stats --mode raw-data
@@ -1056,17 +1075,18 @@ function backup {
   fi
   touch "$LOCK"
   trap 'rm -rf "$LOCK"' INT QUIT TERM EXIT
-  if [[ "$LOGGER" ]] ; then
-    if [[ "$LOGGER" == "--log" ]] ; then
+  if [[ "$FLAGS" ]] ; then
+    if [[ "$FLAGS" == "--help" ]] ; then
+      backup-help
+      exit
+    elif [[ "$FLAGS" == "--log" ]] ; then
       exec > >(tee -a "$LOG") 2>&1
     else
-      echo "Invalid flag ["$LOGGER"]..."
+      echo "Invalid flag ["$FLAGS"]..."
       echo ""
       backup-help
       exit
     fi
-  else
-    echo > /dev/null
   fi
   echo -e "======================================================================"
   echo -e "| - - - - - - - > [ S T A R T I N G    B A C K U P ] < - - - - - - - |"
@@ -1111,17 +1131,21 @@ function cleanup {
   fi
   touch "$LOCK"
   trap 'rm -rf "$LOCK"' INT QUIT TERM EXIT
-  if [[ "$LOGGER" ]] ; then
-    if [[ "$LOGGER" == "--log" ]] ; then
+  if [[ "$FLAGS" ]] ; then
+    if [[ "$FLAGS" == "--help" ]] ; then
+      cleanup-help
+      exit
+    elif [[ "$FLAGS" == "--log" ]] ; then
       exec > >(tee -a "$LOG") 2>&1
+    elif [[ "$FLAGS" == "--next" ]] ; then
+      cleanup-next
+      exit
     else
-      echo "Invalid flag ["$LOGGER"]..."
+      echo "Invalid flag ["$FLAGS"]..."
       echo ""
       cleanup-help
       exit
     fi
-  else
-    echo > /dev/null
   fi
   if [[ "$KEEP_LAST" -gt "0" || "$KEEP_HOURLY" -gt "0" || "$KEEP_DAILY" -gt "0" || "$KEEP_WEEKLY" -gt "0" || "$KEEP_MONTHLY" -gt "0" || "$KEEP_YEARLY" -gt "0" ]] ; then
 	echo -e "======================================================================"
@@ -1205,16 +1229,21 @@ function cleanup-next {
 }
 
 function logs {
-  if [[ "$FLAG" == "--cat" ]] ; then
+  if [[ ! "$FLAGS" ]] ; then
+    echo "You have not indicated any option."
+    echo ""
+    logs-help
+    exit
+  elif [[ "$FLAGS" == "--cat" ]] ; then
     if [[ "$LOGFILE" ]] ; then
       cat $HOME/.rescript/logs/"$LOGFILE"
     else
       echo "No log file indicated..."
       exit
     fi
-  elif [[ "$FLAG" == "--help" ]] ; then
+  elif [[ "$FLAGS" == "--help" ]] ; then
     logs-help
-  elif [[ "$FLAG" == "--list" ]] ; then
+  elif [[ "$FLAGS" == "--list" ]] ; then
     if ls $HOME/.rescript/logs/"$REPO"-* 1> /dev/null 2>&1 ; then
       ls $HOME/.rescript/logs/ | grep -e "$REPO"
       echo ""
@@ -1222,17 +1251,33 @@ function logs {
     else
       echo "There are no log files to list for ["$REPO"]."
     fi
-  elif [[ "$FLAG" == "--remove" ]] ; then
+  elif [[ "$FLAGS" == "--remove" ]] ; then
     if ls $HOME/.rescript/logs/"$REPO"-* 1> /dev/null 2>&1 ; then
       rm -rf $HOME/.rescript/logs/"$REPO"-*
       echo "Log files removed for ["$REPO"]."
     else
       echo "There are no log files to remove for ["$REPO"]." 
     fi
+  else
+    echo "Invalid flag ["$FLAGS"]..."
+    echo ""
+    logs-help
+    exit
   fi
 }
 
 function mounter {
+  if [[ "$FLAGS" ]] ; then
+    if [[ "$FLAGS" == "--help" ]] ; then
+      mounter-help
+      exit
+    else
+      echo "Invalid flag ["$FLAGS"]..."
+      echo ""
+      mounter-help
+      exit
+    fi
+  fi
   if [ -e "$LOCK" ]; then
     echo -e "WARNING: "$REPO" repo is already running..."
     echo -e "If you are sure "$REPO" is not running, type"
@@ -1280,8 +1325,6 @@ function random-check {
       echo "log for this specific process."
       exit
     fi
-  else
-    echo > /dev/null
   fi
   restic check --read-data-subset $(($RANDOM % 10 + 1))/10
 }
@@ -1308,19 +1351,50 @@ function restorer {
       restorer-help
       exit
     fi
-  else
-    echo > /dev/null
   fi
-  if [[ "$FLAG" == "--host" ]] ; then
-    RESTIC_RESTORE="$HOME/restore-latest-host-"$HPT"-$(date +%s)"
-  elif [[ "$FLAG" == "--path" ]] ; then
+  if [[ ! "$FLAGS" ]] ; then
+    echo "You have not indicated any option..."
+    echo ""
+    restorer-help
+    exit
+  elif [[ "$FLAGS" == "--help" ]] ; then
+    restorer-help
+    exit
+  elif [[ "$FLAGS" == "--host" ]] ; then
+    RESTIC_RESTORE="$HOME/restore-latest-host-"$HPTS"-$(date +%s)"
+  elif [[ "$FLAGS" == "--log" ]] ; then
+    echo "[--log] flag must be indicated after other flags and options."
+    echo "e.g."
+    echo "  rescript "$REPO" restorer --host [hostname] --log"
+    echo ""
+    restorer-help
+    exit
+  elif [[ "$FLAGS" == "--path" ]] ; then
     RESTIC_RESTORE="$HOME/restore-latest-by-path-$(date +%s)"
-  elif [[ "$FLAG" == "--tag" ]] ; then
-    RESTIC_RESTORE="$HOME/restore-latest-tag-"$HPT"-$(date +%s)"
+  elif [[ "$FLAGS" == "--tag" ]] ; then
+    RESTIC_RESTORE="$HOME/restore-latest-tag-"$HPTS"-$(date +%s)"
   else
-    RESTIC_RESTORE="$HOME/restore-"$SID"-$(date +%s)"
+    RESTIC_RESTORE="$HOME/restore-"$HPTS"-$(date +%s)"
   fi
-  if [[ "$FLAG" ]] ; then
+  if [[ "$FLAGS" == "--host" || "$FLAGS" == "--path" || "$FLAGS" == --tag ]] ; then
+    if [[ ! "$HPTS" ]] ; then
+      if [[ "$FLAGS" == "--host" ]] ; then
+        echo "No [host] indicated..."
+        echo ""
+        restorer-help
+        exit
+      elif [[ "$FLAGS" == "--path" ]] ; then
+        echo "No [path] indicated..."
+        echo ""
+        restorer-help
+        exit
+      elif [[ "$FLAGS" == "--tag" ]] ; then
+        echo "No [tag] indicated..."
+        echo ""
+        restorer-help
+        exit
+      fi
+    fi
     echo -e "======================================================================"
     echo -e "|- - - - - - - > [ S T A R T I N G    R E S T O R E ] < - - - - - - -|"
     echo -e "======================================================================"
@@ -1334,11 +1408,51 @@ function restorer {
     fi
     echo -e "----------------------------------------------------------------------"
     if [[ "$DESTINATION" ]] ; then
-      echo -e "$YELLOW""Restoring latest snapshot for ["$HPT"] from:""$ENDCOLOR" "$DESTINATION..."
+      echo -e "$YELLOW""Restoring latest snapshot for ["$HPTS"] from:""$ENDCOLOR" "$DESTINATION..."
     else
-      echo -e "$YELLOW""Restoring latest snapshot for ["$HPT"] from:""$ENDCOLOR" "$RESTIC_REPO"
+      echo -e "$YELLOW""Restoring latest snapshot for ["$HPTS"] from:""$ENDCOLOR" "$RESTIC_REPO"
     fi
-    restic restore latest --target "$RESTIC_RESTORE" "$FLAG" "$HPT" --verify
+    restic restore latest --target "$RESTIC_RESTORE" "$FLAGS" "$HPTS" --verify
+    echo -e "----------------------------------------------------------------------"
+    echo -e "$YELLOW""End:""$ENDCOLOR" "$(date +%a\ %b\ %d\ %Y\ %r)"
+    HRS=$((SECONDS / 3600))
+    MIN=$(((SECONDS / 60) % 60))
+    SEC=$((SECONDS % 60))
+    if [[ "$HRS" -gt "0" ]] ; then
+      echo -e "$YELLOW""Duration:""$ENDCOLOR" "$HRS hours $MIN minues $SEC seconds"
+    elif [[ "$MIN" -gt "0" ]] ; then
+      echo -e "$YELLOW""Duration:""$ENDCOLOR" "$MIN minutes $SEC seconds"
+    else
+      echo -e "$YELLOW""Duration:""$ENDCOLOR" "$SEC seconds"
+    fi
+    echo -e "======================================================================"
+    echo -e "| - - - - - - > [ R E S T O R E    C O M P L E T E D ] < - - - - - - |"
+    echo -e "======================================================================"
+  elif [[ "$FLAGS" == "--snapshot" ]] ; then
+    if [[ ! "$HPTS" ]] ; then
+      echo "No [snapshot ID] indicated."
+      echo ""
+      restorer-help
+      exit
+    fi
+    echo -e "======================================================================"
+    echo -e "|- - - - - - - > [ S T A R T I N G    R E S T O R E ] < - - - - - - -|"
+    echo -e "======================================================================"
+    echo -e "$YELLOW""Date and Time:""$ENDCOLOR" "$(date +%a\ %b\ %d\ %Y\ %r)"
+    echo -e "$YELLOW""System:""$ENDCOLOR" "$(cat /etc/issue.net) $(uname -o) $(uname -r)"
+    echo -e "$YELLOW""Hostname:""$ENDCOLOR" "$HOSTNAME"
+    if [[ "$DESTINATION" ]] ; then
+      echo -e "$YELLOW""Backup Destination:""$ENDCOLOR" "$DESTINATION"
+    else
+      echo -e "$YELLOW""Backup Destination:""$ENDCOLOR" "$RESTIC_REPO"
+    fi
+    echo -e "----------------------------------------------------------------------"
+    if [[ "$DESTINATION" ]] ; then
+      echo -e "$YELLOW""Restoring snapshot ID ["$HPTS"] from:""$ENDCOLOR" "$DESTINATION..."
+    else
+      echo -e "$YELLOW""Restoring snapshot ID ["$HPTS"] from:""$ENDCOLOR" "$RESTIC_REPO"
+    fi
+    restic restore "$HPTS" --target "$RESTIC_RESTORE" --verify
     echo -e "----------------------------------------------------------------------"
     echo -e "$YELLOW""End:""$ENDCOLOR" "$(date +%a\ %b\ %d\ %Y\ %r)"
     HRS=$((SECONDS / 3600))
@@ -1355,43 +1469,25 @@ function restorer {
     echo -e "| - - - - - - > [ R E S T O R E    C O M P L E T E D ] < - - - - - - |"
     echo -e "======================================================================"
   else
-    echo -e "======================================================================"
-    echo -e "|- - - - - - - > [ S T A R T I N G    R E S T O R E ] < - - - - - - -|"
-    echo -e "======================================================================"
-    echo -e "$YELLOW""Date and Time:""$ENDCOLOR" "$(date +%a\ %b\ %d\ %Y\ %r)"
-    echo -e "$YELLOW""System:""$ENDCOLOR" "$(cat /etc/issue.net) $(uname -o) $(uname -r)"
-    echo -e "$YELLOW""Hostname:""$ENDCOLOR" "$HOSTNAME"
-    if [[ "$DESTINATION" ]] ; then
-      echo -e "$YELLOW""Backup Destination:""$ENDCOLOR" "$DESTINATION"
-    else
-      echo -e "$YELLOW""Backup Destination:""$ENDCOLOR" "$RESTIC_REPO"
-    fi
-    echo -e "----------------------------------------------------------------------"
-    if [[ "$DESTINATION" ]] ; then
-      echo -e "$YELLOW""Restoring snapshot ["$SID"] from:""$ENDCOLOR" "$DESTINATION..."
-    else
-      echo -e "$YELLOW""Restoring snapshot ["$SID"] from:""$ENDCOLOR" "$RESTIC_REPO"
-    fi
-    restic restore "$SID" --target "$RESTIC_RESTORE" --verify
-    echo -e "----------------------------------------------------------------------"
-    echo -e "$YELLOW""End:""$ENDCOLOR" "$(date +%a\ %b\ %d\ %Y\ %r)"
-    HRS=$((SECONDS / 3600))
-    MIN=$(((SECONDS / 60) % 60))
-    SEC=$((SECONDS % 60))
-    if [[ "$HRS" -gt "0" ]] ; then
-      echo -e "$YELLOW""Duration:""$ENDCOLOR" "$HRS hours $MIN minues $SEC seconds"
-    elif [[ "$MIN" -gt "0" ]] ; then
-      echo -e "$YELLOW""Duration:""$ENDCOLOR" "$MIN minutes $SEC seconds"
-    else
-      echo -e "$YELLOW""Duration:""$ENDCOLOR" "$SEC seconds"
-    fi
-    echo -e "======================================================================"
-    echo -e "| - - - - - - > [ R E S T O R E    C O M P L E T E D ] < - - - - - - |"
-    echo -e "======================================================================"
+    echo "Invalid flag ["$FLAGS"]..."
+    echo ""
+    restorer-help
+    exit
   fi  
 }
 
 function unlocker {
+  if [[ "$FLAGS" ]] ; then
+    if [[ "$FLAGS" == "--help" ]] ; then
+      unlocker-help
+      exit
+    else
+      echo "Invalid flag ["$FLAGS"]..."
+      echo ""
+      unlocker-help
+      exit
+    fi
+  fi
   if [[ ! -e "$LOCK" ]]; then
     echo "No locks found..."
   else
@@ -1406,15 +1502,22 @@ function unlocker {
 if [[ "$2" == "" ]] ; then
   automatic
   exit
+elif [[ "$2" == "--log" ]] ; then
+  echo "[--log] flag must be indicated after other commands, flags and/or options."
+  echo "e.g."
+  echo "  rescript "$REPO" [command] [--flags] [options] --log"
+  echo "This flag is only available for the following rescript commands."
+  echo "  backup"
+  echo "  check (only when used with [--random] flag)"
+  echo "  cleanup"
+  echo "  restorer"
+  echo ""
+  echo "$usage"
+  exit
 elif [[ "$2" == "backup" ]] ; then
-  if [[ "$3" == "--help" ]] ; then
-    backup-help
-    exit
-  else
-    LOGGER="$3"
-    backup
-    exit
-  fi
+  FLAGS="$3"
+  backup
+  exit
 elif [[ "$2" == "check" ]] ; then
   if [[ "$3" == "--random" ]] ; then
     LOGGER="$4"
@@ -1434,73 +1537,31 @@ elif [[ "$2" == "check" ]] ; then
     restic "${@:2}"
   fi
 elif [[ "$2" == "cleanup" ]] ; then
-  if [[ "$3" == "--help" ]] ; then
-    cleanup-help
-    exit
-  elif [[ "$3" == "--next" ]] ; then
-    cleanup-next
-    exit
-  else
-    LOGGER="$3"
-    cleanup
-    exit
-  fi
+  FLAGS="$3"
+  cleanup
+  exit
+elif [[ "$2" == "help" || "$2" == "--help" || "$2" == "-h" ]] ; then
+  echo "$usage"
+  exit
 elif [[ "$2" == "logs" ]] ; then
-  if [[ ! "$3" ]] ; then
-    echo "You have not indicated any option."
-    echo ""
-    logs-help
-    exit
-  else
-    REPO="$1"
-    FLAG="$3"
-    LOGFILE="$4"
-    logs
-    exit
-  fi
+  FLAGS="$3"
+  LOGFILE="$4"
+  logs
+  exit
 elif [[ "$2" == "mounter" ]] ; then
-  if [[ "$3" == "--help" ]] ; then
-    mounter-help
-    exit
-  else
-    mounter
-    exit
-  fi
+  FLAGS="$3"
+  mounter
+  exit
 elif [[ "$2" == "restorer" ]] ; then
-  if [[ ! "$3" ]] ; then
-    echo "You have not indicated any [snapshot-ID] to restore."
-    echo ""
-    restorer-help
-    exit
-  elif [[ "$3" == "--help" ]] ; then
-    restorer-help
-    exit
-  elif [[ "$3" == "--host" || "$3" == "--path" || "$3" == "--tag" ]] ; then
-    if [[ ! "$4" ]] ; then
-      echo "No ["$3"] indicated."
-      echo ""
-      restorer-help
-      exit
-    else
-      FLAG="$3"
-      HPT="$4"
-      LOGGER="$5"
-      restorer
-      exit
-    fi
-  else
-    SID="$3"
-    LOGGER="$4"
-    restorer
-  fi
+  FLAGS="$3"
+  HPTS="$4"
+  LOGGER="$5"
+  restorer
+  exit
 elif [[ "$2" == "unlocker" ]] ; then
-  if [[ "$3" == "--help" ]] ; then
-    unlocker-help
-    exit
-  else
-    unlocker
-    exit
-  fi
+  FLAGS="$3"
+  unlocker
+  exit
 else
   if [ -e "$LOCK" ]; then
     echo -e "WARNING: "$REPO" repo is already running..."
