@@ -6,7 +6,8 @@
    cron job and `restic` binary is not in the default system "PATH", it will
    not execute.
 3. Fixed code to keep flags and options inside functions.
-4. Other improvements in code.
+4. Fixed `restorer` command so it will not misbehave when using invalid options or flags.
+5. Other improvements in code.
 
 # November 25, 2018
 **Changes**
