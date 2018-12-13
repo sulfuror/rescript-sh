@@ -1,3 +1,13 @@
+# December 12, 2018
+**Changes and Fixes**:
+
+1. Added a warning when indicating a rescript invalid flag and displays help.
+2. Added "PATH" code for `$HOME/bin` and `$HOME/.local/bin` because if you use 
+   cron job and `restic` binary is not in the default system "PATH", it will
+   not execute.
+3. Fixed code to keep flags and options inside functions.
+4. Other improvements in code.
+
 # November 25, 2018
 **Changes**
 
