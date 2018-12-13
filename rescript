@@ -26,7 +26,7 @@ except for [backup], which exists but it will use your configuration
 file to perform a backup.
 
 Usage:
-  rescript [repo_name] [command] [--flags] [options]
+  rescript [repo_name] [command]
   
 Rescript commands:
   backup		Take a snapshot using the values set in
