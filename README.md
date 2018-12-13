@@ -206,8 +206,10 @@ Please see restic `help` and [documentation](https://restic.readthedocs.io/en/st
    the snapshot-ID you want to restore. With this command you don't need to indicate where to restore,
    it will automatically create a new file in your home directory called `restore-snapshotID-randomnumber`.
    It will do the random number so it will not conflict with maybe a file called the same in your
-   home directory. You can use `restorer` with the following restic flags: `--host`, `--path` and `--tag`.
-   For help type `rescript [repo_name] restorer --help`. This option will also run `--verify` flag.
+   home directory. You can use `restorer` with the following restic flags: `--host`, `--path` and `--tag`;
+   there is also a tag for indicating the snapshot ID alone and this is `--snapshot`. This "snapshot"
+   tag is only available for `rescript`. For help type `rescript [repo_name] restorer --help`.
+   This command with any flag used with `rescript` will run `--verify` flag when restoring.
 10. `unlocker`: this command WILL NOT unlock your repository. When you run this
    script it will create a separate lock just for the script (it has nothing
    to do with the restic locks), so if your latest run left a lock (which is
