@@ -1,6 +1,6 @@
 #!/bin/bash
 # ============================================================== #
-version=rescript-v3.1
+version=rescript-v3.2-beta
 usage="
 Author		: Sulfuror, Copyright (c) 2018 <sulfuror@gmail.com>
 URL		: https://gitlab.com/sulfuror/rescript.sh
@@ -345,6 +345,7 @@ function new_config_file {
   echo 'CLEAN="7"'
   echo 'TAG=""'
   echo 'DESTINATION=""'
+  echo 'HOST=""'
   echo ""
   echo "# The variable "LOGGING" is "yes" by default. If you don't want logs to be saved"
   echo "# at .rescript/logs directory just change the "yes" to "no". This will only save"
@@ -973,7 +974,11 @@ function automatic {
   echo -e "======================================================================"
   echo -e "$YELLOW""Date and Time:""$ENDCOLOR" "$(date +%a\ %b\ %d\ %Y\ %r)"
   echo -e "$YELLOW""System:""$ENDCOLOR" "$(cat /etc/issue.net) $(uname -o) $(uname -r)"
-  echo -e "$YELLOW""Hostname:""$ENDCOLOR" "$HOSTNAME"
+  if [[ "$HOST" ]] ; then
+    echo -e "$YELLOW""Hostname:""$ENDCOLOR" "$HOST"
+  else
+    echo -e "$YELLOW""Hostname:""$ENDCOLOR" "$HOSTNAME"
+  fi
   if [[ "$DESTINATION" ]] ; then
     echo -e "$YELLOW""Backup Destination:""$ENDCOLOR" "$DESTINATION"
   else
@@ -1093,14 +1098,18 @@ function backup {
   echo -e "======================================================================"
   echo -e "$YELLOW""Date and Time:""$ENDCOLOR" "$(date +%a\ %b\ %d\ %Y\ %r)"
   echo -e "$YELLOW""System:""$ENDCOLOR" "$(cat /etc/issue.net) $(uname -o) $(uname -r)"
-  echo -e "$YELLOW""Hostname:""$ENDCOLOR" "$HOSTNAME"
+  if [[ "$HOST" ]] ; then
+    echo -e "$YELLOW""Hostname:""$ENDCOLOR" "$HOST"
+  else
+    echo -e "$YELLOW""Hostname:""$ENDCOLOR" "$HOSTNAME"
+  fi
   if [[ "$DESTINATION" ]] ; then
     echo -e "$YELLOW""Backup Destination:""$ENDCOLOR" "$DESTINATION"
   else
     echo -e "$YELLOW""Backup Destination:""$ENDCOLOR" "$RESTIC_REPO"
   fi
   echo -e "----------------------------------------------------------------------"
-  restic backup "$BACKUP_DIR" --tag "$TAG" --verbose --exclude-caches --exclude-file="$EXCLUDES"
+  restic backup "$BACKUP_DIR" --tag "$TAG" --verbose --exclude-caches --exclude-file="$EXCLUDES" --host "$HOST"
   echo -e "----------------------------------------------------------------------"
   echo -e "$YELLOW""End:""$ENDCOLOR" "$(date +%a\ %b\ %d\ %Y\ %r)"
   HRS=$((SECONDS / 3600))
@@ -1153,7 +1162,11 @@ function cleanup {
 	echo -e "======================================================================"
 	echo -e "$YELLOW""Date and Time:""$ENDCOLOR" "$(date +%a\ %b\ %d\ %Y\ %r)"
 	echo -e "$YELLOW""System:""$ENDCOLOR" "$(cat /etc/issue.net) $(uname -o) $(uname -r)"
-	echo -e "$YELLOW""Hostname:""$ENDCOLOR" "$HOSTNAME"
+	if [[ "$HOST" ]] ; then
+	  echo -e "$YELLOW""Hostname:""$ENDCOLOR" "$HOST"
+	else
+	  echo -e "$YELLOW""Hostname:""$ENDCOLOR" "$HOSTNAME"
+	fi
 	if [[ "$DESTINATION" ]] ; then
 	  echo -e "$YELLOW""Backup Destination:""$ENDCOLOR" "$DESTINATION"
 	else
@@ -1400,7 +1413,11 @@ function restorer {
     echo -e "======================================================================"
     echo -e "$YELLOW""Date and Time:""$ENDCOLOR" "$(date +%a\ %b\ %d\ %Y\ %r)"
     echo -e "$YELLOW""System:""$ENDCOLOR" "$(cat /etc/issue.net) $(uname -o) $(uname -r)"
-    echo -e "$YELLOW""Hostname:""$ENDCOLOR" "$HOSTNAME"
+    if [[ "$HOST" ]] ; then
+      echo -e "$YELLOW""Hostname:""$ENDCOLOR" "$HOST"
+    else
+      echo -e "$YELLOW""Hostname:""$ENDCOLOR" "$HOSTNAME"
+    fi
     if [[ "$DESTINATION" ]] ; then
       echo -e "$YELLOW""Backup Destination:""$ENDCOLOR" "$DESTINATION"
     else
@@ -1440,7 +1457,11 @@ function restorer {
     echo -e "======================================================================"
     echo -e "$YELLOW""Date and Time:""$ENDCOLOR" "$(date +%a\ %b\ %d\ %Y\ %r)"
     echo -e "$YELLOW""System:""$ENDCOLOR" "$(cat /etc/issue.net) $(uname -o) $(uname -r)"
-    echo -e "$YELLOW""Hostname:""$ENDCOLOR" "$HOSTNAME"
+    if [[ "$HOST" ]] ; then
+      echo -e "$YELLOW""Hostname:""$ENDCOLOR" "$HOST"
+    else
+      echo -e "$YELLOW""Hostname:""$ENDCOLOR" "$HOSTNAME"
+    fi
     if [[ "$DESTINATION" ]] ; then
       echo -e "$YELLOW""Backup Destination:""$ENDCOLOR" "$DESTINATION"
     else
