@@ -1,6 +1,6 @@
 #!/bin/bash
 # ============================================================== #
-version=rescript-v3.2-beta
+version="rescript-v3.2"
 usage="
 Author		: Sulfuror, Copyright (c) 2018 <sulfuror@gmail.com>
 URL		: https://gitlab.com/sulfuror/rescript.sh
@@ -26,7 +26,11 @@ except for [backup], which exists but it will use your configuration
 file to perform a backup.
 
 Usage:
+  rescript [command]
+OR
   rescript [repo_name] [command]
+OR
+  rescript [repo_name] [command] [--flags] [options]  
   
 Rescript commands:
   backup		Take a snapshot using the values set in
@@ -35,18 +39,23 @@ Rescript commands:
   			in your configuration file.
   config		Rescript configuration; set your default
   			text editor, open, delete or modify your
-  			configuration and exclusion files.
+  			configuration and exclusion files. This command
+  			does not need a [repo_name].
   editor		Change the default rescript text editor used
   			to open your configuration and exclusions files.
-  help			Display rescript help and usage.
+  			This command does not need a [repo_name].
+  help			Display rescript help and usage. This command
+  			does not need a [repo_name].
   install		Install rescript (this just move the script
   			to your .local/bin directory for convenience.
+  			This command does not need a [repo_name].
   logs			This command needs a flag to view, list
 			or delete your log files.
   mounter		Mount a restic repo.
-  restorer		Restore a restic snapshot.			
+  restorer		Restore a restic snapshot.	
   unlocker		Remove lock created by rescript.
-  version		Display rescript version.
+  version		Display rescript version. This command does
+  			not need a [repo_name].
 
 Rescript flags:
   --help		This flag is available for all rescript commands
@@ -91,6 +100,51 @@ fi
 if [ -d "$HOME/.local/bin" ] ; then
     PATH="$HOME/.local/bin:$PATH"
 fi
+function opsys {
+  OS_NAME="$(uname -s)"
+  if [[ "$OS_NAME" == "Linux" || "$OS_NAME" == "GNU" ]] ; then
+    echo -e "$(lsb_release -ds)"
+  elif [[ "$OS_NAME" == "FreeBSD"* ]] ; then
+    echo -e "$(uname -mrs)"
+  elif [[ "$OS_NAME" == "Darwin"* ]] ; then
+    echo -e "$(sw_vers) $(osx_version)"
+  fi
+}
+function duration {
+  D="$((SECONDS/60/60/24))"
+  H="$((SECONDS/60/60%24))"
+  M="$((SECONDS/60%60))"
+  S="$((SECONDS%60))"
+  if [[ "$D" == "1" ]] ; then
+    DAYS="day"
+  else
+    DAYS="days"
+  fi
+  if [[ "$H" == "1" ]] ; then
+    HRS="hour"
+  else
+    HRS="hours"
+  fi
+  if [[ "$M" == "1" ]] ; then
+    MIN="minute"
+  else
+    MIN="minutes"
+  fi
+  if [[ "$S" == "1" ]] ; then
+    SEC="second"
+  else
+    SEC="seconds"
+  fi
+  if [[ "$D" -gt "0" ]] ; then
+    echo "$D $DAYS $H $HRS $M $MIN and $S $SEC"
+  elif [[ "$H" -gt "0" ]] ; then
+    echo "$H $HRS $M $MIN and $S $SEC"
+  elif [[ "$M" -gt "0" ]] ; then
+    echo "$M $MIN and $S $SEC"
+  else
+    echo "$S $SEC"
+  fi
+}
 # ============================================================== #
 # Menu								 #
 # ============================================================== #
@@ -969,11 +1023,11 @@ function automatic {
   elif [[ "$LOGGING" == "no" || "$LOGGING" == "NO" || "$LOGGING" == "N" || "$LOGGING" == "n" ]] ; then
     echo > /dev/null
   fi
-  echo -e "======================================================================"
-  echo -e "| - - - - - - - > [ S T A R T I N G    B A C K U P ] < - - - - - - - |"
-  echo -e "======================================================================"
+  echo -e "=========================================================================="
+  echo -e "| - - - - - - - - > [ S T A R T I N G    B A C K U P ] < - - - - - - - - |"
+  echo -e "=========================================================================="
   echo -e "$YELLOW""Date and Time:""$ENDCOLOR" "$(date +%a\ %b\ %d\ %Y\ %r)"
-  echo -e "$YELLOW""System:""$ENDCOLOR" "$(cat /etc/issue.net) $(uname -o) $(uname -r)"
+  echo -e "$YELLOW""System:""$ENDCOLOR" "$(opsys)"
   if [[ "$HOST" ]] ; then
     echo -e "$YELLOW""Hostname:""$ENDCOLOR" "$HOST"
   else
@@ -984,16 +1038,16 @@ function automatic {
   else
     echo -e "$YELLOW""Backup Destination:""$ENDCOLOR" "$RESTIC_REPO"
   fi
-  echo -e "----------------------------------------------------------------------"
+  echo -e "--------------------------------------------------------------------------"
 
   # Backup and exclusions
   echo -e "$YELLOW""[Taking a Snapshot...]""$ENDCOLOR"
-  restic backup "$BACKUP_DIR" --tag "$TAG" --verbose --exclude-caches --exclude-file="$EXCLUDES"
+  restic backup "$BACKUP_DIR" --tag "$TAG" --verbose --exclude-caches --exclude-file="$EXCLUDES"  --host "$HOST"
 
   EXCLUSIONS=$(grep -E -v -n -c '(^#|^\s*$|^\s*\t*#)' "$EXCLUDES")
   echo -e "$YELLOW""There are $EXCLUSIONS exclusion rules...""$ENDCOLOR"
 
-  echo -e "----------------------------------------------------------------------"
+  echo -e "--------------------------------------------------------------------------"
   # Snapshot List
   echo -e "$YELLOW""[Snapshots List...]""$ENDCOLOR"
   restic snapshots
@@ -1040,7 +1094,7 @@ function automatic {
   fi
 
   # Stats
-  echo -e "----------------------------------------------------------------------"
+  echo -e "--------------------------------------------------------------------------"
   echo -e "$YELLOW""[Original Size for Latest Snapshot...]""$ENDCOLOR"
   restic stats --host "" latest
   echo -e "$YELLOW""[Deduplicated Size for Latest Snapshot...]""$ENDCOLOR"
@@ -1050,21 +1104,12 @@ function automatic {
   echo -e "$YELLOW""[Deduplicated Size for All Snapshots...]""$ENDCOLOR"
   restic stats --mode raw-data
   # Time and Runtime
-  echo -e "----------------------------------------------------------------------"
+  echo -e "--------------------------------------------------------------------------"
   echo -e "$YELLOW""End:""$ENDCOLOR" "$(date +%a\ %b\ %d\ %Y\ %r)"
-  HRS=$((SECONDS / 3600))
-  MIN=$(((SECONDS / 60) % 60))
-  SEC=$((SECONDS % 60))
-  if [[ "$HRS" -gt "0" ]] ; then
-    echo -e "$YELLOW""Duration:""$ENDCOLOR" "$HRS hours $MIN minues $SEC seconds"
-  elif [[ "$MIN" -gt "0" ]] ; then
-    echo -e "$YELLOW""Duration:""$ENDCOLOR" "$MIN minutes $SEC seconds"
-  else
-    echo -e "$YELLOW""Duration:""$ENDCOLOR" "$SEC seconds"
-  fi
-  echo -e "======================================================================"
-  echo -e "| - - - - - - - - > [ B A C K U P      E N D E D ] < - - - - - - - - |"
-  echo -e "======================================================================"
+  echo -e "$YELLOW""Duration:""$ENDCOLOR" "$(duration)"
+  echo -e "=========================================================================="
+  echo -e "| - - - - - - - - - > [ B A C K U P      E N D E D ] < - - - - - - - - - |"
+  echo -e "=========================================================================="
 }
 
 function backup {
@@ -1093,11 +1138,11 @@ function backup {
       exit
     fi
   fi
-  echo -e "======================================================================"
-  echo -e "| - - - - - - - > [ S T A R T I N G    B A C K U P ] < - - - - - - - |"
-  echo -e "======================================================================"
+  echo -e "=========================================================================="
+  echo -e "| - - - - - - - - > [ S T A R T I N G    B A C K U P ] < - - - - - - - - |"
+  echo -e "=========================================================================="
   echo -e "$YELLOW""Date and Time:""$ENDCOLOR" "$(date +%a\ %b\ %d\ %Y\ %r)"
-  echo -e "$YELLOW""System:""$ENDCOLOR" "$(cat /etc/issue.net) $(uname -o) $(uname -r)"
+  echo -e "$YELLOW""System:""$ENDCOLOR" "$(opsys)"
   if [[ "$HOST" ]] ; then
     echo -e "$YELLOW""Hostname:""$ENDCOLOR" "$HOST"
   else
@@ -1108,23 +1153,14 @@ function backup {
   else
     echo -e "$YELLOW""Backup Destination:""$ENDCOLOR" "$RESTIC_REPO"
   fi
-  echo -e "----------------------------------------------------------------------"
+  echo -e "--------------------------------------------------------------------------"
   restic backup "$BACKUP_DIR" --tag "$TAG" --verbose --exclude-caches --exclude-file="$EXCLUDES" --host "$HOST"
-  echo -e "----------------------------------------------------------------------"
+  echo -e "--------------------------------------------------------------------------"
   echo -e "$YELLOW""End:""$ENDCOLOR" "$(date +%a\ %b\ %d\ %Y\ %r)"
-  HRS=$((SECONDS / 3600))
-  MIN=$(((SECONDS / 60) % 60))
-  SEC=$((SECONDS % 60))
-  if [[ "$HRS" -gt "0" ]] ; then
-    echo -e "$YELLOW""Duration:""$ENDCOLOR" "$HRS hours $MIN minues $SEC seconds"
-  elif [[ "$MIN" -gt "0" ]] ; then
-    echo -e "$YELLOW""Duration:""$ENDCOLOR" "$MIN minutes $SEC seconds"
-  else
-    echo -e "$YELLOW""Duration:""$ENDCOLOR" "$SEC seconds"
-  fi
-  echo -e "======================================================================"
-  echo -e "| - - - - - - - - > [ B A C K U P      E N D E D ] < - - - - - - - - |"
-  echo -e "======================================================================"
+  echo -e "$YELLOW""Duration:""$ENDCOLOR" "$(duration)"
+  echo -e "=========================================================================="
+  echo -e "| - - - - - - - - - > [ B A C K U P      E N D E D ] < - - - - - - - - - |"
+  echo -e "=========================================================================="
 }
 
 function cleanup {
@@ -1157,11 +1193,11 @@ function cleanup {
     fi
   fi
   if [[ "$KEEP_LAST" -gt "0" || "$KEEP_HOURLY" -gt "0" || "$KEEP_DAILY" -gt "0" || "$KEEP_WEEKLY" -gt "0" || "$KEEP_MONTHLY" -gt "0" || "$KEEP_YEARLY" -gt "0" ]] ; then
-	echo -e "======================================================================"
-	echo -e "|- - - - - - - > [ S T A R T I N G    C L E A N U P ] < - - - - - - -|"
-	echo -e "======================================================================"
+	echo -e "=========================================================================="
+	echo -e "|- - - - - - - - > [ S T A R T I N G    C L E A N U P ] < - - - - - - - -|"
+	echo -e "=========================================================================="
 	echo -e "$YELLOW""Date and Time:""$ENDCOLOR" "$(date +%a\ %b\ %d\ %Y\ %r)"
-	echo -e "$YELLOW""System:""$ENDCOLOR" "$(cat /etc/issue.net) $(uname -o) $(uname -r)"
+	echo -e "$YELLOW""System:""$ENDCOLOR" "$(opsys)"
 	if [[ "$HOST" ]] ; then
 	  echo -e "$YELLOW""Hostname:""$ENDCOLOR" "$HOST"
 	else
@@ -1172,7 +1208,7 @@ function cleanup {
 	else
 	  echo -e "$YELLOW""Backup Destination:""$ENDCOLOR" "$RESTIC_REPO"
 	fi
-	echo -e "----------------------------------------------------------------------"
+	echo -e "--------------------------------------------------------------------------"
         restic forget --keep-last $KEEP_LAST --keep-hourly $KEEP_HOURLY --keep-daily $KEEP_DAILY --keep-weekly $KEEP_WEEKLY --keep-monthly $KEEP_MONTHLY --keep-yearly $KEEP_YEARLY
         restic prune --cleanup-cache
 	if [[ -f "$HOME/.rescript/config/"$REPO"-datefile" || "$CLEAN" -gt "0" ]] ; then
@@ -1192,21 +1228,12 @@ function cleanup {
 	    echo -e "$YELLOW""[Repo will be checked and cleaned in the next run...]""$ENDCOLOR"
 	  fi
 	fi
-	echo -e "----------------------------------------------------------------------"
+	echo -e "--------------------------------------------------------------------------"
 	echo -e "$YELLOW""End:""$ENDCOLOR" "$(date +%a\ %b\ %d\ %Y\ %r)"
-	HRS=$((SECONDS / 3600))
-	MIN=$(((SECONDS / 60) % 60))
-	SEC=$((SECONDS % 60))
-	if [[ "$HRS" -gt "0" ]] ; then
-	  echo -e "$YELLOW""Duration:""$ENDCOLOR" "$HRS hours $MIN minues $SEC seconds"
-	elif [[ "$MIN" -gt "0" ]] ; then
-	  echo -e "$YELLOW""Duration:""$ENDCOLOR" "$MIN minutes $SEC seconds"
-	else
-	  echo -e "$YELLOW""Duration:""$ENDCOLOR" "$SEC seconds"
-	fi
-	echo -e "======================================================================"
-	echo -e "| - - - - - - - - > [ C L E A N U P    E N D E D ] < - - - - - - - - |"
-	echo -e "======================================================================"
+	echo -e "$YELLOW""Duration:""$ENDCOLOR" "$(duration)"
+	echo -e "=========================================================================="
+	echo -e "| - - - - - - - - - > [ C L E A N U P    E N D E D ] < - - - - - - - - - |"
+	echo -e "=========================================================================="
   else
 	echo -e "$YELLOW""You have not indicated any policy value...""$ENDCOLOR"
 	echo "If you want to use [cleanup] option you need to set the [KEEP] variables."
@@ -1339,7 +1366,13 @@ function random-check {
       exit
     fi
   fi
+  echo -e "$YELLOW""Starting [random check] for ["$REPO"]...""$ENDCOLOR"
+  echo -e "$YELLOW""Date and Time:""$ENDCOLOR" "$(date +%a\ %b\ %d\ %Y\ %r)"
+  echo -e "--------------------------------------------------------------------------"
   restic check --read-data-subset $(($RANDOM % 10 + 1))/10
+  echo -e "--------------------------------------------------------------------------"
+  echo -e "$YELLOW""End:""$ENDCOLOR" "$(date +%a\ %b\ %d\ %Y\ %r)"
+  echo -e "$YELLOW""Duration:""$ENDCOLOR" "$(duration)"
 }
 
 function restorer {
@@ -1408,11 +1441,11 @@ function restorer {
         exit
       fi
     fi
-    echo -e "======================================================================"
-    echo -e "|- - - - - - - > [ S T A R T I N G    R E S T O R E ] < - - - - - - -|"
-    echo -e "======================================================================"
+    echo -e "=========================================================================="
+    echo -e "|- - - - - - - - > [ S T A R T I N G    R E S T O R E ] < - - - - - - - -|"
+    echo -e "=========================================================================="
     echo -e "$YELLOW""Date and Time:""$ENDCOLOR" "$(date +%a\ %b\ %d\ %Y\ %r)"
-    echo -e "$YELLOW""System:""$ENDCOLOR" "$(cat /etc/issue.net) $(uname -o) $(uname -r)"
+    echo -e "$YELLOW""System:""$ENDCOLOR" "$(opsys)"
     if [[ "$HOST" ]] ; then
       echo -e "$YELLOW""Hostname:""$ENDCOLOR" "$HOST"
     else
@@ -1423,28 +1456,19 @@ function restorer {
     else
       echo -e "$YELLOW""Backup Destination:""$ENDCOLOR" "$RESTIC_REPO"
     fi
-    echo -e "----------------------------------------------------------------------"
+    echo -e "--------------------------------------------------------------------------"
     if [[ "$DESTINATION" ]] ; then
       echo -e "$YELLOW""Restoring latest snapshot for ["$HPTS"] from:""$ENDCOLOR" "$DESTINATION..."
     else
       echo -e "$YELLOW""Restoring latest snapshot for ["$HPTS"] from:""$ENDCOLOR" "$RESTIC_REPO"
     fi
     restic restore latest --target "$RESTIC_RESTORE" "$FLAGS" "$HPTS" --verify
-    echo -e "----------------------------------------------------------------------"
+    echo -e "--------------------------------------------------------------------------"
     echo -e "$YELLOW""End:""$ENDCOLOR" "$(date +%a\ %b\ %d\ %Y\ %r)"
-    HRS=$((SECONDS / 3600))
-    MIN=$(((SECONDS / 60) % 60))
-    SEC=$((SECONDS % 60))
-    if [[ "$HRS" -gt "0" ]] ; then
-      echo -e "$YELLOW""Duration:""$ENDCOLOR" "$HRS hours $MIN minues $SEC seconds"
-    elif [[ "$MIN" -gt "0" ]] ; then
-      echo -e "$YELLOW""Duration:""$ENDCOLOR" "$MIN minutes $SEC seconds"
-    else
-      echo -e "$YELLOW""Duration:""$ENDCOLOR" "$SEC seconds"
-    fi
-    echo -e "======================================================================"
-    echo -e "| - - - - - - > [ R E S T O R E    C O M P L E T E D ] < - - - - - - |"
-    echo -e "======================================================================"
+    echo -e "$YELLOW""Duration:""$ENDCOLOR" "$(duration)"
+    echo -e "=========================================================================="
+    echo -e "| - - - - - - - > [ R E S T O R E    C O M P L E T E D ] < - - - - - - - |"
+    echo -e "=========================================================================="
   elif [[ "$FLAGS" == "--snapshot" ]] ; then
     if [[ ! "$HPTS" ]] ; then
       echo "No [snapshot ID] indicated."
@@ -1452,11 +1476,11 @@ function restorer {
       restorer-help
       exit
     fi
-    echo -e "======================================================================"
-    echo -e "|- - - - - - - > [ S T A R T I N G    R E S T O R E ] < - - - - - - -|"
-    echo -e "======================================================================"
+    echo -e "=========================================================================="
+    echo -e "|- - - - - - - - > [ S T A R T I N G    R E S T O R E ] < - - - - - - - -|"
+    echo -e "=========================================================================="
     echo -e "$YELLOW""Date and Time:""$ENDCOLOR" "$(date +%a\ %b\ %d\ %Y\ %r)"
-    echo -e "$YELLOW""System:""$ENDCOLOR" "$(cat /etc/issue.net) $(uname -o) $(uname -r)"
+    echo -e "$YELLOW""System:""$ENDCOLOR" "$(opsys)"
     if [[ "$HOST" ]] ; then
       echo -e "$YELLOW""Hostname:""$ENDCOLOR" "$HOST"
     else
@@ -1467,28 +1491,19 @@ function restorer {
     else
       echo -e "$YELLOW""Backup Destination:""$ENDCOLOR" "$RESTIC_REPO"
     fi
-    echo -e "----------------------------------------------------------------------"
+    echo -e "--------------------------------------------------------------------------"
     if [[ "$DESTINATION" ]] ; then
       echo -e "$YELLOW""Restoring snapshot ID ["$HPTS"] from:""$ENDCOLOR" "$DESTINATION..."
     else
       echo -e "$YELLOW""Restoring snapshot ID ["$HPTS"] from:""$ENDCOLOR" "$RESTIC_REPO"
     fi
     restic restore "$HPTS" --target "$RESTIC_RESTORE" --verify
-    echo -e "----------------------------------------------------------------------"
+    echo -e "--------------------------------------------------------------------------"
     echo -e "$YELLOW""End:""$ENDCOLOR" "$(date +%a\ %b\ %d\ %Y\ %r)"
-    HRS=$((SECONDS / 3600))
-    MIN=$(((SECONDS / 60) % 60))
-    SEC=$((SECONDS % 60))
-    if [[ "$HRS" -gt "0" ]] ; then
-      echo -e "$YELLOW""Duration:""$ENDCOLOR" "$HRS hours $MIN minues $SEC seconds"
-    elif [[ "$MIN" -gt "0" ]] ; then
-      echo -e "$YELLOW""Duration:""$ENDCOLOR" "$MIN minutes $SEC seconds"
-    else
-      echo -e "$YELLOW""Duration:""$ENDCOLOR" "$SEC seconds"
-    fi
-    echo -e "======================================================================"
-    echo -e "| - - - - - - > [ R E S T O R E    C O M P L E T E D ] < - - - - - - |"
-    echo -e "======================================================================"
+    echo -e "$YELLOW""Duration:""$ENDCOLOR" "$(duration)"
+    echo -e "=========================================================================="
+    echo -e "| - - - - - - - > [ R E S T O R E    C O M P L E T E D ] <  -- - - - - - |"
+    echo -e "=========================================================================="
   else
     echo "Invalid flag ["$FLAGS"]..."
     echo ""
@@ -1555,7 +1570,13 @@ elif [[ "$2" == "check" ]] ; then
     fi
     touch "$LOCK"
     trap 'rm -rf "$LOCK"' INT QUIT TERM EXIT
+    echo -e "$YELLOW""Starting ["$2"] command for ["$1"]...""$ENDCOLOR"
+    echo -e "$YELLOW""Date and Time:""$ENDCOLOR" "$(date +%a\ %b\ %d\ %Y\ %r)"
+    echo -e "--------------------------------------------------------------------------"
     restic "${@:2}"
+    echo -e "--------------------------------------------------------------------------"
+    echo -e "$YELLOW""End:""$ENDCOLOR" "$(date +%a\ %b\ %d\ %Y\ %r)"
+    echo -e "$YELLOW""Duration:""$ENDCOLOR" "$(duration)"
   fi
 elif [[ "$2" == "cleanup" ]] ; then
   FLAGS="$3"
@@ -1595,5 +1616,11 @@ else
   fi
   touch "$LOCK"
   trap 'rm -rf "$LOCK"' INT QUIT TERM EXIT
+  echo -e "$YELLOW""Starting ["$2"] command for ["$1"]...""$ENDCOLOR"
+  echo -e "$YELLOW""Date and Time:""$ENDCOLOR" "$(date +%a\ %b\ %d\ %Y\ %r)"
+  echo -e "--------------------------------------------------------------------------"
   restic "${@:2}"
+  echo -e "--------------------------------------------------------------------------"
+  echo -e "$YELLOW""End:""$ENDCOLOR" "$(date +%a\ %b\ %d\ %Y\ %r)"
+  echo -e "$YELLOW""Duration:""$ENDCOLOR" "$(duration)"
 fi
