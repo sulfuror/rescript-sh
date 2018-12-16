@@ -1,3 +1,14 @@
+# December 16, 2018
+**Changes and Fixes**:
+
+1. Added two functions: one determines the operating system (if it is GNU/Linux, FreeBSD or OSX)
+   and another to calculate durantion of commands.
+2. Added output with date and duration for regular restic commands.
+3. Added `--host` flag for backup operations and variable in the configuration
+   file for this flag. If the variable is empty the `backup` command will use
+   the system `HOSTNAME`. If the variable is used then `backup` command will use
+   the hostname indicated in it (fix for issue #1).
+
 # December 12, 2018
 **Changes and Fixes**:
 
