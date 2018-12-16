@@ -162,7 +162,7 @@ This is all done via `rescript config`.
 ## Commands and Options:
 
 Commands and options are optional but the script will always need to indicate a `[repo_name]`.
-(see [usage](https://gitlab.com/sulfuror/rescript.sh/edit/master/README.md#usage)).
+(see [usage](https://gitlab.com/sulfuror/rescript.sh#usage)).
 
 You can pass any restic command after calling the script. For example, if you
 want to display your snapshots you just need to do this:
