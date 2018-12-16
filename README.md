@@ -88,10 +88,17 @@ the output. If you want to use the automatic function just type the following:
 rescript [repo_name]
 ```
 
+Rescript has its own commands that doesn't need a `[repo_name]` indicated. These
+commands are: `config`, `editor`, `help`, `install` and `version`. Usage e.g.:
+
+```
+rescript [config|editor|help|install|version]
+```
+
 If you want to run a specific `rescript` or `restic` command:
 
 ```
-rescript [repo_name] [command] [--flags]
+rescript [repo_name] [command] [--flags] [options]
 ```
 
 First thing to do is to to configure your repository by typing:
@@ -134,6 +141,9 @@ These variables are optional because the script will still work if you don't wan
 * `DESTINATION=""`: Put the name of your backup destination between the "" 
    (something like S3, Google Drive, External Drive, FriendServerName, etc.). If you don't want to use
    it just leave it blank. This is just used for output purposes.
+* `HOST=""`: Write the `hostname` you wish to use. This is useful when `restic` doesn't use a
+   stable hostname when taking a snapshot. If your snapshots are always using the same hostname
+   you don't need to change this unless you want to assign another hostname to your snapshots.
 * `LOGGING="yes"`: By default `rescript` will create a log for every run of the script
    and logs will be located at `$HOME/.rescript/logs`. Commands and options will not
    create a log; logs only will be created when you run the script without any
@@ -151,8 +161,8 @@ This is all done via `rescript config`.
 
 ## Commands and Options:
 
-Commands and options are optional. If you don't run any command or option
-the script will run normally with all the options you have in your script.
+Commands and options are optional but the script will always need to indicate a `[repo_name]`.
+(see [usage](https://gitlab.com/sulfuror/rescript.sh/edit/master/README.md#usage)).
 
 You can pass any restic command after calling the script. For example, if you
 want to display your snapshots you just need to do this:
@@ -160,9 +170,9 @@ want to display your snapshots you just need to do this:
 ```
 rescript [repo_name] snapshots
 ```
-You can use as many commands and flags as you want, as you were using restic but
-calling the name of the script before the option. There are three commands that will
-not work as restic usually work, and those are the following commands:
+
+You can use as many commands and flags as you want, as you were using restic alone.
+There are three commands that will not work as restic usually work, and those are the following commands:
 
 1. `backup`: This command will run a backup according to the variables set before.
 2. `help`: This command will display `rescript` help.
@@ -177,21 +187,16 @@ OR
 rescript [repo_name] [command] --help
 ```
 
-For restic regular commands usage:
-
-```
-rescript [repo_name] [command] [--flags] [options] [etc]
-```
 Please see restic `help` and [documentation](https://restic.readthedocs.io/en/stable/) for more.
 
 **Rescript Commands**:
 
 1. `backup`: take a snapshot using the values set in your configuration file.
 2. `cleanup`: this will perform `forget` according to the policies in your configuration file and `prune`.
-3. `config`: this will open the configuration dialog.
-4. `editor`: change the default rescript text editor (for configuration and exclusion files).
-5. `help`: display help dialog.
-6. `install`: this will place rescript in your `$PATH` (in your home directory).
+3. `config`: this will open the configuration dialog. This command does not need a `[repo_name]`.
+4. `editor`: change the default rescript text editor (for configuration and exclusion files). This command does not need a `[repo_name]`.
+5. `help`: display help dialog. This command does not need a `[repo_name]`.
+6. `install`: this will place rescript in your `$PATH` (in your home directory). This command does not need a `[repo_name]`.
 7. `logs`: this command needs an option. Options are as follows:
 	1. `--cat`: display output of selected log file (you need to copy and paste the filename to display it).
 	e.g.: `rescript [repo_name] logs --cat rescript-log-2018-01-01-00:00`
@@ -218,7 +223,7 @@ Please see restic `help` and [documentation](https://restic.readthedocs.io/en/st
    script is already running and it will not run again until the lock file is removed.
    If you're really sure the script is not running you can just run this command
    and it will delete the lock file so you can continue with your operation.
-11. `version`: display rescript version.
+11. `version`: display rescript version. This command does not need a `[repo_name]`.
 
 **Rescript Flags**:
 
