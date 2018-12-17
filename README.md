@@ -21,7 +21,11 @@ operation and the duration of the whole operation.
    for what you need; if you use it without knowing what you're doing, that's on you too.
 2. You need `restic 0.9.2` or latest installed to use this script (`stats` are not in older versions of `restic`).
 3. This script was made for GNU/Linux use. You could use it for other systems but you'll
-   probably have to edit some things depending on your system.
+   probably have to edit some things depending on your system. As far as I know, it works with
+   FreeBSD with some errors in the output of the "automatic function" because of the `date`
+   command (help is always appreciated) and you need to change the first line from `#!/bin/bash` to `#!/usr/local/bin/bash`;
+   it also works with Mac OS (`sed` version in Mac is old so you need to install
+   the GNU version via [Homebrew](https://brew.sh/) as commented by @askielboe in [this issue](https://gitlab.com/sulfuror/rescript.sh/issues/1#note_125304358)).
 4. I'm not a developer, programmer or anything related; I'm just a regular user
    sharing my basic knowledge. I created this for my personal use but decided
    to share it because when I was looking for something like this, I did not
