@@ -1,3 +1,17 @@
+# December 18, 2018
+**Fixes**:
+
+1. Fixed some issues with the output with Mac OS and FreeBSD when displaying the
+   Operating System.
+2. Fixed some issues with the ouptput when running the `automatic` function for
+   FreeBSD and Mac OS.
+
+To do:
+
+1. Fix code for Mac OS and FreeBSD when using the `automatic` function. The `date`
+   command is not reading the date from the "datefile". So the "CLEAN" variable
+   does not work with FreeBSD and Mac OS for now.
+
 # December 16, 2018
 **Changes and Fixes**:
 
