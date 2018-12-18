@@ -6,7 +6,7 @@
 2. Fixed some issues with the ouptput when running the `automatic` function for
    FreeBSD and Mac OS.
 
-To do:
+**To do**:
 
 1. Fix code for Mac OS and FreeBSD when using the `automatic` function. The `date`
    command is not reading the date from the "datefile". So the "CLEAN" variable
