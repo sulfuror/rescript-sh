@@ -102,12 +102,14 @@ if [ -d "$HOME/.local/bin" ] ; then
 fi
 function opsys {
   OS_NAME="$(uname -s)"
-  if [[ "$OS_NAME" == "Linux" || "$OS_NAME" == "GNU" ]] ; then
+  if [[ "$OS_NAME" == "Linux" || "$OS_NAME" == "Linux" ]] ; then
     echo -e "$(lsb_release -ds)"
   elif [[ "$OS_NAME" == "FreeBSD"* ]] ; then
     echo -e "$(uname -mrs)"
   elif [[ "$OS_NAME" == "Darwin"* ]] ; then
-    echo -e "$(sw_vers) $(osx_version)"
+    OS="$(sw_vers -productName)"
+    OS_VERS="$(sw_vers -productVersion)"
+    echo -e "$OS $OS_VERS"
   fi
 }
 function duration {
@@ -1055,18 +1057,37 @@ function automatic {
   # Check and Clean Repo Based on User's Policy
   if [[ -f "$HOME/.rescript/config/"$REPO"-datefile" || "$CLEAN" -gt "0" ]]; then
     NOW=$(date +"%s")
-    NEXT=$(date -f "$HOME/.rescript/config/"$REPO"-datefile" "+%s")
+    if [[ "$(uname -s)" == "Linux" || "$(uname -s)" == "GNU" ]] ; then
+      NEXT=$(date -f "$HOME/.rescript/config/"$REPO"-datefile" "+%s")
+    elif [[ "$(uname -s)" == "Darwin"* || "$(uname -s)" == "FreeBSD"* ]] ; then
+      NEXT=$(date -r "$HOME/.rescript/config/"$REPO"-datefile" "+%s")
+    fi
     RESULT=$((NEXT-NOW))
     DAYS=$((RESULT / 86400))
     HOURS=$(((RESULT / 3600) % 24))
     MINUTES=$(((RESULT / 60) % 60))
+    if [[ "$DAYS" == "1" ]] ; then
+      DAY="day"
+    else
+      DAY="days"
+    fi
+    if [[ "$HOURS" == "1" ]] ; then
+      HOUR="hour"
+    else
+      HOUR="hours"
+    fi
+    if [[ "$MINUTES" == "1" ]] ; then
+      MINUTE="minute"
+    else
+      MINUTE="minutes"
+    fi
     if [[ "$NOW" -lt "$NEXT" ]] ; then
       if [[ "$DAYS" -gt "0" ]] ; then
-        echo -e "$YELLOW""[Next cleanup and check in $DAYS days $HOURS hours and $MINUTES minutes...]""$ENDCOLOR"
+        echo -e "$YELLOW""[Next cleanup and check in $DAYS $DAY $HOURS $HOUR and $MINUTES $MINUTE...]""$ENDCOLOR"
       elif [[ "$HOURS" -gt "0" ]] ; then
-        echo -e "$YELLOW""[Next cleanup and check in $HOURS hours and $MINUTES minutes...]""$ENDCOLOR"
+        echo -e "$YELLOW""[Next cleanup and check in $HOURS $HOUR and $MINUTES $MINUTE...]""$ENDCOLOR"
       elif [[ "$MINUTES" -gt "0" ]] ; then
-        echo -e "$YELLOW""[Next cleanup and check in $MINUTES minutes...]""$ENDCOLOR"
+        echo -e "$YELLOW""[Next cleanup and check in $MINUTES $MINUTE...]""$ENDCOLOR"
       else
         echo -e "$YELLOW""[Repo will be cleaned and checked in the next run...]""$ENDCOLOR"
       fi
@@ -1079,7 +1100,11 @@ function automatic {
         restic check --cleanup-cache
         if [[ "$CLEAN" -gt "0" ]] ; then
           echo -e "$YELLOW""[Done Cleaning; Next Cleanup and Check Will Be Done in $CLEAN days...]""$ENDCOLOR"
-          date -d now+"$CLEAN"days > "$HOME/.rescript/config/"$REPO"-datefile"
+          if [[ "$(uname -s)" == "Linux" || "$(uname -s)" == "GNU" ]] ; then
+            date -d now+"$CLEAN"days > "$HOME/.rescript/config/"$REPO"-datefile"
+          elif [[ "$uname -s)" == "Darwin"* || "$(uname -s)" == "FreeBSD"8 ]] ; then
+            date -v +"$CLEAN"d > "$HOME/.rescript/config/"$REPO"-datefile"
+          fi
         fi
       fi
     fi
@@ -1256,12 +1281,27 @@ function cleanup-next {
     DAYS=$((RESULT / 86400))
     HOURS=$(((RESULT / 3600) % 24))
     MINUTES=$(((RESULT / 60) % 60))
+    if [[ "$DAYS" == "1" ]] ; then
+      DAY="day"
+    else
+      DAY="days"
+    fi
+    if [[ "$HOURS" == "1" ]] ; then
+      HOUR="hour"
+    else
+      HOUR="hours"
+    fi
+    if [[ "$MINUTES" == "1" ]] ; then
+      MINUTE="minute"
+    else
+      MINUTE="minutes"
+    fi
     if [[ "$DAYS" -gt "0" ]] ; then
-      echo -e "$YELLOW""Next cleanup and check in $DAYS days $HOURS hours and $MINUTES minutes...""$ENDCOLOR"
+      echo -e "$YELLOW""Next cleanup and check in $DAYS $DAY $HOURS $HOUR and $MINUTES $MINUTE...""$ENDCOLOR"
     elif [[ "$HOURS" -gt "0" ]] ; then
-      echo -e "$YELLOW""Next cleanup and check in $HOURS hours and $MINUTES minutes...""$ENDCOLOR"
+      echo -e "$YELLOW""Next cleanup and check in $HOURS $HOUR and $MINUTES $MINUTE...""$ENDCOLOR"
     elif [[ "$MINUTES" -gt "0" ]] ; then
-      echo -e "$YELLOW""Next cleanup and check in $MINUTES minutes...""$ENDCOLOR"
+      echo -e "$YELLOW""Next cleanup and check in $MINUTES $MINUTE...""$ENDCOLOR"
     else
       echo -e "$YELLOW""Repo will be cleaned and checked in the next run...""$ENDCOLOR"
     fi
