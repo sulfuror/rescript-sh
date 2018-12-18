@@ -16,7 +16,7 @@
 **Changes and Fixes**:
 
 1. Added two functions: one determines the operating system (if it is GNU/Linux, FreeBSD or OSX)
-   and another to calculate durantion of commands.
+   and another to calculate duration of commands.
 2. Added output with date and duration for regular restic commands.
 3. Added `--host` flag for backup operations and variable in the configuration
    file for this flag. If the variable is empty the `backup` command will use
