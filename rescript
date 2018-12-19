@@ -1,6 +1,6 @@
 #!/bin/bash
 # ============================================================== #
-version="rescript-v3.2"
+version="rescript-v3.3"
 usage="
 Author		: Sulfuror, Copyright (c) 2018 <sulfuror@gmail.com>
 URL		: https://gitlab.com/sulfuror/rescript.sh
@@ -1056,38 +1056,24 @@ function automatic {
 
   # Check and Clean Repo Based on User's Policy
   if [[ -f "$HOME/.rescript/config/"$REPO"-datefile" || "$CLEAN" -gt "0" ]]; then
-    NOW=$(date +"%s")
     if [[ "$(uname -s)" == "Linux" || "$(uname -s)" == "GNU" ]] ; then
+      NOW=$(date +"%s")
       NEXT=$(date -f "$HOME/.rescript/config/"$REPO"-datefile" "+%s")
     elif [[ "$(uname -s)" == "Darwin"* || "$(uname -s)" == "FreeBSD"* ]] ; then
-      NEXT=$(date -r "$HOME/.rescript/config/"$REPO"-datefile" "+%s")
+      NOW=$(gdate +"%s")
+      NEXT=$(gdate -f "$HOME/.rescript/config/"$REPO"-datefile" "+%s")
     fi
     RESULT=$((NEXT-NOW))
     DAYS=$((RESULT / 86400))
     HOURS=$(((RESULT / 3600) % 24))
     MINUTES=$(((RESULT / 60) % 60))
-    if [[ "$DAYS" == "1" ]] ; then
-      DAY="day"
-    else
-      DAY="days"
-    fi
-    if [[ "$HOURS" == "1" ]] ; then
-      HOUR="hour"
-    else
-      HOUR="hours"
-    fi
-    if [[ "$MINUTES" == "1" ]] ; then
-      MINUTE="minute"
-    else
-      MINUTE="minutes"
-    fi
     if [[ "$NOW" -lt "$NEXT" ]] ; then
       if [[ "$DAYS" -gt "0" ]] ; then
-        echo -e "$YELLOW""[Next cleanup and check in $DAYS $DAY $HOURS $HOUR and $MINUTES $MINUTE...]""$ENDCOLOR"
+        echo -e "$YELLOW""[Next cleanup and check in $DAYS days $HOURS hours and $MINUTES minutes...]""$ENDCOLOR"
       elif [[ "$HOURS" -gt "0" ]] ; then
-        echo -e "$YELLOW""[Next cleanup and check in $HOURS $HOUR and $MINUTES $MINUTE...]""$ENDCOLOR"
+        echo -e "$YELLOW""[Next cleanup and check in $HOURS hours and $MINUTES minutes...]""$ENDCOLOR"
       elif [[ "$MINUTES" -gt "0" ]] ; then
-        echo -e "$YELLOW""[Next cleanup and check in $MINUTES $MINUTE...]""$ENDCOLOR"
+        echo -e "$YELLOW""[Next cleanup and check in $MINUTES minutes...]""$ENDCOLOR"
       else
         echo -e "$YELLOW""[Repo will be cleaned and checked in the next run...]""$ENDCOLOR"
       fi
@@ -1102,8 +1088,8 @@ function automatic {
           echo -e "$YELLOW""[Done Cleaning; Next Cleanup and Check Will Be Done in $CLEAN days...]""$ENDCOLOR"
           if [[ "$(uname -s)" == "Linux" || "$(uname -s)" == "GNU" ]] ; then
             date -d now+"$CLEAN"days > "$HOME/.rescript/config/"$REPO"-datefile"
-          elif [[ "$uname -s)" == "Darwin"* || "$(uname -s)" == "FreeBSD"8 ]] ; then
-            date -v +"$CLEAN"d > "$HOME/.rescript/config/"$REPO"-datefile"
+          elif [[ "$(uname -s)" == "Darwin"* || "$(uname -s)" == "FreeBSD"* ]] ; then
+            gdate -d now+"$CLEAN"days > "$HOME/.rescript/config/"$REPO"-datefile"
           fi
         fi
       fi
@@ -1237,8 +1223,13 @@ function cleanup {
         restic forget --keep-last $KEEP_LAST --keep-hourly $KEEP_HOURLY --keep-daily $KEEP_DAILY --keep-weekly $KEEP_WEEKLY --keep-monthly $KEEP_MONTHLY --keep-yearly $KEEP_YEARLY
         restic prune --cleanup-cache
 	if [[ -f "$HOME/.rescript/config/"$REPO"-datefile" || "$CLEAN" -gt "0" ]] ; then
-	  NOW=$(date +"%s")
-	  NEXT=$(date -f "$HOME/.rescript/config/"$REPO"-datefile" "+%s")
+          if [[ "$(uname -s)" == "Linux" || "$(uname -s)" == "GNU" ]] ; then
+            NOW=$(date +"%s")
+            NEXT=$(date -f "$HOME/.rescript/config/"$REPO"-datefile" "+%s")
+          elif [[ "$(uname -s)" == "Darwin"* || "$(uname -s)" == "FreeBSD"* ]] ; then
+            NOW=$(gdate +"%s")
+            NEXT=$(gdate -f "$HOME/.rescript/config/"$REPO"-datefile" "+%s")
+          fi
 	  RESULT=$((NEXT-NOW))
 	  DAYS=$((RESULT / 86400))
 	  HOURS=$(((RESULT / 3600) % 24))
@@ -1275,33 +1266,23 @@ function cleanup-next {
     echo "For more information about the usage check out the following link:"
     echo "https://gitlab.com/sulfuror/rescript.sh/blob/master/README.md#usage"
   else
-    NOW=$(date +"%s")
-    NEXT=$(date -f "$HOME/.rescript/config/"$REPO"-datefile" "+%s")
+    if [[ "$(uname -s)" == "Linux" || "$(uname -s)" == "GNU" ]] ; then
+      NOW=$(date +"%s")
+      NEXT=$(date -f "$HOME/.rescript/config/"$REPO"-datefile" "+%s")
+    elif [[ "$(uname -s)" == "Darwin"* || "$(uname -s)" == "FreeBSD"* ]] ; then
+      NOW=$(gdate +"%s")
+      NEXT=$(gdate -f "$HOME/.rescript/config/"$REPO"-datefile" "+%s")
+    fi
     RESULT=$((NEXT-NOW))
     DAYS=$((RESULT / 86400))
     HOURS=$(((RESULT / 3600) % 24))
     MINUTES=$(((RESULT / 60) % 60))
-    if [[ "$DAYS" == "1" ]] ; then
-      DAY="day"
-    else
-      DAY="days"
-    fi
-    if [[ "$HOURS" == "1" ]] ; then
-      HOUR="hour"
-    else
-      HOUR="hours"
-    fi
-    if [[ "$MINUTES" == "1" ]] ; then
-      MINUTE="minute"
-    else
-      MINUTE="minutes"
-    fi
     if [[ "$DAYS" -gt "0" ]] ; then
-      echo -e "$YELLOW""Next cleanup and check in $DAYS $DAY $HOURS $HOUR and $MINUTES $MINUTE...""$ENDCOLOR"
+      echo -e "$YELLOW""Next cleanup and check in $DAYS days $HOURS hours and $MINUTES minutes...""$ENDCOLOR"
     elif [[ "$HOURS" -gt "0" ]] ; then
-      echo -e "$YELLOW""Next cleanup and check in $HOURS $HOUR and $MINUTES $MINUTE...""$ENDCOLOR"
+      echo -e "$YELLOW""Next cleanup and check in $HOURS hours and $MINUTES minutes...""$ENDCOLOR"
     elif [[ "$MINUTES" -gt "0" ]] ; then
-      echo -e "$YELLOW""Next cleanup and check in $MINUTES $MINUTE...""$ENDCOLOR"
+      echo -e "$YELLOW""Next cleanup and check in $MINUTES minutes...""$ENDCOLOR"
     else
       echo -e "$YELLOW""Repo will be cleaned and checked in the next run...""$ENDCOLOR"
     fi
