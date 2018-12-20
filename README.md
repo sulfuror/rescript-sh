@@ -48,7 +48,7 @@ export PATH=$PATH:$HOME/bin:$HOME/.local/bin
 **For FreeBSD**:
 
 1. Install `coreutils` package by typing: `pkg install coreutils`.
-2. Set your `PATH` for your 
+2. Set the `PATH` for your `$HOME/bin` or `$HOME/.local/bin`.
 3. You may need to: 1) replace `#!/bin/bash` to `#!/usr/local/bin/bash` (this is the first line in the script),
    OR 2) use as follows: `bash /path/to/rescript [repo_name] [command]`. If you prefer the first method
    you can type `bash` which will open a bash session and call it without the full path; you need
