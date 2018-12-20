@@ -1,3 +1,11 @@
+# December 19, 2018
+**Fixes**:
+
+1. Fixed code for Mac OS and FreeBSD when using the `automatic` function, `cleanup`
+   command, `cleanup --next`; also `config` and `editor` commands were having
+   trouble because of `sed` and now, if you follow the README instructions for
+   Mac and FreeBSD, you're not supposed to have any trouble.
+
 # December 18, 2018
 **Fixes**:
 
