@@ -33,25 +33,26 @@ operation and the duration of the whole operation.
 
 **For Mac OS**:
 
-1. You may need to install the GNU version of `sed` via [Homebrew](https://brew.sh/)
-   as commented by @askielboe in [this issue](https://gitlab.com/sulfuror/rescript.sh/issues/1#note_125304358).
-2. It is recommended to choose `nano` as your text editor. At least for me it was the
-   only one that I get to work. If you can't chose it from the menu when running
-   `rescript config`, open the script and look for `EDITOR=""` in line 82 and replace
-   it with `EDITOR="nano"`.
-3. The `automatic function` when running `rescript [repo_name]` works but the
-   it will run all commands every time is used including `forget` and `prune` even
-   when you specified a number of days in the "CLEAN" variable. I'll try to fix this
-   later but for now the "CLEAN" variable will not work in Mac OS.
+1. Install [brew](https://brew.sh).
+2. `brew install coreutils`
+3. `brew install gnu-sed --with-default-names`
+4. **NOTE**: `nano` works great as a default text editor; chosing another one with Mac
+   could require a little tweaking with your script.
+5. **OPTIONAL**: to include `$HOME/bin` or `$HOME/.local/bin` in your `PATH`, edit or create
+   a file called `.bash_profile` in your `$HOME` by typing `nano .bash_profile`
+   and after pasting this following line save it and close it using Ctl+x:
+```
+export PATH=$PATH:$HOME/bin:$HOME/.local/bin
+```
 
 **For FreeBSD**:
 
-1. You may need to replace `#!/bin/bash` to `#!/usr/local/bin/bash` (this is the first line in the script).
-2. The `automatic function` when running `rescript [repo_name]` works but the
-   it will run all commands every time is used including `forget` and `prune` even
-   when you specified a number of days in the "CLEAN" variable. I'll try to fix this
-   later but for now the "CLEAN" variable will not work in FreeBSD.
-
+1. Install `coreutils` package by typing: `pkg install coreutils`.
+2. Set your `PATH` for your 
+3. You may need to: 1) replace `#!/bin/bash` to `#!/usr/local/bin/bash` (this is the first line in the script),
+   OR 2) use as follows: `bash /path/to/rescript [repo_name] [command]`. If you prefer the first method
+   you can type `bash` which will open a bash session and call it without the full path; you need
+   to set your `PATH` for this preferably for `$HOME/bin` or `$HOME/.local/bin`.
 
 ## Installation:
 
