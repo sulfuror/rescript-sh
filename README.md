@@ -137,7 +137,7 @@ Pluma and Kate (the default text editors for almost any DE).
 Once the text editor is set, then it will display 3 options: 1) Configuration,
 2) Exclusions, 3) Exit. Select 1 to open the configuration file, 2 to open the 
 exclusion list and 3 to exit the dialog. Once you've done that you can start
-using the script. If you don't have any repo remember to run `rescript [repo_name} init`
+using the script. If you don't have any repo remember to run `rescript [repo_name] init`
 after configuring `rescript` or else it will fail to do anything.
 
 **Things you need to change in your configuration file**:
