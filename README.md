@@ -95,6 +95,16 @@ at the end. Once everything is set, if it's not working properly don't panic, ma
 wasn't there and the script created it and you only need to restart your session, or log out and login, or reboot
 your computer in order for this work. The same applies if you needed to copy and paste the code before.
 
+**For system wide use**:
+
+```
+~$ git clone https://gitlab.com/sulfuror/rescript.sh.git
+~$ cd rescript.sh
+~$ sudo mv ./rescript /usr/bin/rescript
+~$ sudo chmod 755 /usr/bin/rescript
+```
+Configuration files will be created in every User's home individually. 
+
 **Different repositories**:
 
 You can use `rescript` to easily manage different repositories by creating a
