@@ -226,22 +226,24 @@ Please see restic `help` and [documentation](https://restic.readthedocs.io/en/st
 **Rescript Commands**:
 
 1. `backup`: take a snapshot using the values set in your configuration file.
-2. `cleanup`: this will perform `forget` according to the policies in your configuration file and `prune`.
-3. `config`: this will open the configuration dialog. This command does not need a `[repo_name]`.
-4. `editor`: change the default rescript text editor (for configuration and exclusion files). This command does not need a `[repo_name]`.
-5. `help`: display help dialog. This command does not need a `[repo_name]`.
-6. `install`: this will place rescript in your `$PATH` (in your home directory). This command does not need a `[repo_name]`.
-7. `logs`: this command needs an option. Options are as follows:
+2. `checkout`: this command is will execute `check --read-data-subset #/10` 
+   and it will select a random number between 1-10 out of 10 groups.
+3. `cleanup`: this will perform `forget` according to the policies in your configuration file and `prune`.
+4. `config`: this will open the configuration dialog. This command does not need a `[repo_name]`.
+5. `editor`: change the default rescript text editor (for configuration and exclusion files). This command does not need a `[repo_name]`.
+6. `help`: display help dialog. This command does not need a `[repo_name]`.
+7. `install`: this will place rescript in your `$PATH` (in your home directory). This command does not need a `[repo_name]`.
+8. `logs`: this command needs an option. Options are as follows:
 	1. `--cat`: display output of selected log file (you need to copy and paste the filename to display it).
 	e.g.: `rescript [repo_name] logs --cat rescript-log-2018-01-01-00:00`
 	2. `--help`: help for `logs`.
 	3. `--list`: list all log files saved.
 	3. `--remove`: remove all log files related to your script (if you have different scripts for different repositoies
 	  you need to call `--remove` for every instance).
-8. `mounter`: this option will mount your repository; it'll create a 
+9. `mounter`: this option will mount your repository; it'll create a 
    directory in your `/home` so it can mount your repository. Once you quit
    the mount option with `Ctrl+c` it will delete the directory.
-9. `restorer`: this command will restore the snapshot you want to restore. You need to indicate
+10. `restorer`: this command will restore the snapshot you want to restore. You need to indicate
    the snapshot-ID you want to restore. With this command you don't need to indicate where to restore,
    it will automatically create a new file in your home directory called `restore-snapshotID-randomnumber`.
    It will do the random number so it will not conflict with maybe a file called the same in your
@@ -249,7 +251,7 @@ Please see restic `help` and [documentation](https://restic.readthedocs.io/en/st
    there is also a tag for indicating the snapshot ID alone and this is `--snapshot`. This "snapshot"
    tag is only available for `rescript`. For help type `rescript [repo_name] restorer --help`.
    This command with any flag used with `rescript` will run `--verify` flag when restoring.
-10. `unlocker`: this command WILL NOT unlock your repository. When you run this
+11. `unlocker`: this command WILL NOT unlock your repository. When you run this
    script it will create a separate lock just for the script (it has nothing
    to do with the restic locks), so if your latest run left a lock (which is
    very unlikely unless it occurs an abrupt shut down while the script was running)
@@ -257,22 +259,42 @@ Please see restic `help` and [documentation](https://restic.readthedocs.io/en/st
    script is already running and it will not run again until the lock file is removed.
    If you're really sure the script is not running you can just run this command
    and it will delete the lock file so you can continue with your operation.
-11. `version`: display rescript version. This command does not need a `[repo_name]`.
+12. `version`: display rescript version. This command does not need a `[repo_name]`.
 
 **Rescript Flags**:
 
-1. `--help`: display help for a specific command.
-2. `--log`: if you set the "LOGGING" variable to "yes" you don't need this flag
+1. `--help, -h`: display help for a specific command.
+2. `--log, -l`: if you set the "LOGGING" variable to "yes" you don't need this flag
    when you run the automatic option (`rescript [repo_name]`); this flag is intended
-   to use when you run a `rescript` command. For example, you can run `rescript [repo_name] cleanup --log`
-   to create a logfile for this specific command. This is available for `backup`,
-   `cleanup`, `restorer` and `check` when used with `--random` flag. It is very important
-   that if you want to use this flag, you need to use it at the end of all other commands,
-   flags and options. e.g. `rescript [repo_name] restorer --tag [your_tag] --log`.
-3. `--random`: this flag is only available for `check` and if used, you can't combine
-   it with another `restic` flag; you can use `--log` when using this flag.
-   This flag will execute `check --read-data-subset #/10` and it will select a random
-   number between 1-10 out of 10 groups.
+   to use when you run a `rescript` or `restic` command. For example, you can run `rescript [repo_name] --log cleanup`
+   to create a logfile for this specific command. This is available for all `rescript` and `restic`
+   commands. It is very important that if you want to use this flag, you need to use it before of all other commands,
+   flags and options. e.g. `rescript [repo_name] --log restorer --tag [your_tag]`.
+   You can combine this flag with `--time`.
+3. `--time, -t`: this flag is only available for `restic` and if used, it will display
+   an output with the date, time and duration of the command executed. Like `--log` it must
+   be indicated before all other commands, for example: `rescript [repo_name] --time check [--flags]`.
+   You can combine this flag with `--log`.
+
+Since `rescript` commands will always display an output with the date and duration,
+the `--time` flag makes no sense for `rescript` commands; this is why the `--time`
+flag will only work with `restic` commands.
+
+Because `--log` and `--time` can be combined, you can use these two as follows:
+```
+rescript [repo_name] -l check
+OR
+rescript [repo_name] -t check
+OR
+rescript [repo_name] -t -l check
+OR
+rescript [repo_name] -l -t check
+```
+The first option will only create a log file, the second option will just display
+the output with duration without creating a log file; the third and fourth will do
+the same (it doesn't matter the order), the both will create a log file and will
+display the time and duration. You can use for both options the long flags `--log`
+and `--time` or the short way `-l` and `-t`. 
 
 ## Adding a Cron Job
 You can use a cron job to run backups automatically. You'll need to open your 
@@ -299,7 +321,7 @@ for this cron job. You can create one using the `--log` flag and that will creat
 a log inside your `$HOME/.rescript/logs` directory. If you want this in your
 `crontab` you can do this as follows:
 ```
-0 */4 * * * /PATH/TO/YOUR/rescript [repo_name] backup --log
+0 */4 * * * /PATH/TO/YOUR/rescript [repo_name] --log backup
 ```
 
 You can read more about how `crontab` works in [here](https://help.ubuntu.com/community/CronHowto).
