@@ -1,6 +1,6 @@
 #!/bin/bash
 # ============================================================== #
-version="rescript-v3.3"
+version="rescript-v3.4"
 usage="
 Author		: Sulfuror, Copyright (c) 2018 <sulfuror@gmail.com>
 URL		: https://gitlab.com/sulfuror/rescript.sh
@@ -35,6 +35,9 @@ OR
 Rescript commands:
   backup		Take a snapshot using the values set in
   			your configuration file.
+  checkout		This command will execute check using
+  			[--read-data-subset] and selecting a random
+  			number between 1-10 out of 10 groups.
   cleanup		Forget and prune according to the policies
   			in your configuration file.
   config		Rescript configuration; set your default
@@ -58,18 +61,19 @@ Rescript commands:
   			not need a [repo_name].
 
 Rescript flags:
-  --help		This flag is available for all rescript commands
+  --help, -h		This flag is available for all rescript commands
   			and it can be used to display the usage for every
   			single rescript command.
-  --log			This flag is available only for [backup], [cleanup],
-  			[restorer] and [check] when using [--random] flag.
-  			If used, it must be after all commands, flags and
-  			options; this will create a log file with the
-  			command output.
-  --random		This flag is available for [check] command only;
-  			it will execute check using [--read-data-subset]
-  			selecting a random number between 1-10 out of 10
-  			groups.
+  --log, -l		This flag is available for all rescript and restic
+  			commands. If used, it must be before all commands,
+  			flags and options; this will create a log file
+  			with the command output. You can combine this
+  			flag with [--time].
+  --time, -t		This flag is available ONLY for restic commands.
+			If used, it must be before all commands, flags
+			and options. This flag will display an output
+			with the date, time and duration of the command.
+			You can combine this flag with [--log].
 "
 # ============================================================== #
 YELLOW="\033[33m"
@@ -167,7 +171,7 @@ function select_editor {
   echo " [8] Other            "
   echo " [9] Exit             "
   echo "======================"
-  read -p "Select the Text Editor you want to use: " texteditor
+  read -p "Select the Text Editor you want to use [ 1 - 9 ]: " texteditor
   if [[ -e "$HOME/bin/$(basename "$0")" ]] ; then
     if [[ "$texteditor" == "1" || "$texteditor" == "Nano" || "$texteditor" == "nano" ]] ; then
       sed -i 's/^\(EDITOR=\).*/\1"nano"/' "$HOME/bin/$(basename "$0")"
@@ -283,7 +287,7 @@ function select_editor {
   echo " [8] Other            "
   echo " [9] Exit             "
   echo "======================"
-  read -p "Select the Text Editor you want to use: " texteditor
+  read -p "Select the Text Editor you want to use [ 1 - 9 ]: " texteditor
   if [[ -e "$HOME/bin/$(basename "$0")" ]] ; then
     if [[ "$texteditor" == "1" || "$texteditor" == "Nano" || "$texteditor" == "nano" ]] ; then
       sed -i '' 's/^\(EDITOR=\).*/\1"nano"/' "$HOME/bin/$(basename "$0")"
@@ -396,7 +400,7 @@ function main_menu {
   echo " [2] Exclusions       "
   echo " [3] Exit             "
   echo "======================"
-  read -p "Select an option and press Enter: " main
+  read -p "Select an option and press Enter [ 1 - 3 ]: " main
   if [[ "$main" == "1" || "$main" == "Configuration" || "$main" == "configuration" ]] ; then
     clear
     config_menu
@@ -424,7 +428,7 @@ function config_menu {
   echo " [4] Back to Main Menu"
   echo " [5] Exit             "
   echo "======================"
-  read -p "Select an option and press Enter: " cfgopt
+  read -p "Select an option and press Enter [ 1 - 5 ]: " cfgopt
   if [[ "$cfgopt" == "1" || "$cfgopt" == "Edit" || "$cfgopt" == "edit" ]] ; then
     clear
     edit_config_files
@@ -455,7 +459,7 @@ function edit_config_files {
   echo "----------------------"
   ls $HOME/.rescript/config | grep -e '.conf' | sed -e 's/\.conf$//'
   echo "======================"
-  read -p "Write the name of the repo file to open or one of the options above: " conf
+  read -p "Write the name of the repo file to open or one of the options above [ 1 - 2 ]: " conf
   if [[ "$conf" == "1" || "$conf" == "Back" || "$conf" == "back" ]] ; then
     clear
     config_menu
@@ -578,7 +582,7 @@ function delete_config_file {
   echo "----------------------"
   ls $HOME/.rescript/config | grep -e '.conf' | sed -e 's/\.conf$//'
   echo "======================"
-  read -p "Type the name of the repo file you wish to delete: " del
+  read -p "Type the name of the repo file you wish to delete or one of the optinos above [ 1 - 2 ]: " del
   if [[ "$del" == "1" || "$del" == "Back" ||"$del" == "back" ]] ; then
     clear
     config_menu
@@ -621,7 +625,7 @@ function exclusion_menu {
   echo " [3] Back to Main Menu"
   echo " [4] Exit             "
   echo "======================"
-  read -p "Select an option and press Enter: " excl_opt
+  read -p "Select an option and press Enter [ 1 - 4 ]: " excl_opt
   if [[ "$excl_opt" == "1" || "$excl_opt" == "Edit" ||"$excl_opt" == "edit" ]] ; then
     clear
     edit_exclusions
@@ -650,7 +654,7 @@ function edit_exclusions {
   echo "----------------------"
   ls $HOME/.rescript/config | grep -e '-exclusions' | sed -e 's/\-exclusions$//'
   echo "======================"
-  read -p "Type the name of the exclusions file you wish to open: " excl_edit
+  read -p "Type the name of the exclusions file you wish to open or one of the options above [ 1 - 2 ]: " excl_edit
   if [[ "$excl_edit" == "1" || "$excl_edit" == "Back" ||"$excl_edit" == "back" ]] ; then
     clear
     exclusion_menu
@@ -677,7 +681,7 @@ function build_exclusions {
   echo " [3] Back             "
   echo " [4] Exit             "
   echo "======================"
-  read -p "Select an option and press Enter: " excl_bld
+  read -p "Select an option and press Enter [ 1 - 4 ]: " excl_bld
   if [[ "$excl_bld" == "1" || "$excl_bld" == "Home" ||"$excl_bld" == "home" ]] ; then
     clear
     echo "======================"
@@ -688,12 +692,24 @@ function build_exclusions {
     echo "----------------------"    
     ls $HOME/.rescript/config | grep -e '-exclusions' | sed -e 's/\-exclusions$//'
     echo "======================"
-    read -p "Type the name of the exclusion file you want to build: " excl_file
-    if [[ "$excl_file" ]] ; then
-      echo "This action will override your existing exclusion file."
+    read -p "Type the name of the exclusion file you want to build or one of the options above [ 1 - 2 ]: " excl_file
+    if [[ "$excl_file" == "1" || "$excl_file" == "Back" || "$excl_file" == "back" ]] ; then
+      clear
+      build_exclusions
+    elif [[ "$excl_file" == "2" || "$excl_file" == "Exit" || "$excl_file" == "exit" ]] ; then
+      echo "Exiting..."
+      exit
+    elif [[ -e "$HOME/.rescript/config/$excl_file-exclusions" ]] ; then 
+      echo "This action will override your existing [$excl_file] exclusion file."
       read -p "Are you sure you want to proceed? y/n: " ans_excl
       if [[ "$ans_excl" == "yes" || "$ans_excl" == "y" || "$ans_excl" == "Yes" || "$ans_excl" == "Y" || "$ans_excl" == "YES" ]] ; then
-        if [[ -e "$HOME/.rescript/config/$excl_file-exclusions" ]] ; then
+        if [[ "$excl_file" == "1" || "$excl_file" == "Back" || "$excl_file" == "back" ]] ; then
+    	  clear
+    	  build_exclusions
+        elif [[ "$excl_file" == "2" || "$excl_file" == "Exit" || "$excl_file" == "exit" ]] ; then
+    	  echo "Exiting..."
+    	  exit
+        elif [[ -e "$HOME/.rescript/config/$excl_file-exclusions" ]] ; then
 	  {
 	  echo "# These are the default rescript exclusions for your home directory:"
 	  echo "$HOME/.cache/*"
@@ -751,12 +767,6 @@ function build_exclusions {
 	  clear
 	  echo "Done building exclusion list for ["$excl_file"]."
 	  build_exclusions
-        elif [[ "$excl_file" == "1" || "$excl_file" == "Back" || "$excl_file" == "back" ]] ; then
-    	  clear
-    	  build_exclusions
-        elif [[ "$excl_file" == "2" || "$excl_file" == "Exit" || "$excl_file" == "exit" ]] ; then
-    	  echo "Exiting..."
-    	  exit
         else
 	  clear
 	  echo "There is no exclusion file called ["$excl_file"]; try again with the correct name."
@@ -767,6 +777,10 @@ function build_exclusions {
         echo "No changes made."
         build_exclusions
       fi
+    else
+      clear
+      echo "There is no exclusion file called [$excl_file]."
+      build_exclusions
     fi
   elif [[ "$excl_bld" == "2" || "$excl_bld" == "System" ||"$excl_bld" == "system" ]] ; then
     clear
@@ -778,9 +792,15 @@ function build_exclusions {
     echo "----------------------"    
     ls $HOME/.rescript/config | grep -e '-exclusions' | sed -e 's/\-exclusions$//'
     echo "======================"
-    read -p "Type the name of the exclusion file you want to build: " excl_file
-    if [[ "$excl_file" ]] ; then
-      echo "This action will override your existing exclusion file."
+    read -p "Type the name of the exclusion file you want to build or one of the options above [ 1 - 2 ]: " excl_file
+    if [[ "$excl_file" == "1" || "$excl_file" == "Back" || "$excl_file" == "back" ]] ; then
+      clear
+      build_exclusions
+    elif [[ "$excl_file" == "2" || "$excl_file" == "Exit" || "$excl_file" == "exit" ]] ; then
+      echo "Exiting..."
+      exit
+    elif [[ -e "$HOME/.rescript/config/$excl_file-exclusions" ]] ; then 
+      echo "This action will override your existing [$excl_file] exclusion file."
       read -p "Are you sure you want to proceed? y/n: " ans_excl
       if [[ "$ans_excl" == "yes" || "$ans_excl" == "y" || "$ans_excl" == "Yes" || "$ans_excl" == "Y" || "$ans_excl" == "YES" ]] ; then
         if [[ -e "$HOME/.rescript/config/$excl_file-exclusions" ]] ; then
@@ -805,12 +825,6 @@ function build_exclusions {
 	  clear
 	  echo "Done building exclusion list for ["$excl_file"]."
 	  build_exclusions
-        elif [[ "$excl_file" == "1" || "$excl_file" == "Back" || "$excl_file" == "back" ]] ; then
-    	  clear
-    	  build_exclusions
-        elif [[ "$excl_file" == "2" || "$excl_file" == "Exit" || "$excl_file" == "exit" ]] ; then
-    	  echo "Exiting..."
-    	  exit
         else
 	  clear
 	  echo "There is no exclusion file called ["$excl_file"]; try again with the correct name."
@@ -821,6 +835,10 @@ function build_exclusions {
         echo "No changes made."
         build_exclusions
       fi
+    else
+      clear
+      echo "There is no exclusion file called [$excl_file]."
+      build_exclusions
     fi
   elif [[ "$excl_bld" == "3" || "$excl_bld" == "Back" ||"$excl_bld" == "back" ]] ; then
     clear
@@ -881,9 +899,9 @@ function backup-help {
   echo "  rescript [repo_name] backup [--flag]"
   echo ""
   echo "Available flags:"
-  echo "  --help		Display this help dialog."
-  echo "  --log			This will create a log file with"
-  echo "			the command output. Use only after all other"
+  echo "  --help, -h		Display this help dialog."
+  echo "  --log, -l		This will create a log file with"
+  echo "			the command output. Use only before all other"
   echo "			commands, flags and options."
   echo ""
 }
@@ -899,11 +917,11 @@ function cleanup-help {
   echo "  rescript [repo_name] cleanup [--flag]"
   echo ""
   echo "Available flags:"
-  echo "  --help		Display this help dialog."
-  echo "  --log			This will create a log file with"
-  echo "			the command output. Use only after all other"
+  echo "  --help, -h		Display this help dialog."
+  echo "  --log, -l		This will create a log file with"
+  echo "			the command output. Use only before all other"
   echo "			commands, flags and options."
-  echo "  --next		Display next scheduled; work only when"
+  echo "  --next, -n		Display next scheduled; work only when"
   echo "			CLEANUP variable is set."
   echo ""  
 }
@@ -917,7 +935,7 @@ function config-help {
   echo "  rescript config [--flag]"
   echo ""
   echo "Available flags:"
-  echo "  --help		Display this help dialog."
+  echo "  --help, -h		Display this help dialog."
   echo ""
 }
 
@@ -932,7 +950,7 @@ function editor-help {
   echo "  rescript editor [--flag]"
   echo ""
   echo "Available flags:"
-  echo "  --help		Display this help dialog."
+  echo "  --help, -h		Display this help dialog."
   echo ""
 }
 
@@ -950,7 +968,21 @@ function install-help {
   echo "  rescript install [--flag]"
   echo ""
   echo "Available flags:"
-  echo "  --help		Display this help dialog."
+  echo "  --help, -h		Display this help dialog."
+  echo ""
+}
+
+function logger-help {
+  echo "[--log] is a flag used to make a log of your command."
+  echo "This flag will create a log file of your desired command"
+  echo "inside your rescript logs directory. This flag is intended"
+  echo "to use only before commands, flags and options. You can"
+  echo "use this flag and [--time] at the same time."
+  echo ""
+  echo "Usage:"
+  echo "  rescript [repo_name] --log [command] [flag] [option]"
+  echo "OR if you want to use [--time] to log the duration too:"
+  echo "  rescript [repo_name] --log --time [command] [flag] [option]"
   echo ""
 }
 
@@ -962,10 +994,10 @@ function logs-help {
   echo "OR"
   echo "  rescript [repo_name] logs [flag] [logfile]"
   echo "Available flags:"
-  echo "  --cat			Display output of selected log file."
-  echo "  --help		Display this help dialog."
-  echo "  --list		List all log files saved."
-  echo "  --remove		Remove all log files."
+  echo "  --cat, -c		Display output of selected log file."
+  echo "  --help, -h		Display this help dialog."
+  echo "  --list, -l		List all log files saved."
+  echo "  --remove, -r		Remove all log files."
   echo ""
 }
 
@@ -979,8 +1011,26 @@ function mounter-help {
   echo "  rescript [repo_name] mounter [--flag]"
   echo ""
   echo "Available flags:"
-  echo "  --help		Display this help dialog."
+  echo "  --help, -h		Display this help dialog."
   echo ""
+}
+
+function random-check-help {
+  echo "[checkout] is for [check --read-data-subset RANDOM/10] in restic"
+  echo ""
+  echo "This command will execute [check --read-data-subset]"
+  echo "selecting a random number between 1-10 out of 10 groups."
+  echo ""
+  echo "Usage:"
+  echo "  rescript [repo_name] checkout"
+  echo "OR"
+  echo "  rescript [repo_name] --log checkout"
+  echo ""
+  echo "Available flags:"
+  echo "  --log, -l		This will create a log file with"
+  echo "			the command output. Use only before all other"
+  echo "			commands, flags and options."
+  echo ""  
 }
 
 function restorer-help {
@@ -994,17 +1044,32 @@ function restorer-help {
   echo "Usage:"
   echo "  rescript [repo_name] restorer [flag] [host|path|snapshot ID|tag]"
   echo "Available flags:"
-  echo "  --log			This will create a log file with"
-  echo "			the command output. Use only after all other"
+  echo "  --log, -l		This will create a log file with"
+  echo "			the command output. Use only before all other"
   echo "			commands, flags and options."
-  echo "  --help		Display this help dialog."
-  echo "  --host		Only consider snapshots for this host"
+  echo "  --help, -h		Display this help dialog."
+  echo "  --host, -H		Only consider snapshots for this host"
   echo "			when snapshot-ID is [latest]."
-  echo "  --path		Only consider snapshots which include"
+  echo "  --path, -p		Only consider snapshots which include"
   echo "			this [absolute] path for snapshot-ID [latest]."
-  echo "  --snapshot		Indicate snapshot-ID to restore."
-  echo "  --tag			Only consider snapshots which include this"
+  echo "  --snapshot, -s	Indicate snapshot-ID to restore."
+  echo "  --tag, -T		Only consider snapshots which include this"
   echo "			taglist for snapshot-ID [latest]."
+  echo ""
+}
+
+function time-help {
+  echo "[--time] is a flag to take date, time and duration of commands."
+  echo "This flag will create a small output between the command"
+  echo "indicating the executed command for your repo, the date and time"
+  echo "when the command began, when it ended and duration. This flag"
+  echo "is intended to use only before commands, flags and options."
+  echo "You can use this flag and [--log] at the same time."
+  echo ""
+  echo "Usage:"
+  echo "  rescript [repo_name] --time [command] [flag] [option]"
+  echo "OR if you want to use [--log] to log the duration too:"
+  echo "  rescript [repo_name] --time --log [command] [flag] [option]"
   echo ""
 }
 
@@ -1020,7 +1085,7 @@ function unlocker-help {
   echo "Usage:"
   echo "  rescript [repo_name] unlocker [--flag]"
   echo "Available flags:"
-  echo "  --help		Display this help dialog."
+  echo "  --help, -h		Display this help dialog."
   echo ""
 }
 
@@ -1031,22 +1096,25 @@ if [[ ! "$1"  ]] ; then
   echo "You need to indicate the name of your repository or a"
   echo "command; type [rescript help] for usage."
   exit
-elif [[ "$1" == "--log" ]] ; then
-  echo "[--log] flag must be indicated after other commands, flags and/or options."
-  echo "e.g."
-  echo "  rescript [repo_name] [command] [--flags] [options] --log"
-  echo "This flag is only available for the following rescript commands."
-  echo "  backup"
-  echo "  check (only when used with [--random] flag)"
-  echo "  cleanup"
-  echo "  restorer"
+elif [[ "$1" == "--log" || "$1" == "-l" ]] ; then
+  echo "You have not indicated any repo for ["$1"]..."
   echo ""
-  echo "$usage"
+  logger-help
+  exit
+elif [[ "$1" == "--time" || "$1" == "-t" ]] ; then
+  echo "You have not indicated any repo for ["$1"]..."
+  echo ""
+  time-help
   exit
 elif [[ "$1" == "backup" ]] ; then
   echo "You have not indicated any repo for ["$1"]..."
   echo ""
   backup-help
+  exit
+elif [[ "$1" == "checkout" ]] ; then
+  echo "You have not indicated any repo for ["$1"]..."
+  echo ""
+  random-check-help
   exit
 elif [[ "$1" == "cleanup" ]] ; then
   echo "You have not indicated any repo for ["$1"]..."
@@ -1185,13 +1253,28 @@ function automatic {
     DAYS=$((RESULT / 86400))
     HOURS=$(((RESULT / 3600) % 24))
     MINUTES=$(((RESULT / 60) % 60))
+    if [[ "$DAYS" == "1" ]] ; then
+      D="day"
+    else
+      D="days"
+    fi
+    if [[ "$HOURS" == "1" ]] ; then
+      H="hour"
+    else
+      H="hours"
+    fi
+    if [[ "$MINUTES" == "1" ]] ; then
+      M="minute"
+    else
+      M="minutes"
+    fi
     if [[ "$NOW" -lt "$NEXT" ]] ; then
       if [[ "$DAYS" -gt "0" ]] ; then
-        echo -e "$YELLOW""[Next cleanup and check in $DAYS days $HOURS hours and $MINUTES minutes...]""$ENDCOLOR"
+        echo -e "$YELLOW""[Next cleanup and check in $DAYS $D $HOURS $H and $MINUTES $M...]""$ENDCOLOR"
       elif [[ "$HOURS" -gt "0" ]] ; then
-        echo -e "$YELLOW""[Next cleanup and check in $HOURS hours and $MINUTES minutes...]""$ENDCOLOR"
+        echo -e "$YELLOW""[Next cleanup and check in $HOURS $H and $MINUTES $M...]""$ENDCOLOR"
       elif [[ "$MINUTES" -gt "0" ]] ; then
-        echo -e "$YELLOW""[Next cleanup and check in $MINUTES minutes...]""$ENDCOLOR"
+        echo -e "$YELLOW""[Next cleanup and check in $MINUTES $M...]""$ENDCOLOR"
       else
         echo -e "$YELLOW""[Repo will be cleaned and checked in the next run...]""$ENDCOLOR"
       fi
@@ -1203,7 +1286,12 @@ function automatic {
         echo -e "$YELLOW""[Checking for Errors in Repo...]""$ENDCOLOR"
         restic check --cleanup-cache
         if [[ "$CLEAN" -gt "0" ]] ; then
-          echo -e "$YELLOW""[Done Cleaning; Next Cleanup and Check Will Be Done in $CLEAN days...]""$ENDCOLOR"
+          if [[ "$CLEAN" == "1" ]] ; then
+            D="day"
+          else
+            D="days"
+          fi
+          echo -e "$YELLOW""[Done Cleaning; Next Cleanup and Check Will Be Done in $CLEAN $D...]""$ENDCOLOR"
           if [[ "$(uname -s)" == "Linux" || "$(uname -s)" == "GNU" ]] ; then
             date -d now+"$CLEAN"days > "$HOME/.rescript/config/"$REPO"-datefile"
           elif [[ "$(uname -s)" == "Darwin"* || "$(uname -s)" == "FreeBSD"* ]] ; then
@@ -1242,7 +1330,6 @@ function automatic {
 }
 
 function backup {
-  LOG="$HOME/.rescript/logs/"$REPO"-backup-log-$(date +%Y-%m-%d-%H:%M)"  
   if [ -e "$LOCK" ]; then
     echo -e "WARNING: "$REPO" repo is already running..."
     echo -e "If you are sure "$REPO" is not running, type"
@@ -1255,11 +1342,14 @@ function backup {
   touch "$LOCK"
   trap 'rm -rf "$LOCK"' INT QUIT TERM EXIT
   if [[ "$FLAGS" ]] ; then
-    if [[ "$FLAGS" == "--help" ]] ; then
+    if [[ "$FLAGS" == "--help" || "$FLAGS" == "-h" ]] ; then
       backup-help
       exit
-    elif [[ "$FLAGS" == "--log" ]] ; then
-      exec > >(tee -a "$LOG") 2>&1
+    elif [[ "$FLAGS" == "--log" || "$FLAGS" == "-l" ]] ; then
+      echo "You must use [$FLAGS] only before any other command."
+      echo ""
+      logger-help
+      exit
     else
       echo "Invalid flag ["$FLAGS"]..."
       echo ""
@@ -1293,7 +1383,6 @@ function backup {
 }
 
 function cleanup {
-  LOG="$HOME/.rescript/logs/"$REPO"-cleanup-log-$(date +%Y-%m-%d-%H:%M)"
   if [ -e "$LOCK" ]; then
     echo -e "WARNING: "$REPO" repo is already running..."
     echo -e "If you are sure "$REPO" is not running, type"
@@ -1306,12 +1395,15 @@ function cleanup {
   touch "$LOCK"
   trap 'rm -rf "$LOCK"' INT QUIT TERM EXIT
   if [[ "$FLAGS" ]] ; then
-    if [[ "$FLAGS" == "--help" ]] ; then
+    if [[ "$FLAGS" == "--help" || "$FLAGS" == "-h" ]] ; then
       cleanup-help
       exit
-    elif [[ "$FLAGS" == "--log" ]] ; then
-      exec > >(tee -a "$LOG") 2>&1
-    elif [[ "$FLAGS" == "--next" ]] ; then
+    elif [[ "$FLAGS" == "--log" || "$FLAGS" == "-l" ]] ; then
+      echo "You must use [$FLAGS] only before any other command."
+      echo ""
+      logger-help
+      exit
+    elif [[ "$FLAGS" == "--next" || "$FLAGS" == "-n" ]] ; then
       cleanup-next
       exit
     else
@@ -1352,12 +1444,27 @@ function cleanup {
 	  DAYS=$((RESULT / 86400))
 	  HOURS=$(((RESULT / 3600) % 24))
 	  MINUTES=$(((RESULT / 60) % 60))
+          if [[ "$DAYS" == "1" ]] ; then
+            D="day"
+          else
+            D="days"
+          fi
+          if [[ "$HOURS" == "1" ]] ; then
+            H="hour"
+          else
+            H="hours"
+          fi
+          if [[ "$MINUTES" == "1" ]] ; then
+            M="minute"
+          else
+            M="minutes"
+          fi
 	  if [[ "$DAYS" -gt "0" ]] ; then
-	    echo -e "$YELLOW""[Next check and cleanup in $DAYS days $HOURS hours and $MINUTES minutes...]""$ENDCOLOR"
+	    echo -e "$YELLOW""[Next check and cleanup in $DAYS $D $HOURS $H and $MINUTES $M...]""$ENDCOLOR"
 	  elif [[ "$HOURS" -gt "0" ]] ; then
-	    echo -e "$YELLOW""[Next check and cleanup in $HOURS hours and $MINUTES minutes...]""$ENDCOLOR"
+	    echo -e "$YELLOW""[Next check and cleanup in $HOURS $H and $MINUTES $M...]""$ENDCOLOR"
 	  elif [[ "$MINUTES" -gt "0" ]] ; then
-	    echo -e "$YELLOW""[Next check and cleanup in $MINUTES minutes...]""$ENDCOLOR"
+	    echo -e "$YELLOW""[Next check and cleanup in $MINUTES $M...]""$ENDCOLOR"
 	  else
 	    echo -e "$YELLOW""[Repo will be checked and cleaned in the next run...]""$ENDCOLOR"
 	  fi
@@ -1378,7 +1485,8 @@ function cleanup {
 
 function cleanup-next {
   if [[ -z "$CLEAN" || "$CLEAN" -lt "1" ]] ; then
-    echo -e "$YELLOW""You have not indicated any policy for the CLEAN value...""$ENDCOLOR"		  echo "The scrip will run check, forget and prune every time it runs"
+    echo -e "$YELLOW""You have not indicated any policy for the CLEAN value...""$ENDCOLOR"
+    echo "The scrip will run check, forget and prune every time it runs"
     echo "unless you change the CLEAN variable at the beginning of this script."
     echo "The number indicated in the CLEAN variable must be in days."
     echo "For more information about the usage check out the following link:"
@@ -1395,12 +1503,27 @@ function cleanup-next {
     DAYS=$((RESULT / 86400))
     HOURS=$(((RESULT / 3600) % 24))
     MINUTES=$(((RESULT / 60) % 60))
-    if [[ "$DAYS" -gt "0" ]] ; then
-      echo -e "$YELLOW""Next cleanup and check in $DAYS days $HOURS hours and $MINUTES minutes...""$ENDCOLOR"
+    if [[ "$DAYS" == "1" ]] ; then
+      D="day"
+    else
+      D="days"
+    fi
+    if [[ "$HOURS" == "1" ]] ; then
+      H="hour"
+    else
+      H="hours"
+    fi
+    if [[ "$MINUTES" == "1" ]] ; then
+      M="minute"
+    else
+      M="minutes"
+    fi
+    if [[ "$DAYS" -gt "0" || "$HOURS" -gt "0" ]] ; then
+      echo -e "$YELLOW""Next cleanup and check in $DAYS $D $HOURS $H and $MINUTES $M...""$ENDCOLOR"
     elif [[ "$HOURS" -gt "0" ]] ; then
-      echo -e "$YELLOW""Next cleanup and check in $HOURS hours and $MINUTES minutes...""$ENDCOLOR"
+      echo -e "$YELLOW""Next cleanup and check in $HOURS $H and $MINUTES $M...""$ENDCOLOR"
     elif [[ "$MINUTES" -gt "0" ]] ; then
-      echo -e "$YELLOW""Next cleanup and check in $MINUTES minutes...""$ENDCOLOR"
+      echo -e "$YELLOW""Next cleanup and check in $MINUTES $M...""$ENDCOLOR"
     else
       echo -e "$YELLOW""Repo will be cleaned and checked in the next run...""$ENDCOLOR"
     fi
@@ -1413,16 +1536,16 @@ function logs {
     echo ""
     logs-help
     exit
-  elif [[ "$FLAGS" == "--cat" ]] ; then
+  elif [[ "$FLAGS" == "--cat" || "$FLAGS" == "-c" ]] ; then
     if [[ "$LOGFILE" ]] ; then
       cat $HOME/.rescript/logs/"$LOGFILE"
     else
       echo "No log file indicated..."
       exit
     fi
-  elif [[ "$FLAGS" == "--help" ]] ; then
+  elif [[ "$FLAGS" == "--help" || "$FLAGS" == "-h" ]] ; then
     logs-help
-  elif [[ "$FLAGS" == "--list" ]] ; then
+  elif [[ "$FLAGS" == "--list" || "$FLAGS" == "-l" ]] ; then
     if ls $HOME/.rescript/logs/"$REPO"-* 1> /dev/null 2>&1 ; then
       ls $HOME/.rescript/logs/ | grep -e "$REPO"
       echo ""
@@ -1430,7 +1553,7 @@ function logs {
     else
       echo "There are no log files to list for ["$REPO"]."
     fi
-  elif [[ "$FLAGS" == "--remove" ]] ; then
+  elif [[ "$FLAGS" == "--remove" || "$FLAGS" == "-r" ]] ; then
     if ls $HOME/.rescript/logs/"$REPO"-* 1> /dev/null 2>&1 ; then
       rm -rf $HOME/.rescript/logs/"$REPO"-*
       echo "Log files removed for ["$REPO"]."
@@ -1445,9 +1568,14 @@ function logs {
   fi
 }
 
+function logger {
+  LOG="$HOME/.rescript/logs/"$REPO"-"$CMD"-log-$(date +%Y-%m-%d-%H:%M)"
+  exec > >(tee -a "$LOG") 2>&1
+}
+
 function mounter {
   if [[ "$FLAGS" ]] ; then
-    if [[ "$FLAGS" == "--help" ]] ; then
+    if [[ "$FLAGS" == "--help" || "$FLAGS" == "-h" ]] ; then
       mounter-help
       exit
     else
@@ -1474,7 +1602,22 @@ function mounter {
 }
 
 function random-check {
-  LOG="$HOME/.rescript/logs/"$REPO"-check-random-log-$(date +%Y-%m-%d-%H:%M)"
+  if [[ "$FLAGS" ]] ; then
+    if [[ "$FLAGS" == "--help" || "$FLAGS" == "-h" ]] ; then
+      random-check-help
+      exit
+    elif [[ "$FLAGS" == "--log" || "$FLAGS" == "-l" ]] ; then
+      echo "You must use [$FLAGS] only before any other command."
+      echo ""
+      logger-help
+      exit
+    else
+      echo "Invalid flag ["$FLAGS"]..."
+      echo ""
+      random-check-help
+      exit
+    fi
+  fi
   if [ -e "$LOCK" ]; then
     echo -e "WARNING: "$REPO" repo is already running..."
     echo -e "If you are sure "$REPO" is not running, type"
@@ -1486,26 +1629,7 @@ function random-check {
   fi
   touch "$LOCK"
   trap 'rm -rf "$LOCK"' INT QUIT TERM EXIT
-  if [[ "$LOGGER" ]] ; then
-    if [[ "$LOGGER" == "--log" ]] ; then
-      exec > >(tee -a "$LOG") 2>&1
-    else
-      echo "Invalid flag ["$LOGGER"]..."
-      echo ""
-      echo "Usage:"
-      echo "  rescript "$REPO" check --random"
-      echo "OR"
-      echo "  rescript "$REPO" check --random --log"
-      echo ""
-      echo "NOTE:"
-      echo "If [--random] flag is used, you can't combine"
-      echo "other restic flags; the only flag available after"
-      echo "[--random] is [--log] flag if you want to create a"
-      echo "log for this specific process."
-      exit
-    fi
-  fi
-  echo -e "$YELLOW""Starting [random check] for ["$REPO"]...""$ENDCOLOR"
+  echo -e "$YELLOW""Starting [checkout] for ["$REPO"]...""$ENDCOLOR"
   echo -e "$YELLOW""Date and Time:""$ENDCOLOR" "$(date +%a\ %b\ %d\ %Y\ %r)"
   echo -e "--------------------------------------------------------------------------"
   restic check --read-data-subset $(($RANDOM % 10 + 1))/10
@@ -1515,7 +1639,6 @@ function random-check {
 }
 
 function restorer {
-  LOG="$HOME/.rescript/logs/"$REPO"-restorer-log-$(date +%Y-%m-%d-%H:%M)"
   if [ -e "$LOCK" ]; then
     echo -e "WARNING: "$REPO" repo is already running..."
     echo -e "If you are sure "$REPO" is not running, type"
@@ -1528,8 +1651,11 @@ function restorer {
   touch "$LOCK"
   trap 'rm -rf "$LOCK"' INT QUIT TERM EXIT
   if [[ "$LOGGER" ]] ; then
-    if [[ "$LOGGER" == "--log" ]] ; then
-      exec > >(tee -a "$LOG") 2>&1
+    if [[ "$LOGGER" == "--log" || "$LOGGER" == "-l" ]] ; then
+      echo "You must use [$LOGGER] only before any other command."
+      echo ""
+      logger-help
+      exit
     else
       echo "Invalid flag ["$LOGGER"]..."
       echo ""
@@ -1542,38 +1668,36 @@ function restorer {
     echo ""
     restorer-help
     exit
-  elif [[ "$FLAGS" == "--help" ]] ; then
+  elif [[ "$FLAGS" == "--help" || "$FLAGS" == "-h" ]] ; then
     restorer-help
     exit
-  elif [[ "$FLAGS" == "--host" ]] ; then
-    RESTIC_RESTORE="$HOME/restore-latest-host-"$HPTS"-$(date +%s)"
-  elif [[ "$FLAGS" == "--log" ]] ; then
-    echo "[--log] flag must be indicated after other flags and options."
-    echo "e.g."
-    echo "  rescript "$REPO" restorer --host [hostname] --log"
+  elif [[ "$FLAGS" == "--host" || "$FLAGS" == "-H" ]] ; then
+    RESTIC_RESTORE="$HOME/restore-latest-host-"$HPTS"_$(date +%s)"
+  elif [[ "$FLAGS" == "--log" || "$FLAGS" == "-l" ]] ; then
+    echo "You must use [$FLAGS] only before any other command."
     echo ""
-    restorer-help
+    logger-help
     exit
-  elif [[ "$FLAGS" == "--path" ]] ; then
-    RESTIC_RESTORE="$HOME/restore-latest-by-path-$(date +%s)"
-  elif [[ "$FLAGS" == "--tag" ]] ; then
-    RESTIC_RESTORE="$HOME/restore-latest-tag-"$HPTS"-$(date +%s)"
+  elif [[ "$FLAGS" == "--path" || "$FLAGS" == "-p" ]] ; then
+    RESTIC_RESTORE="$HOME/restore-latest-by-path_$(date +%s)"
+  elif [[ "$FLAGS" == "--tag" || "$FLAGS" == "-T" ]] ; then
+    RESTIC_RESTORE="$HOME/restore-latest-tag-"$HPTS"_$(date +%s)"
   else
-    RESTIC_RESTORE="$HOME/restore-"$HPTS"-$(date +%s)"
+    RESTIC_RESTORE="$HOME/restore-ID-"$HPTS"_$(date +%s)"
   fi
-  if [[ "$FLAGS" == "--host" || "$FLAGS" == "--path" || "$FLAGS" == --tag ]] ; then
+  if [[ "$FLAGS" == "--host" || "$FLAGS" == "-H" || "$FLAGS" == "--path" || "$FLAGS" == "-p" || "$FLAGS" == --tag || "$FLAGS" == "-T" ]] ; then
     if [[ ! "$HPTS" ]] ; then
-      if [[ "$FLAGS" == "--host" ]] ; then
+      if [[ "$FLAGS" == "--host" || "$FLAGS" == "-H" ]] ; then
         echo "No [host] indicated..."
         echo ""
         restorer-help
         exit
-      elif [[ "$FLAGS" == "--path" ]] ; then
+      elif [[ "$FLAGS" == "--path" || "$FLAGS" == "-p" ]] ; then
         echo "No [path] indicated..."
         echo ""
         restorer-help
         exit
-      elif [[ "$FLAGS" == "--tag" ]] ; then
+      elif [[ "$FLAGS" == "--tag" || "$FLAGS" == "-t" ]] ; then
         echo "No [tag] indicated..."
         echo ""
         restorer-help
@@ -1608,7 +1732,7 @@ function restorer {
     echo -e "=========================================================================="
     echo -e "| - - - - - - - > [ R E S T O R E    C O M P L E T E D ] < - - - - - - - |"
     echo -e "=========================================================================="
-  elif [[ "$FLAGS" == "--snapshot" ]] ; then
+  elif [[ "$FLAGS" == "--snapshot" || "$FLAGS" == "-s" ]] ; then
     if [[ ! "$HPTS" ]] ; then
       echo "No [snapshot ID] indicated."
       echo ""
@@ -1653,7 +1777,7 @@ function restorer {
 
 function unlocker {
   if [[ "$FLAGS" ]] ; then
-    if [[ "$FLAGS" == "--help" ]] ; then
+    if [[ "$FLAGS" == "--help" || "$FLAGS" == "-h" ]] ; then
       unlocker-help
       exit
     else
@@ -1671,32 +1795,74 @@ function unlocker {
   fi
 }
 
+function time-start {
+  echo -e "$YELLOW""Starting ["$CMD"] for ["$REPO"]...""$ENDCOLOR"
+  echo -e "$YELLOW""Date and Time:""$ENDCOLOR" "$(date +%a\ %b\ %d\ %Y\ %r)"
+  echo -e "--------------------------------------------------------------------------"
+}
+
+function time-end {
+  echo -e "--------------------------------------------------------------------------"
+  echo -e "$YELLOW""End:""$ENDCOLOR" "$(date +%a\ %b\ %d\ %Y\ %r)"
+  echo -e "$YELLOW""Duration:""$ENDCOLOR" "$(duration)"
+}
+
 # ============================================================== #
 # Call Commands and Functions					 #
 # ============================================================== #
 if [[ "$2" == "" ]] ; then
   automatic
   exit
-elif [[ "$2" == "--log" ]] ; then
-  echo "[--log] flag must be indicated after other commands, flags and/or options."
-  echo "e.g."
-  echo "  rescript "$REPO" [command] [--flags] [options] --log"
-  echo "This flag is only available for the following rescript commands."
-  echo "  backup"
-  echo "  check (only when used with [--random] flag)"
-  echo "  cleanup"
-  echo "  restorer"
-  echo ""
-  echo "$usage"
-  exit
-elif [[ "$2" == "backup" ]] ; then
-  FLAGS="$3"
-  backup
-  exit
-elif [[ "$2" == "check" ]] ; then
-  if [[ "$3" == "--random" ]] ; then
-    LOGGER="$4"
+elif [[ "$2" == "--log" || "$2" == "-l" ]] ; then
+  if [[ ! "$3" ]] ; then
+    echo "You have not indicated any command for [$2]..."
+    echo ""
+    logger-help
+    exit
+  elif [[ "$3" == "--time" || "$3" == "-t" ]] ; then
+    if [[ "$4" == "backup" || "$4" == "checkout" || "$4" == "cleanup" || "$4" == "mounter" || "$4" == "restorer" ]] ; then
+      echo "["$3"] is not available for ["$4"]..."
+      echo ""
+      echo "Since rescript commands provide output with duration,"
+      echo "this flag is intended only for restic commands use."
+      echo ""
+      exit
+    fi
+    if [ -e "$LOCK" ]; then
+      echo -e "WARNING: "$REPO" repo is already running..."
+      echo -e "If you are sure "$REPO" is not running, type"
+      echo -e " "
+      echo -e "	rescript "$REPO" unlock"
+      echo -e " "
+      echo -e "This will remove the lock for "$REPO""
+      exit
+    fi
+    touch "$LOCK"
+    trap 'rm -rf "$LOCK"' INT QUIT TERM EXIT
+    CMD="$4"
+    logger
+    time-start
+    restic "${@:4}"
+    time-end
+  elif [[ "$3" == "backup" ]] ; then
+    CMD="$3"
+    logger
+    backup
+  elif [[ "$3" == "checkout" ]] ; then
+    CMD="$3"
+    logger
     random-check
+  elif [[ "$3" == "cleanup" ]] ; then
+    CMD="$3"
+    logger
+    cleanup
+  elif [[ "$3" == "restorer" ]] ; then
+    CMD="$3"
+    FLAGS="$4"
+    HPTS="$5"
+    LOGGER="$6"
+    logger
+    restorer
   else
     if [ -e "$LOCK" ]; then
       echo -e "WARNING: "$REPO" repo is already running..."
@@ -1709,15 +1875,77 @@ elif [[ "$2" == "check" ]] ; then
     fi
     touch "$LOCK"
     trap 'rm -rf "$LOCK"' INT QUIT TERM EXIT
-    echo -e "$YELLOW""Starting ["$2"] command for ["$1"]...""$ENDCOLOR"
-    echo -e "$YELLOW""Date and Time:""$ENDCOLOR" "$(date +%a\ %b\ %d\ %Y\ %r)"
-    echo -e "--------------------------------------------------------------------------"
-    restic "${@:2}"
-    echo -e "--------------------------------------------------------------------------"
-    echo -e "$YELLOW""End:""$ENDCOLOR" "$(date +%a\ %b\ %d\ %Y\ %r)"
-    echo -e "$YELLOW""Duration:""$ENDCOLOR" "$(duration)"
+    CMD="$3"
+    logger
+    restic "${@:3}"
   fi
+elif [[ "$2" == "--time" || "$2" == "-t" ]] ; then
+  if [[ ! "$3" ]] ; then
+    echo "You have not indicated any command for [$2]..."
+    echo ""
+    time-help
+    exit
+  elif [[ "$3" == "--log" || "$3" == "-l" ]] ; then
+    if [[ "$4" == "backup" || "$4" == "checkout" || "$4" == "cleanup" || "$3" == "mounter" || "$4" == "restorer" ]] ; then
+      echo "["$2"] is not available for ["$4"]..."
+      echo ""
+      echo "Since rescript commands provide output with duration,"
+      echo "this flag is intended only for restic commands use."
+      echo ""
+      exit
+    fi
+    if [ -e "$LOCK" ]; then
+      echo -e "WARNING: "$REPO" repo is already running..."
+      echo -e "If you are sure "$REPO" is not running, type"
+      echo -e " "
+      echo -e "	rescript "$REPO" unlock"
+      echo -e " "
+      echo -e "This will remove the lock for "$REPO""
+      exit
+    fi
+    touch "$LOCK"
+    trap 'rm -rf "$LOCK"' INT QUIT TERM EXIT
+    CMD="$4"
+    logger
+    time-start
+    restic "${@:4}"
+    time-end
+  elif [[ "$3" == "backup" || "$3" == "checkout" || "$3" == "cleanup" || "$3" == "mounter" || "$3" == "restorer" ]] ; then
+    echo "["$2"] is not available for ["$3"]..."
+    echo ""
+    echo "Since rescript commands provide output with duration,"
+    echo "this flag is intended only for restic commands use."
+    echo ""
+    exit
+  else
+    if [ -e "$LOCK" ]; then
+      echo -e "WARNING: "$REPO" repo is already running..."
+      echo -e "If you are sure "$REPO" is not running, type"
+      echo -e " "
+      echo -e "	rescript "$REPO" unlock"
+      echo -e " "
+      echo -e "This will remove the lock for "$REPO""
+      exit
+    fi
+    touch "$LOCK"
+    trap 'rm -rf "$LOCK"' INT QUIT TERM EXIT
+    CMD="$3"
+    time-start
+    restic "${@:3}"
+    time-end
+  fi
+elif [[ "$2" == "backup" ]] ; then
+  CMD="$2"
+  FLAGS="$3"
+  backup
+  exit
+elif [[ "$2" == "checkout" ]] ; then
+  CMD="$2"
+  FLAGS="$3"  
+  random-check
+  exit
 elif [[ "$2" == "cleanup" ]] ; then
+  CMD="$2"
   FLAGS="$3"
   cleanup
   exit
@@ -1755,11 +1983,5 @@ else
   fi
   touch "$LOCK"
   trap 'rm -rf "$LOCK"' INT QUIT TERM EXIT
-  echo -e "$YELLOW""Starting ["$2"] command for ["$1"]...""$ENDCOLOR"
-  echo -e "$YELLOW""Date and Time:""$ENDCOLOR" "$(date +%a\ %b\ %d\ %Y\ %r)"
-  echo -e "--------------------------------------------------------------------------"
   restic "${@:2}"
-  echo -e "--------------------------------------------------------------------------"
-  echo -e "$YELLOW""End:""$ENDCOLOR" "$(date +%a\ %b\ %d\ %Y\ %r)"
-  echo -e "$YELLOW""Duration:""$ENDCOLOR" "$(duration)"
 fi
