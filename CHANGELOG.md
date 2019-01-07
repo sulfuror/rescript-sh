@@ -1,3 +1,33 @@
+# January 6, 2019
+**Changes**:
+
+1. Now the `--random` flag doesn't exists. The `checkout` command replaces it.
+2. Added `--time, -t` flag to display output with date, time and duration; this
+   is only available for `restic` commands since all `rescript` commands already
+   displays an output with date, time and duration. Now `restic` commands will not
+   display this output unless specified; version 3.3 displays the output for all
+   commands automatically even when it doesn't make any sense. This flag must be
+   indicated before any command and it can be combined with `--log`.
+3. Changed the behavior for `--log` flag; for version 3.3 and erlier this flag
+   was only available for `rescript` commands. Changing the behavior means that
+   from now on it will be indicated before any commands and options and now it can
+   be used for `restic` commands too and it can be combined with `--time`.
+   e.g.: `rescript [repo_name] --time --log check --read-data`.
+4. All flags now have a shorthand flag. e.g.: `--help, -h`, `--host, -H`, `--log, -l`,
+   `--time, -t`, `--snapshot, -s`, `--tag, -T`, etc.
+
+`--time` and `--log` will not work if indicated at the end of the commands. This was
+the only way I found that can be useful for all commands including `restic` commands
+alone.
+
+**Fixes**:
+
+1. Fixed output for `cleanup --next` to display singular words when days, hours
+   or minutes are 1.
+2. Fixed "Build Exclusions" menu; it wasn't recognizing `back` or `exit` options.
+3. Fixed a couple of typos.
+
+
 # December 19, 2018
 **Fixes**:
 
