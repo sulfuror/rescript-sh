@@ -84,6 +84,7 @@ LOCK="$HOME/.rescript/lock/$1.lock"
 RMOUNT="$HOME/"$1"-repo-$(date +%s)"
 REPO="$1"
 EDITOR=""
+
 # Create a rescript directories if they are not present
 if [[ ! -d "$HOME/.rescript" ]]; then
   mkdir -p "$HOME/.rescript"
@@ -104,6 +105,7 @@ fi
 if [ -d "$HOME/.local/bin" ] ; then
     PATH="$HOME/.local/bin:$PATH"
 fi
+
 function opsys {
   OS_NAME="$(uname -s)"
   if [[ "$OS_NAME" == "Linux" || "$OS_NAME" == "Linux" ]] ; then
@@ -116,6 +118,7 @@ function opsys {
     echo -e "$OS $OS_VERS"
   fi
 }
+
 function duration {
   D="$((SECONDS/60/60/24))"
   H="$((SECONDS/60/60%24))"
@@ -1124,6 +1127,7 @@ elif [[ "$1" == "cleanup" ]] ; then
 elif [[ "$1" == "config" ]] ; then
   if [[ -z "$EDITOR" ]] ; then
     select_editor
+    echo "Please type [rescript config] to set/edit your configuration/exclusion files."
     exit
   fi
   if [[ "$2" == "--help" || "$2" == "-h" ]] ; then
@@ -1518,7 +1522,7 @@ function cleanup-next {
     else
       M="minutes"
     fi
-    if [[ "$DAYS" -gt "0" || "$HOURS" -gt "0" ]] ; then
+    if [[ "$DAYS" -gt "0" ]] ; then
       echo -e "$YELLOW""Next cleanup and check in $DAYS $D $HOURS $H and $MINUTES $M...""$ENDCOLOR"
     elif [[ "$HOURS" -gt "0" ]] ; then
       echo -e "$YELLOW""Next cleanup and check in $HOURS $H and $MINUTES $M...""$ENDCOLOR"
