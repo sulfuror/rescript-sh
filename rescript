@@ -1127,7 +1127,8 @@ elif [[ "$1" == "cleanup" ]] ; then
 elif [[ "$1" == "config" ]] ; then
   if [[ -z "$EDITOR" ]] ; then
     select_editor
-    echo "Please type [rescript config] to set/edit your configuration/exclusion files."
+    echo "Please type [rescript config] again to set/edit"
+    echo "your configuration/exclusion files."
     exit
   fi
   if [[ "$2" == "--help" || "$2" == "-h" ]] ; then
