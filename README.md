@@ -381,6 +381,31 @@ the `datefile` will be created anyways but it will do nothing.
 
 _**NOTE**: If you were using v1.6 the datefile will be automatically moved from `logs` to `config`._
 
+## Workarounds:
+**Backing up more than one directory**:
+From version 3.5 onwards you can backup more than one location at the same time
+using the same configuration file. Just open your configuration file and edit
+the following line:
+```
+BACKUP_DIR="/path/to/dir/1 /path/to/dir/2"
+```
+This is not exactly a workaround but with erlier versions you can't do that
+unless you have edited the script to do so.
+
+**Backup without unsing the build-in function**:
+You can "omit the configuration file" by indicating `-r, --repo` after calling
+`rescript [repo_name]`. You will not really completely omit the configuration file
+but if you want to "override" what you're backing up and the exclusion list, then
+you can do this:
+```
+rescript [repo_name] -r /your/repo/location backup /backup/directory
+```
+This could be useful if you want to add something quickly to your repo. Maybe you found
+an old USB and you want to include some files in your repo, well you can quickly backup
+those files using `rescript` that way. You can also indicate any other flag, `--exclude`,
+etc., using `rescript` that way and it will not only work for `backup` but for any
+other `restic` command.
+
 ## Having problems?
 If you have any problem with the script you can reach out so it can be fixed.
 If you have any problem using restic check out the [restic forum](https://forum.restic.net/);
