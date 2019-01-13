@@ -1,6 +1,6 @@
 #!/bin/bash
 # ============================================================== #
-version="rescript-v3.4"
+version="rescript-v3.5"
 usage="
 Author		: Sulfuror, Copyright (c) 2018 <sulfuror@gmail.com>
 URL		: https://gitlab.com/sulfuror/rescript.sh
@@ -21,25 +21,18 @@ to your repository. e.g.:
 
   rescript [repo_name]
 
-That said, all restic commands are available within this script
-except for [backup], which exists but it will use your configuration
+All restic commands are available within this script except for
+[backup], which exists but it will use your configuration
 file to perform a backup.
 
 Usage:
-  rescript [command]
+  rescript [config_command]
 OR
-  rescript [repo_name] [command]
+  rescript [repo_name] [rescript_command]
 OR
-  rescript [repo_name] [command] [--flags] [options]  
+  rescript [repo_name] [restic_command]
   
-Rescript commands:
-  backup		Take a snapshot using the values set in
-  			your configuration file.
-  checkout		This command will execute check using
-  			[--read-data-subset] and selecting a random
-  			number between 1-10 out of 10 groups.
-  cleanup		Forget and prune according to the policies
-  			in your configuration file.
+Rescript configuration commands:
   config		Rescript configuration; set your default
   			text editor, open, delete or modify your
   			configuration and exclusion files. This command
@@ -52,6 +45,15 @@ Rescript commands:
   install		Install rescript (this just move the script
   			to your .local/bin directory for convenience.
   			This command does not need a [repo_name].
+  
+Rescript commands:
+  backup		Take a snapshot using the values set in
+  			your configuration file.
+  checkout		This command will execute check using
+  			[--read-data-subset] and selecting a random
+  			number between 1-10 out of 10 groups.
+  cleanup		Forget and prune according to the policies
+  			in your configuration file.
   logs			This command needs a flag to view, list
 			or delete your log files.
   mounter		Mount a restic repo.
@@ -60,20 +62,22 @@ Rescript commands:
   version		Display rescript version. This command does
   			not need a [repo_name].
 
-Rescript flags:
-  --help, -h		This flag is available for all rescript commands
+Rescript glogal flags:
+  -h, --help		This flag is available for all rescript commands
   			and it can be used to display the usage for every
   			single rescript command.
-  --log, -l		This flag is available for all rescript and restic
-  			commands. If used, it must be before all commands,
-  			flags and options; this will create a log file
+  -l, --log		This flag is available for all rescript and restic
+  			commands. This will create a log file
   			with the command output. You can combine this
   			flag with [--time].
-  --time, -t		This flag is available ONLY for restic commands.
-			If used, it must be before all commands, flags
-			and options. This flag will display an output
-			with the date, time and duration of the command.
-			You can combine this flag with [--log].
+  -t, --time		This flag is available ONLY for restic commands.
+			This flag will display an output with the date,
+			time and duration of the command. You can
+			combine this flag with [--log].
+
+These global flags must be used BEFORE the command. To see usage and
+flags available for a specific command type:
+  rescript help [command]
 "
 # ============================================================== #
 YELLOW="\033[33m"
@@ -899,13 +903,12 @@ function backup-help {
   echo "in your configuration file."
   echo ""
   echo "Usage:"
-  echo "  rescript [repo_name] backup [--flag]"
+  echo "  rescript [repo_name] backup"
   echo ""
-  echo "Available flags:"
-  echo "  --help, -h		Display this help dialog."
-  echo "  --log, -l		This will create a log file with"
-  echo "			the command output. Use only before all other"
-  echo "			commands, flags and options."
+  echo "Global flags:"
+  echo "  -h, --help		Display this help dialog."
+  echo "  -l, --log		This will create a log file with"
+  echo "			the command output."
   echo ""
 }
 
@@ -917,16 +920,16 @@ function cleanup-help {
   echo "delete the data that has been forgotten."
   echo ""
   echo "Usage:"
-  echo "  rescript [repo_name] cleanup [--flag]"
+  echo "  rescript [repo_name] cleanup [command_flag]"
   echo ""
-  echo "Available flags:"
-  echo "  --help, -h		Display this help dialog."
-  echo "  --log, -l		This will create a log file with"
-  echo "			the command output. Use only before all other"
-  echo "			commands, flags and options."
-  echo "  --next, -n		Display next scheduled; work only when"
+  echo "Command flags:"
+  echo "  -n, --next		Display next scheduled; work only when"
   echo "			CLEANUP variable is set."
-  echo ""  
+  echo "Global flags:"
+  echo "  -h, --help		Display this help dialog."
+  echo "  -l, --log		This will create a log file with"
+  echo "			the command output."
+  echo ""
 }
 
 function config-help {
@@ -935,10 +938,10 @@ function config-help {
   echo "and open your configuration and exclusions files."
   echo ""
   echo "Usage:"
-  echo "  rescript config [--flag]"
+  echo "  rescript config"
   echo ""
-  echo "Available flags:"
-  echo "  --help, -h		Display this help dialog."
+  echo "Global flags:"
+  echo "  -h, --help		Display this help dialog."
   echo ""
 }
 
@@ -950,10 +953,10 @@ function editor-help {
   echo "of your favorite text editor if not listed."
   echo ""
   echo "Usage:"
-  echo "  rescript editor [--flag]"
+  echo "  rescript editor"
   echo ""
-  echo "Available flags:"
-  echo "  --help, -h		Display this help dialog."
+  echo "Global flags:"
+  echo "  -h, --help		Display this help dialog."
   echo ""
 }
 
@@ -968,24 +971,24 @@ function install-help {
   echo "location for your PATH then just copy the script and put it there."
   echo ""
   echo "Usage:"
-  echo "  rescript install [--flag]"
+  echo "  rescript install"
   echo ""
-  echo "Available flags:"
-  echo "  --help, -h		Display this help dialog."
+  echo "Global flags:"
+  echo "  -h, --help		Display this help dialog."
   echo ""
 }
 
 function logger-help {
-  echo "[--log] is a flag used to make a log of your command."
+  echo "[-l|--log] is a flag used to make a log of your command."
   echo "This flag will create a log file of your desired command"
   echo "inside your rescript logs directory. This flag is intended"
   echo "to use only before commands, flags and options. You can"
-  echo "use this flag and [--time] at the same time."
+  echo "use this flag and [-t|--time] at the same time."
   echo ""
   echo "Usage:"
-  echo "  rescript [repo_name] --log [command] [flag] [option]"
-  echo "OR if you want to use [--time] to log the duration too:"
-  echo "  rescript [repo_name] --log --time [command] [flag] [option]"
+  echo "  rescript [repo_name] -l [command] [flag] [option]"
+  echo "OR if you want to use [-t|--time] to log the duration too:"
+  echo "  rescript [repo_name] -l -t [command] [flag] [option]"
   echo ""
 }
 
@@ -993,14 +996,17 @@ function logs-help {
   echo "[logs] is for log files saved by rescript"
   echo ""
   echo "Usage:"
-  echo "  rescript [repo_name] logs [flag]"
+  echo "  rescript [repo_name] logs [command_flag]"
   echo "OR"
-  echo "  rescript [repo_name] logs [flag] [logfile]"
-  echo "Available flags:"
-  echo "  --cat, -c		Display output of selected log file."
-  echo "  --help, -h		Display this help dialog."
-  echo "  --list, -l		List all log files saved."
-  echo "  --remove, -r		Remove all log files."
+  echo "  rescript [repo_name] logs [command_flag] [logfile]"
+  echo ""
+  echo "Command flags:"
+  echo "  -c, --cat		Display output of selected log file."
+  echo "  -l, --list		List all log files saved."
+  echo "  -r, --remove		Remove all log files."
+  echo ""
+  echo "Global flags:"
+  echo "  -h, --help		Display this help dialog."
   echo ""
 }
 
@@ -1011,10 +1017,10 @@ function mounter-help {
   echo "the temporary directory will be removed."
   echo ""
   echo "Usage:"
-  echo "  rescript [repo_name] mounter [--flag]"
+  echo "  rescript mounter"
   echo ""
-  echo "Available flags:"
-  echo "  --help, -h		Display this help dialog."
+  echo "Global flags:"
+  echo "  -h, --help		Display this help dialog."
   echo ""
 }
 
@@ -1026,14 +1032,12 @@ function random-check-help {
   echo ""
   echo "Usage:"
   echo "  rescript [repo_name] checkout"
-  echo "OR"
-  echo "  rescript [repo_name] --log checkout"
   echo ""
-  echo "Available flags:"
-  echo "  --log, -l		This will create a log file with"
-  echo "			the command output. Use only before all other"
-  echo "			commands, flags and options."
-  echo ""  
+  echo "Global flags:"
+  echo "  -h, --help		Display this help dialog."
+  echo "  -l, --log		This will create a log file with"
+  echo "			the command output."
+  echo ""
 }
 
 function restorer-help {
@@ -1045,34 +1049,36 @@ function restorer-help {
   echo "existing directories."
   echo ""
   echo "Usage:"
-  echo "  rescript [repo_name] restorer [flag] [host|path|snapshot ID|tag]"
-  echo "Available flags:"
-  echo "  --log, -l		This will create a log file with"
-  echo "			the command output. Use only before all other"
-  echo "			commands, flags and options."
-  echo "  --help, -h		Display this help dialog."
-  echo "  --host, -H		Only consider snapshots for this host"
+  echo "  rescript [repo_name] restorer [command_flag] [host|path|snapshot ID|tag]"
+  echo ""
+  echo "Command flags:"
+  echo "  -H, --host		Only consider snapshots for this host"
   echo "			when snapshot-ID is [latest]."
-  echo "  --path, -p		Only consider snapshots which include"
+  echo "  -p, --path		Only consider snapshots which include"
   echo "			this [absolute] path for snapshot-ID [latest]."
-  echo "  --snapshot, -s	Indicate snapshot-ID to restore."
-  echo "  --tag, -T		Only consider snapshots which include this"
+  echo "  -s, --snapshot	Indicate snapshot-ID to restore."
+  echo "  -T, --tag		Only consider snapshots which include this"
   echo "			taglist for snapshot-ID [latest]."
+  echo ""
+  echo "Global flags:"
+  echo "  -h, --help		Display this help dialog."
+  echo "  -l, --log		This will create a log file with"
+  echo "			the command output."
   echo ""
 }
 
 function time-help {
-  echo "[--time] is a flag to take date, time and duration of commands."
+  echo "[-t|--time] is a flag to take date, time and duration of commands."
   echo "This flag will create a small output between the command"
   echo "indicating the executed command for your repo, the date and time"
   echo "when the command began, when it ended and duration. This flag"
   echo "is intended to use only before commands, flags and options."
-  echo "You can use this flag and [--log] at the same time."
+  echo "You can use this flag and [-l|--log] at the same time."
   echo ""
   echo "Usage:"
-  echo "  rescript [repo_name] --time [command] [flag] [option]"
-  echo "OR if you want to use [--log] to log the duration too:"
-  echo "  rescript [repo_name] --time --log [command] [flag] [option]"
+  echo "  rescript [repo_name] -t [command] [flag] [option]"
+  echo "OR if you want to use [-l|--log] to log the duration too:"
+  echo "  rescript [repo_name] -t -l [command] [flag] [option]"
   echo ""
 }
 
@@ -1086,9 +1092,9 @@ function unlocker-help {
   echo "created by rescript using this command."
   echo ""
   echo "Usage:"
-  echo "  rescript [repo_name] unlocker [--flag]"
+  echo "  rescript [repo_name] unlocker"
   echo "Available flags:"
-  echo "  --help, -h		Display this help dialog."
+  echo "  -h, --help		Display this help dialog."
   echo ""
 }
 
@@ -1110,10 +1116,20 @@ elif [[ "$1" == "--time" || "$1" == "-t" ]] ; then
   time-help
   exit
 elif [[ "$1" == "backup" ]] ; then
-  echo "You have not indicated any repo for ["$1"]..."
-  echo ""
-  backup-help
-  exit
+  if [[ ! "$2" ]] ; then
+    echo "You have not indicated any repo for ["$1"]..."
+    echo ""
+    backup-help
+    exit
+  elif [[ "$2" == "help" || "$2" == "--help" || "$2" == "-h" ]] ; then
+    backup-help
+    exit
+  else
+    echo "No valid option for for ["$1"]..."
+    echo ""
+    backup-help
+    exit
+  fi
 elif [[ "$1" == "checkout" ]] ; then
   echo "You have not indicated any repo for ["$1"]..."
   echo ""
@@ -1148,8 +1164,44 @@ elif [[ "$1" == "editor" ]] ; then
     exit
   fi
 elif [[ "$1" == "help" || "$1" == "--help" || "$1" == "-h" ]] ; then
-  echo "$usage"
-  exit
+  if [[ ! "$2" ]] ; then
+    echo "$usage"
+    exit
+  elif [[ "$2" == "backup" ]] ; then
+    backup-help
+    exit
+  elif [[ "$2" == "checkout" ]] ; then
+    random-check-help
+    exit
+  elif [[ "$2" == "cleanup" ]] ; then
+    cleanup-help
+    exit
+  elif [[ "$2" == "config" ]] ; then
+    config-help
+    exit
+  elif [[ "$2" == "editor" ]] ; then
+    editor-help
+    exit
+  elif [[ "$2" == "install" ]] ; then
+    install-help
+    exit
+  elif [[ "$2" == "logs" ]] ; then
+    logs-help
+    exit
+  elif [[ "$2" == "mounter" ]] ; then
+    mounter-help
+    exit
+  elif [[ "$2" == "restorer" ]] ; then
+    restorer-help
+    exit
+  elif [[ "$2" == "unlocker" ]] ; then
+    unlocker-help
+    exit
+  else
+    echo "You have not indicated a valid option..."
+    echo "$usage"
+    exit
+  fi
 elif [[ "$1" == "install" ]] ; then
   if [[ "$2" == "--help" || "$2" == "-h" ]] ; then
     install-help
@@ -1235,7 +1287,7 @@ function automatic {
 
   # Backup and exclusions
   echo -e "$YELLOW""[Taking a Snapshot...]""$ENDCOLOR"
-  restic backup "$BACKUP_DIR" --tag "$TAG" --verbose --exclude-caches --exclude-file="$EXCLUDES"  --host "$HOST"
+  restic backup $BACKUP_DIR --tag "$TAG" --verbose --exclude-caches --exclude-file="$EXCLUDES"  --host "$HOST"
 
   EXCLUSIONS=$(grep -E -v -n -c '(^#|^\s*$|^\s*\t*#)' "$EXCLUDES")
   echo -e "$YELLOW""There are $EXCLUSIONS exclusion rules...""$ENDCOLOR"
@@ -1378,7 +1430,7 @@ function backup {
     echo -e "$YELLOW""Backup Destination:""$ENDCOLOR" "$RESTIC_REPO"
   fi
   echo -e "--------------------------------------------------------------------------"
-  restic backup "$BACKUP_DIR" --tag "$TAG" --verbose --exclude-caches --exclude-file="$EXCLUDES" --host "$HOST"
+  restic backup $BACKUP_DIR --tag "$TAG" --verbose --exclude-caches --exclude-file="$EXCLUDES" --host "$HOST"
   echo -e "--------------------------------------------------------------------------"
   echo -e "$YELLOW""End:""$ENDCOLOR" "$(date +%a\ %b\ %d\ %Y\ %r)"
   echo -e "$YELLOW""Duration:""$ENDCOLOR" "$(duration)"
