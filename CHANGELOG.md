@@ -1,7 +1,7 @@
 # January 12, 2019
 **Changes**:
 
-1. Now you can specify more than one location in BACKUP_DIR variable.
+1. Now you can specify more than one location in `BACKUP_DIR` variable.
 2. Rescript flags now are called "Global Flags" because they can be used
    for all commands including restic commands. There's only three: `-h`, `-l`, `-t`.
    These flags now must be used BEFORE all other commands and its flags.
