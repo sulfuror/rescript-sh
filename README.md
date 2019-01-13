@@ -234,11 +234,10 @@ Please see restic `help` and [documentation](https://restic.readthedocs.io/en/st
 6. `help`: display help dialog. This command does not need a `[repo_name]`.
 7. `install`: this will place rescript in your `$PATH` (in your home directory). This command does not need a `[repo_name]`.
 8. `logs`: this command needs an option. Options are as follows:
-	1. `--cat`: display output of selected log file (you need to copy and paste the filename to display it).
+	1. `-c, --cat`: display output of selected log file (you need to copy and paste the filename to display it).
 	e.g.: `rescript [repo_name] logs --cat rescript-log-2018-01-01-00:00`
-	2. `--help`: help for `logs`.
-	3. `--list`: list all log files saved.
-	3. `--remove`: remove all log files related to your script (if you have different scripts for different repositoies
+	2. `-l, --list`: list all log files saved.
+	3. `-r, --remove`: remove all log files related to your script (if you have different scripts for different repositoies
 	  you need to call `--remove` for every instance).
 9. `mounter`: this option will mount your repository; it'll create a 
    directory in your `/home` so it can mount your repository. Once you quit
@@ -247,8 +246,8 @@ Please see restic `help` and [documentation](https://restic.readthedocs.io/en/st
    the snapshot-ID you want to restore. With this command you don't need to indicate where to restore,
    it will automatically create a new file in your home directory called `restore-snapshotID-randomnumber`.
    It will do the random number so it will not conflict with maybe a file called the same in your
-   home directory. You can use `restorer` with the following restic flags: `--host`, `--path` and `--tag`;
-   there is also a tag for indicating the snapshot ID alone and this is `--snapshot`. This "snapshot"
+   home directory. You can use `restorer` with the following restic flags: `-H, --host`, `-p, --path` and `-T, --tag`;
+   there is also a tag for indicating the snapshot ID alone and this is `-s, --snapshot`. This "snapshot"
    tag is only available for `rescript`. For help type `rescript [repo_name] restorer --help`.
    This command with any flag used with `rescript` will run `--verify` flag when restoring.
 11. `unlocker`: this command WILL NOT unlock your repository. When you run this
@@ -261,17 +260,31 @@ Please see restic `help` and [documentation](https://restic.readthedocs.io/en/st
    and it will delete the lock file so you can continue with your operation.
 12. `version`: display rescript version. This command does not need a `[repo_name]`.
 
-**Rescript Flags**:
+**Rescript Global Flags**:
 
-1. `--help, -h`: display help for a specific command.
-2. `--log, -l`: if you set the "LOGGING" variable to "yes" you don't need this flag
+These flags were "renamed" as "Global Flags" from v3.5 onwards to simplify and
+divide "command flags" that are those flags for specific commands (see `logs` for example).
+So, from version 3.5 these "Global Flags" must be used before commands.
+
+For example, if you want to log a command use:
+
+```
+rescript [repo_name] -l backup
+```
+The `help` command also works this way. If you can see the usage for a specific command use:
+```
+rescript help [rescript_command]
+```
+
+1. `-h, --help`: display help for a specific command.
+2. `-l, --log`: if you set the "LOGGING" variable to "yes" you don't need this flag
    when you run the automatic option (`rescript [repo_name]`); this flag is intended
    to use when you run a `rescript` or `restic` command. For example, you can run `rescript [repo_name] --log cleanup`
    to create a logfile for this specific command. This is available for all `rescript` and `restic`
    commands. It is very important that if you want to use this flag, you need to use it before of all other commands,
    flags and options. e.g. `rescript [repo_name] --log restorer --tag [your_tag]`.
    You can combine this flag with `--time`.
-3. `--time, -t`: this flag is only available for `restic` and if used, it will display
+3. `-t, --time`: this flag is only available for `restic` and if used, it will display
    an output with the date, time and duration of the command executed. Like `--log` it must
    be indicated before all other commands, for example: `rescript [repo_name] --time check [--flags]`.
    You can combine this flag with `--log`.
