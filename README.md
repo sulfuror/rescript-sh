@@ -383,6 +383,7 @@ _**NOTE**: If you were using v1.6 the datefile will be automatically moved from 
 
 ## Workarounds:
 **Backing up more than one directory**:
+
 From version 3.5 onwards you can backup more than one location at the same time
 using the same configuration file. Just open your configuration file and edit
 the following line:
@@ -393,6 +394,7 @@ This is not exactly a workaround but with erlier versions you can't do that
 unless you have edited the script to do so.
 
 **Backup without unsing the build-in function**:
+
 You can "omit the configuration file" by indicating `-r, --repo` after calling
 `rescript [repo_name]`. You will not really completely omit the configuration file
 but if you want to "override" what you're backing up and the exclusion list, then
