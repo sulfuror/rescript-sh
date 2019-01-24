@@ -1,6 +1,6 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # ============================================================== #
-version="rescript-v3.5"
+version="rescript-v3.6"
 usage="
 Author		: Sulfuror, Copyright (c) 2018 <sulfuror@gmail.com>
 URL		: https://gitlab.com/sulfuror/rescript.sh
@@ -164,237 +164,171 @@ function duration {
 # Select Editor Menu
 function select_editor {
   if [[ "$(uname -s)" == "Linux" || "$(uname -s)" == "GNU" || "$(uname -s)" == "Darwin"* ]] ; then
-  clear
-  echo "======================"
-  echo "  Select Text Editor  "
-  echo "======================"
-  echo " [1] Nano             "
-  echo " [2] Vim              "
-  echo " [3] Gedit            "
-  echo " [4] Mousepad         "
-  echo " [5] Leafpad          "
-  echo " [6] Pluma            "
-  echo " [7] Kate             "
-  echo " [8] Other            "
-  echo " [9] Exit             "
-  echo "======================"
-  read -p "Select the Text Editor you want to use [ 1 - 9 ]: " texteditor
-  if [[ -e "$HOME/bin/$(basename "$0")" ]] ; then
-    if [[ "$texteditor" == "1" || "$texteditor" == "Nano" || "$texteditor" == "nano" ]] ; then
-      sed -i 's/^\(EDITOR=\).*/\1"nano"/' "$HOME/bin/$(basename "$0")"
-      echo "You have selected [Nano] as your default text editor."
-    elif [[ "$texteditor" == "2" || "$texteditor" == "Vim" || "$texteditor" == "vim" ]] ; then
-      sed -i 's/^\(EDITOR=\).*/\1"vim"/' "$HOME/bin/$(basename "$0")"
-      echo "You have selected [Vim] as your default text editor."
-    elif [[ "$texteditor" == "3" || "$texteditor" == "Gedit" || "$texteditor" == "gedit" ]] ; then
-      sed -i 's/^\(EDITOR=\).*/\1"gedit"/' "$HOME/bin/$(basename "$0")"
-      echo "You have selected [Gedit] as your default text editor."
-    elif [[ "$texteditor" == "4" || "$texteditor" == "Mousepad" || "$texteditor" == "mousepad" ]] ; then
-      sed -i 's/^\(EDITOR=\).*/\1"mousepad"/' "$HOME/bin/$(basename "$0")"
-      echo "You have selected [Mousepad] as your default text editor."
-    elif [[ "$texteditor" == "5" || "$texteditor" == "Leafpad" || "$texteditor" == "leafpad" ]] ; then
-      sed -i 's/^\(EDITOR=\).*/\1"leafpad"/' "$HOME/bin/$(basename "$0")"
-      echo "You have selected [Leafpad] as your default text editor."
-    elif [[ "$texteditor" == "6" || "$texteditor" == "Pluma" || "$texteditor" == "pluma" ]] ; then
-      sed -i 's/^\(EDITOR=\).*/\1"pluma"/' "$HOME/bin/$(basename "$0")"
-      echo "You have selected [Pluma] as your default text editor."
-    elif [[ "$texteditor" == "7" || "$texteditor" == "Kate" || "$texteditor" == "kate" ]] ; then
-      sed -i 's/^\(EDITOR=\).*/\1"kate"/' "$HOME/bin/$(basename "$0")"
-      echo "You have selected [Kate] as your default text editor."
-    elif [[ "$texteditor" == "8" || "$texteditor" == "Other" || "$texteditor" == "other" ]] ; then
-      read -p "Type the executable name of the Text Editor you want to use: " othertextedit
-      sed -i "s/^\(EDITOR=\).*/\1"$othertextedit"/" "$HOME/bin/$(basename "$0")"
-      echo "You have selected [$othertextedit] as your default text editor."
-    elif [[ "$texteditor" == "9" || "$texteditor" == "Exit" || "$texteditor" == "exit" ]] ; then
-      echo "Exiting..."
-      exit
-    else
-      echo "Invalid option; exiting..."  
-      exit
-    fi
-  elif [[ -e "$HOME/.local/bin/$(basename "$0")" ]] ; then
+    clear
+    echo "======================"
+    echo "  Select Text Editor  "
+    echo "======================"
+    echo " [1] Nano             "
+    echo " [2] Vim              "
+    echo " [3] Gedit            "
+    echo " [4] Mousepad         "
+    echo " [5] Leafpad          "
+    echo " [6] Pluma            "
+    echo " [7] Kate             "
+    echo " [8] Other            "
+    echo " [9] Exit             "
+    echo "======================"
+    read -p "Select the Text Editor you want to use [ 1 - 9 ]: " texteditor
+    if [[ "$(which $(basename "$0"))" ]] ; then
       if [[ "$texteditor" == "1" || "$texteditor" == "Nano" || "$texteditor" == "nano" ]] ; then
-      sed -i 's/^\(EDITOR=\).*/\1"nano"/' "$HOME/.local/bin/$(basename "$0")"
-      echo "You have selected [Nano] as your default text editor."
-    elif [[ "$texteditor" == "2" || "$texteditor" == "Vim" || "$texteditor" == "vim" ]] ; then
-      sed -i 's/^\(EDITOR=\).*/\1"vim"/' "$HOME/.local/bin/$(basename "$0")"
-      echo "You have selected [Vim] as your default text editor."
-    elif [[ "$texteditor" == "3" || "$texteditor" == "Gedit" || "$texteditor" == "gedit" ]] ; then
-      sed -i 's/^\(EDITOR=\).*/\1"gedit"/' "$HOME/.local/bin/$(basename "$0")"
-      echo "You have selected [Gedit] as your default text editor."
-    elif [[ "$texteditor" == "4" || "$texteditor" == "Mousepad" || "$texteditor" == "mousepad" ]] ; then
-      sed -i 's/^\(EDITOR=\).*/\1"mousepad"/' "$HOME/.local/bin/$(basename "$0")"
-      echo "You have selected [Mousepad] as your default text editor."
-    elif [[ "$texteditor" == "5" || "$texteditor" == "Leafpad" || "$texteditor" == "leafpad" ]] ; then
-      sed -i 's/^\(EDITOR=\).*/\1"leafpad"/' "$HOME/.local/bin/$(basename "$0")"
-      echo "You have selected [Leafpad] as your default text editor."
-    elif [[ "$texteditor" == "6" || "$texteditor" == "Pluma" || "$texteditor" == "pluma" ]] ; then
-      sed -i 's/^\(EDITOR=\).*/\1"pluma"/' "$HOME/.local/bin/$(basename "$0")"
-      echo "You have selected [Pluma] as your default text editor."
-    elif [[ "$texteditor" == "7" || "$texteditor" == "Kate" || "$texteditor" == "kate" ]] ; then
-      sed -i 's/^\(EDITOR=\).*/\1"kate"/' "$HOME/.local/bin/$(basename "$0")"
-      echo "You have selected [Kate] as your default text editor."
-    elif [[ "$texteditor" == "8" || "$texteditor" == "Other" || "$texteditor" == "other" ]] ; then
-      read -p "Type the executable name of the Text Editor you want to use: " othertextedit
-      sed -i "s/^\(EDITOR=\).*/\1"$othertextedit"/" "$HOME/.local/bin/$(basename "$0")"
-      echo "You have selected [$othertextedit] as your default text editor."
-    elif [[ "$texteditor" == "9" || "$texteditor" == "Exit" || "$texteditor" == "exit" ]] ; then
-      echo "Exiting..."
-      exit
+        sed -i 's/^\(EDITOR=\).*/\1"nano"/' "$(which $(basename "$0"))"
+        echo "You have selected [Nano] as your default text editor."
+      elif [[ "$texteditor" == "2" || "$texteditor" == "Vim" || "$texteditor" == "vim" ]] ; then
+        sed -i 's/^\(EDITOR=\).*/\1"vim"/' "$(which $(basename "$0"))"
+        echo "You have selected [Vim] as your default text editor."
+      elif [[ "$texteditor" == "3" || "$texteditor" == "Gedit" || "$texteditor" == "gedit" ]] ; then
+        sed -i 's/^\(EDITOR=\).*/\1"gedit"/' "$(which $(basename "$0"))"
+        echo "You have selected [Gedit] as your default text editor."
+      elif [[ "$texteditor" == "4" || "$texteditor" == "Mousepad" || "$texteditor" == "mousepad" ]] ; then
+        sed -i 's/^\(EDITOR=\).*/\1"mousepad"/' "$(which $(basename "$0"))"
+        echo "You have selected [Mousepad] as your default text editor."
+      elif [[ "$texteditor" == "5" || "$texteditor" == "Leafpad" || "$texteditor" == "leafpad" ]] ; then
+        sed -i 's/^\(EDITOR=\).*/\1"leafpad"/' "$(which $(basename "$0"))"
+        echo "You have selected [Leafpad] as your default text editor."
+      elif [[ "$texteditor" == "6" || "$texteditor" == "Pluma" || "$texteditor" == "pluma" ]] ; then
+        sed -i 's/^\(EDITOR=\).*/\1"pluma"/' "$(which $(basename "$0"))"
+        echo "You have selected [Pluma] as your default text editor."
+      elif [[ "$texteditor" == "7" || "$texteditor" == "Kate" || "$texteditor" == "kate" ]] ; then
+        sed -i 's/^\(EDITOR=\).*/\1"kate"/' "$(which $(basename "$0"))"
+        echo "You have selected [Kate] as your default text editor."
+      elif [[ "$texteditor" == "8" || "$texteditor" == "Other" || "$texteditor" == "other" ]] ; then
+        read -p "Type the executable name of the Text Editor you want to use: " othertextedit
+        sed -i "s/^\(EDITOR=\).*/\1"$othertextedit"/" "$(which $(basename "$0"))"
+        echo "You have selected [$othertextedit] as your default text editor."
+      elif [[ "$texteditor" == "9" || "$texteditor" == "Exit" || "$texteditor" == "exit" ]] ; then
+        echo "Exiting..."
+        exit
+      else
+        echo "Invalid option; exiting..."  
+        exit
+      fi
     else
-      echo "Invalid option; exiting..."  
-      exit
-    fi
-  else
       if [[ "$texteditor" == "1" || "$texteditor" == "Nano" || "$texteditor" == "nano" ]] ; then
-      sed -i 's/^\(EDITOR=\).*/\1"nano"/' "$(basename "$0")"
-      echo "You have selected [Nano] as your default text editor."
-    elif [[ "$texteditor" == "2" || "$texteditor" == "Vim" || "$texteditor" == "vim" ]] ; then
-      sed -i 's/^\(EDITOR=\).*/\1"vim"/' "$(basename "$0")"
-      echo "You have selected [Vim] as your default text editor."
-    elif [[ "$texteditor" == "3" || "$texteditor" == "Gedit" || "$texteditor" == "gedit" ]] ; then
-      sed -i 's/^\(EDITOR=\).*/\1"gedit"/' "$(basename "$0")"
-      echo "You have selected [Gedit] as your default text editor."
-    elif [[ "$texteditor" == "4" || "$texteditor" == "Mousepad" || "$texteditor" == "mousepad" ]] ; then
-      sed -i 's/^\(EDITOR=\).*/\1"mousepad"/' "$(basename "$0")"
-      echo "You have selected [Mousepad] as your default text editor."
-    elif [[ "$texteditor" == "5" || "$texteditor" == "Leafpad" || "$texteditor" == "leafpad" ]] ; then
-      sed -i 's/^\(EDITOR=\).*/\1"leafpad"/' "$(basename "$0")"
-      echo "You have selected [Leafpad] as your default text editor."
-    elif [[ "$texteditor" == "6" || "$texteditor" == "Pluma" || "$texteditor" == "pluma" ]] ; then
-      sed -i 's/^\(EDITOR=\).*/\1"pluma"/' "$(basename "$0")"
-      echo "You have selected [Pluma] as your default text editor."
-    elif [[ "$texteditor" == "7" || "$texteditor" == "Kate" || "$texteditor" == "kate" ]] ; then
-      sed -i 's/^\(EDITOR=\).*/\1"kate"/' "$(basename "$0")"
-      echo "You have selected [Kate] as your default text editor."
-    elif [[ "$texteditor" == "8" || "$texteditor" == "Other" || "$texteditor" == "other" ]] ; then
-      read -p "Type the executable name of the Text Editor you want to use: " othertextedit
-      sed -i "s/^\(EDITOR=\).*/\1"$othertextedit"/" "$(basename "$0")"
-      echo "You have selected [$othertextedit] as your default text editor."
-    elif [[ "$texteditor" == "9" || "$texteditor" == "Exit" || "$texteditor" == "exit" ]] ; then
-      echo "Exiting..."
-      exit
-    else
-      echo "Invalid option; exiting..."  
-      exit
+        sed -i 's/^\(EDITOR=\).*/\1"nano"/' "$(basename "$0")"
+        echo "You have selected [Nano] as your default text editor."
+      elif [[ "$texteditor" == "2" || "$texteditor" == "Vim" || "$texteditor" == "vim" ]] ; then
+        sed -i 's/^\(EDITOR=\).*/\1"vim"/' "$(basename "$0")"
+        echo "You have selected [Vim] as your default text editor."
+      elif [[ "$texteditor" == "3" || "$texteditor" == "Gedit" || "$texteditor" == "gedit" ]] ; then
+        sed -i 's/^\(EDITOR=\).*/\1"gedit"/' "$(basename "$0")"
+        echo "You have selected [Gedit] as your default text editor."
+      elif [[ "$texteditor" == "4" || "$texteditor" == "Mousepad" || "$texteditor" == "mousepad" ]] ; then
+        sed -i 's/^\(EDITOR=\).*/\1"mousepad"/' "$(basename "$0")"
+        echo "You have selected [Mousepad] as your default text editor."
+      elif [[ "$texteditor" == "5" || "$texteditor" == "Leafpad" || "$texteditor" == "leafpad" ]] ; then
+        sed -i 's/^\(EDITOR=\).*/\1"leafpad"/' "$(basename "$0")"
+        echo "You have selected [Leafpad] as your default text editor."
+      elif [[ "$texteditor" == "6" || "$texteditor" == "Pluma" || "$texteditor" == "pluma" ]] ; then
+        sed -i 's/^\(EDITOR=\).*/\1"pluma"/' "$(basename "$0")"
+        echo "You have selected [Pluma] as your default text editor."
+      elif [[ "$texteditor" == "7" || "$texteditor" == "Kate" || "$texteditor" == "kate" ]] ; then
+        sed -i 's/^\(EDITOR=\).*/\1"kate"/' "$(basename "$0")"
+        echo "You have selected [Kate] as your default text editor."
+      elif [[ "$texteditor" == "8" || "$texteditor" == "Other" || "$texteditor" == "other" ]] ; then
+        read -p "Type the executable name of the Text Editor you want to use: " othertextedit
+        sed -i "s/^\(EDITOR=\).*/\1"$othertextedit"/" "$(basename "$0")"
+        echo "You have selected [$othertextedit] as your default text editor."
+      elif [[ "$texteditor" == "9" || "$texteditor" == "Exit" || "$texteditor" == "exit" ]] ; then
+        echo "Exiting..."
+        exit
+      else
+        echo "Invalid option; exiting..."  
+        exit
+      fi
     fi
-  fi
   elif [[ "$(uname -s)" == "FreeBSD"* ]] ; then
-  clear
-  echo "======================"
-  echo "  Select Text Editor  "
-  echo "======================"
-  echo " [1] Nano             "
-  echo " [2] Vim              "
-  echo " [3] Gedit            "
-  echo " [4] Mousepad         "
-  echo " [5] Leafpad          "
-  echo " [6] Pluma            "
-  echo " [7] Kate             "
-  echo " [8] Other            "
-  echo " [9] Exit             "
-  echo "======================"
-  read -p "Select the Text Editor you want to use [ 1 - 9 ]: " texteditor
-  if [[ -e "$HOME/bin/$(basename "$0")" ]] ; then
-    if [[ "$texteditor" == "1" || "$texteditor" == "Nano" || "$texteditor" == "nano" ]] ; then
-      sed -i '' 's/^\(EDITOR=\).*/\1"nano"/' "$HOME/bin/$(basename "$0")"
-      echo "You have selected [Nano] as your default text editor."
-    elif [[ "$texteditor" == "2" || "$texteditor" == "Vim" || "$texteditor" == "vim" ]] ; then
-      sed -i '' 's/^\(EDITOR=\).*/\1"vim"/' "$HOME/bin/$(basename "$0")"
-      echo "You have selected [Vim] as your default text editor."
-    elif [[ "$texteditor" == "3" || "$texteditor" == "Gedit" || "$texteditor" == "gedit" ]] ; then
-      sed -i '' 's/^\(EDITOR=\).*/\1"gedit"/' "$HOME/bin/$(basename "$0")"
-      echo "You have selected [Gedit] as your default text editor."
-    elif [[ "$texteditor" == "4" || "$texteditor" == "Mousepad" || "$texteditor" == "mousepad" ]] ; then
-      sed -i '' 's/^\(EDITOR=\).*/\1"mousepad"/' "$HOME/bin/$(basename "$0")"
-      echo "You have selected [Mousepad] as your default text editor."
-    elif [[ "$texteditor" == "5" || "$texteditor" == "Leafpad" || "$texteditor" == "leafpad" ]] ; then
-      sed -i '' 's/^\(EDITOR=\).*/\1"leafpad"/' "$HOME/bin/$(basename "$0")"
-      echo "You have selected [Leafpad] as your default text editor."
-    elif [[ "$texteditor" == "6" || "$texteditor" == "Pluma" || "$texteditor" == "pluma" ]] ; then
-      sed -i '' 's/^\(EDITOR=\).*/\1"pluma"/' "$HOME/bin/$(basename "$0")"
-      echo "You have selected [Pluma] as your default text editor."
-    elif [[ "$texteditor" == "7" || "$texteditor" == "Kate" || "$texteditor" == "kate" ]] ; then
-      sed -i '' 's/^\(EDITOR=\).*/\1"kate"/' "$HOME/bin/$(basename "$0")"
-      echo "You have selected [Kate] as your default text editor."
-    elif [[ "$texteditor" == "8" || "$texteditor" == "Other" || "$texteditor" == "other" ]] ; then
-      read -p "Type the executable name of the Text Editor you want to use: " othertextedit
-      sed -i '' "s/^\(EDITOR=\).*/\1"$othertextedit"/" "$HOME/bin/$(basename "$0")"
-      echo "You have selected [$othertextedit] as your default text editor."
-    elif [[ "$texteditor" == "9" || "$texteditor" == "Exit" || "$texteditor" == "exit" ]] ; then
-      echo "Exiting..."
-      exit
-    else
-      echo "Invalid option; exiting..."  
-      exit
-    fi
-  elif [[ -e "$HOME/.local/bin/$(basename "$0")" ]] ; then
+    clear
+    echo "======================"
+    echo "  Select Text Editor  "
+    echo "======================"
+    echo " [1] Nano             "
+    echo " [2] Vim              "
+    echo " [3] Gedit            "
+    echo " [4] Mousepad         "
+    echo " [5] Leafpad          "
+    echo " [6] Pluma            "
+    echo " [7] Kate             "
+    echo " [8] Other            "
+    echo " [9] Exit             "
+    echo "======================"
+    read -p "Select the Text Editor you want to use [ 1 - 9 ]: " texteditor
+    if [[ "$(which $(basename "$0"))" ]] ; then
       if [[ "$texteditor" == "1" || "$texteditor" == "Nano" || "$texteditor" == "nano" ]] ; then
-      sed -i '' 's/^\(EDITOR=\).*/\1"nano"/' "$HOME/.local/bin/$(basename "$0")"
-      echo "You have selected [Nano] as your default text editor."
-    elif [[ "$texteditor" == "2" || "$texteditor" == "Vim" || "$texteditor" == "vim" ]] ; then
-      sed -i '' 's/^\(EDITOR=\).*/\1"vim"/' "$HOME/.local/bin/$(basename "$0")"
-      echo "You have selected [Vim] as your default text editor."
-    elif [[ "$texteditor" == "3" || "$texteditor" == "Gedit" || "$texteditor" == "gedit" ]] ; then
-      sed -i '' 's/^\(EDITOR=\).*/\1"gedit"/' "$HOME/.local/bin/$(basename "$0")"
-      echo "You have selected [Gedit] as your default text editor."
-    elif [[ "$texteditor" == "4" || "$texteditor" == "Mousepad" || "$texteditor" == "mousepad" ]] ; then
-      sed -i '' 's/^\(EDITOR=\).*/\1"mousepad"/' "$HOME/.local/bin/$(basename "$0")"
-      echo "You have selected [Mousepad] as your default text editor."
-    elif [[ "$texteditor" == "5" || "$texteditor" == "Leafpad" || "$texteditor" == "leafpad" ]] ; then
-      sed -i '' 's/^\(EDITOR=\).*/\1"leafpad"/' "$HOME/.local/bin/$(basename "$0")"
-      echo "You have selected [Leafpad] as your default text editor."
-    elif [[ "$texteditor" == "6" || "$texteditor" == "Pluma" || "$texteditor" == "pluma" ]] ; then
-      sed -i '' 's/^\(EDITOR=\).*/\1"pluma"/' "$HOME/.local/bin/$(basename "$0")"
-      echo "You have selected [Pluma] as your default text editor."
-    elif [[ "$texteditor" == "7" || "$texteditor" == "Kate" || "$texteditor" == "kate" ]] ; then
-      sed -i '' 's/^\(EDITOR=\).*/\1"kate"/' "$HOME/.local/bin/$(basename "$0")"
-      echo "You have selected [Kate] as your default text editor."
-    elif [[ "$texteditor" == "8" || "$texteditor" == "Other" || "$texteditor" == "other" ]] ; then
-      read -p "Type the executable name of the Text Editor you want to use: " othertextedit
-      sed -i '' "s/^\(EDITOR=\).*/\1"$othertextedit"/" "$HOME/.local/bin/$(basename "$0")"
-      echo "You have selected [$othertextedit] as your default text editor."
-    elif [[ "$texteditor" == "9" || "$texteditor" == "Exit" || "$texteditor" == "exit" ]] ; then
-      echo "Exiting..."
-      exit
+        sed -i '' 's/^\(EDITOR=\).*/\1"nano"/' "$(which $(basename "$0"))"
+        echo "You have selected [Nano] as your default text editor."
+      elif [[ "$texteditor" == "2" || "$texteditor" == "Vim" || "$texteditor" == "vim" ]] ; then
+        sed -i '' 's/^\(EDITOR=\).*/\1"vim"/' "$(which $(basename "$0"))"
+        echo "You have selected [Vim] as your default text editor."
+      elif [[ "$texteditor" == "3" || "$texteditor" == "Gedit" || "$texteditor" == "gedit" ]] ; then
+        sed -i '' 's/^\(EDITOR=\).*/\1"gedit"/' "$(which $(basename "$0"))"
+        echo "You have selected [Gedit] as your default text editor."
+      elif [[ "$texteditor" == "4" || "$texteditor" == "Mousepad" || "$texteditor" == "mousepad" ]] ; then
+        sed -i '' 's/^\(EDITOR=\).*/\1"mousepad"/' "$(which $(basename "$0"))"
+        echo "You have selected [Mousepad] as your default text editor."
+      elif [[ "$texteditor" == "5" || "$texteditor" == "Leafpad" || "$texteditor" == "leafpad" ]] ; then
+        sed -i '' 's/^\(EDITOR=\).*/\1"leafpad"/' "$(which $(basename "$0"))"
+        echo "You have selected [Leafpad] as your default text editor."
+      elif [[ "$texteditor" == "6" || "$texteditor" == "Pluma" || "$texteditor" == "pluma" ]] ; then
+        sed -i '' 's/^\(EDITOR=\).*/\1"pluma"/' "$(which $(basename "$0"))"
+        echo "You have selected [Pluma] as your default text editor."
+      elif [[ "$texteditor" == "7" || "$texteditor" == "Kate" || "$texteditor" == "kate" ]] ; then
+        sed -i '' 's/^\(EDITOR=\).*/\1"kate"/' "$(which $(basename "$0"))"
+        echo "You have selected [Kate] as your default text editor."
+      elif [[ "$texteditor" == "8" || "$texteditor" == "Other" || "$texteditor" == "other" ]] ; then
+        read -p "Type the executable name of the Text Editor you want to use: " othertextedit
+        sed -i '' "s/^\(EDITOR=\).*/\1"$othertextedit"/" "$(which $(basename "$0"))"
+        echo "You have selected [$othertextedit] as your default text editor."
+      elif [[ "$texteditor" == "9" || "$texteditor" == "Exit" || "$texteditor" == "exit" ]] ; then
+        echo "Exiting..."
+        exit
+      else
+        echo "Invalid option; exiting..."  
+        exit
+      fi
     else
-      echo "Invalid option; exiting..."  
-      exit
-    fi
-  else
       if [[ "$texteditor" == "1" || "$texteditor" == "Nano" || "$texteditor" == "nano" ]] ; then
-      sed -i '' 's/^\(EDITOR=\).*/\1"nano"/' "$(basename "$0")"
-      echo "You have selected [Nano] as your default text editor."
-    elif [[ "$texteditor" == "2" || "$texteditor" == "Vim" || "$texteditor" == "vim" ]] ; then
-      sed -i '' 's/^\(EDITOR=\).*/\1"vim"/' "$(basename "$0")"
-      echo "You have selected [Vim] as your default text editor."
-    elif [[ "$texteditor" == "3" || "$texteditor" == "Gedit" || "$texteditor" == "gedit" ]] ; then
-      sed -i '' 's/^\(EDITOR=\).*/\1"gedit"/' "$(basename "$0")"
-      echo "You have selected [Gedit] as your default text editor."
-    elif [[ "$texteditor" == "4" || "$texteditor" == "Mousepad" || "$texteditor" == "mousepad" ]] ; then
-      sed -i '' 's/^\(EDITOR=\).*/\1"mousepad"/' "$(basename "$0")"
-      echo "You have selected [Mousepad] as your default text editor."
-    elif [[ "$texteditor" == "5" || "$texteditor" == "Leafpad" || "$texteditor" == "leafpad" ]] ; then
-      sed -i '' 's/^\(EDITOR=\).*/\1"leafpad"/' "$(basename "$0")"
-      echo "You have selected [Leafpad] as your default text editor."
-    elif [[ "$texteditor" == "6" || "$texteditor" == "Pluma" || "$texteditor" == "pluma" ]] ; then
-      sed -i '' 's/^\(EDITOR=\).*/\1"pluma"/' "$(basename "$0")"
-      echo "You have selected [Pluma] as your default text editor."
-    elif [[ "$texteditor" == "7" || "$texteditor" == "Kate" || "$texteditor" == "kate" ]] ; then
-      sed -i '' 's/^\(EDITOR=\).*/\1"kate"/' "$(basename "$0")"
-      echo "You have selected [Kate] as your default text editor."
-    elif [[ "$texteditor" == "8" || "$texteditor" == "Other" || "$texteditor" == "other" ]] ; then
-      read -p "Type the executable name of the Text Editor you want to use: " othertextedit
-      sed -i '' "s/^\(EDITOR=\).*/\1"$othertextedit"/" "$(basename "$0")"
-      echo "You have selected [$othertextedit] as your default text editor."
-    elif [[ "$texteditor" == "9" || "$texteditor" == "Exit" || "$texteditor" == "exit" ]] ; then
-      echo "Exiting..."
-      exit
-    else
-      echo "Invalid option; exiting..."  
-      exit
+        sed -i '' 's/^\(EDITOR=\).*/\1"nano"/' "$(basename "$0")"
+        echo "You have selected [Nano] as your default text editor."
+      elif [[ "$texteditor" == "2" || "$texteditor" == "Vim" || "$texteditor" == "vim" ]] ; then
+        sed -i '' 's/^\(EDITOR=\).*/\1"vim"/' "$(basename "$0")"
+        echo "You have selected [Vim] as your default text editor."
+      elif [[ "$texteditor" == "3" || "$texteditor" == "Gedit" || "$texteditor" == "gedit" ]] ; then
+        sed -i '' 's/^\(EDITOR=\).*/\1"gedit"/' "$(basename "$0")"
+        echo "You have selected [Gedit] as your default text editor."
+      elif [[ "$texteditor" == "4" || "$texteditor" == "Mousepad" || "$texteditor" == "mousepad" ]] ; then
+        sed -i '' 's/^\(EDITOR=\).*/\1"mousepad"/' "$(basename "$0")"
+        echo "You have selected [Mousepad] as your default text editor."
+      elif [[ "$texteditor" == "5" || "$texteditor" == "Leafpad" || "$texteditor" == "leafpad" ]] ; then
+        sed -i '' 's/^\(EDITOR=\).*/\1"leafpad"/' "$(basename "$0")"
+        echo "You have selected [Leafpad] as your default text editor."
+      elif [[ "$texteditor" == "6" || "$texteditor" == "Pluma" || "$texteditor" == "pluma" ]] ; then
+        sed -i '' 's/^\(EDITOR=\).*/\1"pluma"/' "$(basename "$0")"
+        echo "You have selected [Pluma] as your default text editor."
+      elif [[ "$texteditor" == "7" || "$texteditor" == "Kate" || "$texteditor" == "kate" ]] ; then
+        sed -i '' 's/^\(EDITOR=\).*/\1"kate"/' "$(basename "$0")"
+        echo "You have selected [Kate] as your default text editor."
+      elif [[ "$texteditor" == "8" || "$texteditor" == "Other" || "$texteditor" == "other" ]] ; then
+        read -p "Type the executable name of the Text Editor you want to use: " othertextedit
+        sed -i '' "s/^\(EDITOR=\).*/\1"$othertextedit"/" "$(basename "$0")"
+        echo "You have selected [$othertextedit] as your default text editor."
+      elif [[ "$texteditor" == "9" || "$texteditor" == "Exit" || "$texteditor" == "exit" ]] ; then
+        echo "Exiting..."
+        exit
+      else
+        echo "Invalid option; exiting..."  
+        exit
+      fi
     fi
-  fi
   fi
 }
 
@@ -500,17 +434,20 @@ function new_config_file {
   echo "# ------------------------------------------------------------------------------- #"
   echo "#                              R E P O    I N F O                                 #"
   echo "# ------------------------------------------------------------------------------- #"
-  echo "# You MUST set these values. "KEEP" values CANNOT be left blank; if you are not"
-  echo "# going to use "KEEP" policies the value must be set to "0"."
+  echo "# Set restic password, repository location/directory and backup directory."
   echo 'RESTIC_PASSWORD=""'
   echo 'RESTIC_REPO=""'
   echo 'BACKUP_DIR="$HOME"'
-  echo 'KEEP_LAST="0"'
+  echo ""
+  echo "# Keep Policies (leave blank if not used)"
+  echo 'KEEP_LAST=""'
   echo 'KEEP_HOURLY="8"'
   echo 'KEEP_DAILY="7"'
   echo 'KEEP_WEEKLY="4"'
   echo 'KEEP_MONTHLY="12"'
   echo 'KEEP_YEARLY="10"'
+  echo 'KEEP_WITHIN=""'
+  echo 'KEEP_TAG=""'
   echo ""
   echo "# B2 Credentials (leave blank if not used)"
   echo 'B2_ID=""'
@@ -920,15 +857,38 @@ function cleanup-help {
   echo "delete the data that has been forgotten."
   echo ""
   echo "Usage:"
-  echo "  rescript [repo_name] cleanup [command_flag]"
+  echo "  rescript [repo_name] cleanup [command_flag] [options]"
   echo ""
   echo "Command flags:"
+  echo "  -d, --dry-run		Do not delete anything, just print"
+  echo "			what would be done. This flag can"
+  echo "			be used with any other restic flag"
+  echo "			like: --host, --tag, --path"
+  echo "			--group-by and any other flag and"
+  echo "			option available but it must be"
+  echo "			specified before restic options and"
+  echo "			after [cleanup]."
+  echo "  -e, --exec		This "special" flag can be used to"
+  echo "			pass other restic flags like:"
+  echo "			--host, --tag, --path, --group-by"
+  echo "			and any other flag and option available"
+  echo "			in restic but it will execute [prune]"
+  echo "			at the end. This flag must be specified"
+  echo "			before restic options and after [cleanup]."
   echo "  -n, --next		Display next scheduled; work only when"
   echo "			CLEANUP variable is set."
   echo "Global flags:"
   echo "  -h, --help		Display this help dialog."
   echo "  -l, --log		This will create a log file with"
   echo "			the command output."
+  echo ""
+  echo "[-d] and [-e] usage examples:"
+  echo "  rescript [repo_name] cleanup -d --group-by tags"
+  echo "	This will run the commands with [--dry-run], so it will not"
+  echo "	delete anything"
+  echo "  rescript [repo_name] cleanup -e --group-by tags"
+  echo "	This will execute the commands, flags and options indicated"
+  echo "	with [prune] at the end and IT WILL delete data"
   echo ""
 }
 
@@ -1002,7 +962,7 @@ function logs-help {
   echo ""
   echo "Command flags:"
   echo "  -c, --cat		Display output of selected log file."
-  echo "  -l, --list		List all log files saved."
+  echo "  -L, --list		List all log files saved."
   echo "  -r, --remove		Remove all log files."
   echo ""
   echo "Global flags:"
@@ -1250,19 +1210,52 @@ export B2_ACCOUNT_KEY="$B2_KEY"
 export AWS_ACCESS_KEY_ID="$AWS_ID"
 export AWS_SECRET_ACCESS_KEY="$AWS_KEY"
 
+# Set variables for functions
+if [[ ! -z "$KEEP_LAST" && "$KEEP_LAST" -gt "0" ]] ; then
+  FORGET_LAST="--keep-last $KEEP_LAST"
+fi
+if [[ ! -z "$KEEP_HOURLY" && "$KEEP_HOURLY" -gt "0" ]] ; then
+  FORGET_HOURLY="--keep-hourly $KEEP_HOURLY"
+fi
+if [[ ! -z "$KEEP_DAILY" && "$KEEP_DAILY" -gt "0" ]] ; then
+  FORGET_DAILY="--keep-daily $KEEP_DAILY"
+fi
+if [[ ! -z "$KEEP_WEEKLY" && "$KEEP_WEEKLY" -gt "0" ]] ; then
+  FORGET_WEEKLY="--keep-weekly $KEEP_WEEKLY"
+fi
+if [[ ! -z "$KEEP_MONTHLY" && "$KEEP_MONTHLY" -gt "0" ]] ; then
+  FORGET_MONTHLY="--keep-monthly $KEEP_MONTHLY"
+fi
+if [[ ! -z "$KEEP_YEARLY" && "$KEEP_YEARLY" -gt "0" ]] ; then
+  FORGET_YEARLY="--keep-yearly $KEEP_YEARLY"
+fi
+if [[ ! -z "$KEEP_WITHIN" ]] ; then
+  FORGET_WITHIN="--keep-within $KEEP_WITHIN"
+fi
+if [[ ! -z "$KEEP_TAG" ]] ; then
+  FORGET_TAG="--keep-tag $KEEP_TAG"
+fi
+POLICIES=(
+  $FORGET_LAST
+  $FORGET_HOURLY
+  $FORGET_DAILY
+  $FORGET_WEEKLY
+  $FORGET_MONTHLY
+  $FORGET_YEARLY
+  $FORGET_WITHIN
+  $FORGET_TAG
+)
+
+if [[ ! -z "$HOST" ]] ; then
+  RESTIC_HOST="--host $HOST"
+fi
+if [[ ! -z "$TAG" ]] ; then
+  RESTIC_TAG="--tag $TAG"
+fi
+
 function automatic {
   LOG="$HOME/.rescript/logs/"$REPO"-log-$(date +%Y-%m-%d-%H:%M)"
-  if [ -e "$LOCK" ]; then
-    echo -e "WARNING: "$REPO" repo is already running..."
-    echo -e "If you are sure "$REPO" is not running, type"
-    echo -e " "
-    echo -e "	rescript "$REPO" unlock"
-    echo -e " "
-    echo -e "This will remove the lock for "$REPO""
-    exit
-  fi
-  touch "$LOCK"
-  trap 'rm -rf "$LOCK"' INT QUIT TERM EXIT
+  rescript-lock
   if [[ "$LOGGING" == "yes" || "$LOGGING" == "YES" || "$LOGGING" == "Y" || "$LOGGING" == "y" ]] ; then
     exec > >(tee -a "$LOG") 2>&1
   elif [[ "$LOGGING" == "no" || "$LOGGING" == "NO" || "$LOGGING" == "N" || "$LOGGING" == "n" ]] ; then
@@ -1287,7 +1280,7 @@ function automatic {
 
   # Backup and exclusions
   echo -e "$YELLOW""[Taking a Snapshot...]""$ENDCOLOR"
-  restic backup $BACKUP_DIR --tag "$TAG" --verbose --exclude-caches --exclude-file="$EXCLUDES"  --host "$HOST"
+  restic backup $BACKUP_DIR --verbose --exclude-caches --exclude-file="$EXCLUDES" $RESTIC_TAG $RESTIC_HOST
 
   EXCLUSIONS=$(grep -E -v -n -c '(^#|^\s*$|^\s*\t*#)' "$EXCLUDES")
   echo -e "$YELLOW""There are $EXCLUSIONS exclusion rules...""$ENDCOLOR"
@@ -1299,6 +1292,9 @@ function automatic {
 
   # Check and Clean Repo Based on User's Policy
   if [[ -f "$HOME/.rescript/config/"$REPO"-datefile" || "$CLEAN" -gt "0" ]]; then
+    if [[ ! -f "$HOME/.rescript/config/"$REPO"-datefile" ]] ; then
+      touch "$HOME/.rescript/config/"$REPO"-datefile"
+    fi
     if [[ "$(uname -s)" == "Linux" || "$(uname -s)" == "GNU" ]] ; then
       NOW=$(date +"%s")
       NEXT=$(date -f "$HOME/.rescript/config/"$REPO"-datefile" "+%s")
@@ -1306,39 +1302,12 @@ function automatic {
       NOW=$(gdate +"%s")
       NEXT=$(gdate -f "$HOME/.rescript/config/"$REPO"-datefile" "+%s")
     fi
-    RESULT=$((NEXT-NOW))
-    DAYS=$((RESULT / 86400))
-    HOURS=$(((RESULT / 3600) % 24))
-    MINUTES=$(((RESULT / 60) % 60))
-    if [[ "$DAYS" == "1" ]] ; then
-      D="day"
-    else
-      D="days"
-    fi
-    if [[ "$HOURS" == "1" ]] ; then
-      H="hour"
-    else
-      H="hours"
-    fi
-    if [[ "$MINUTES" == "1" ]] ; then
-      M="minute"
-    else
-      M="minutes"
-    fi
     if [[ "$NOW" -lt "$NEXT" ]] ; then
-      if [[ "$DAYS" -gt "0" ]] ; then
-        echo -e "$YELLOW""[Next cleanup and check in $DAYS $D $HOURS $H and $MINUTES $M...]""$ENDCOLOR"
-      elif [[ "$HOURS" -gt "0" ]] ; then
-        echo -e "$YELLOW""[Next cleanup and check in $HOURS $H and $MINUTES $M...]""$ENDCOLOR"
-      elif [[ "$MINUTES" -gt "0" ]] ; then
-        echo -e "$YELLOW""[Next cleanup and check in $MINUTES $M...]""$ENDCOLOR"
-      else
-        echo -e "$YELLOW""[Repo will be cleaned and checked in the next run...]""$ENDCOLOR"
-      fi
+      cleanup-next
     else 
-      if [[ "$KEEP_LAST" -gt "0" || "$KEEP_HOURLY" -gt "0" || "$KEEP_DAILY" -gt "0" || "$KEEP_WEEKLY" -gt "0" || "$KEEP_MONTHLY" -gt "0" || "$KEEP_YEARLY" -gt "0" ]] ; then
+      if [[ ! -z "$POLICIES" ]] ; then
         echo -e "$YELLOW""[Cleaning Repo...]""$ENDCOLOR"
-        restic forget --keep-last $KEEP_LAST --keep-hourly $KEEP_HOURLY --keep-daily $KEEP_DAILY --keep-weekly $KEEP_WEEKLY --keep-monthly $KEEP_MONTHLY --keep-yearly $KEEP_YEARLY
+        restic forget "${POLICIES[@]}"
         restic prune
         echo -e "$YELLOW""[Checking for Errors in Repo...]""$ENDCOLOR"
         restic check --cleanup-cache
@@ -1358,9 +1327,9 @@ function automatic {
       fi
     fi
   else 
-      if [[ "$KEEP_LAST" -gt "0" || "$KEEP_HOURLY" -gt "0" || "$KEEP_DAILY" -gt "0" || "$KEEP_WEEKLY" -gt "0" || "$KEEP_MONTHLY" -gt "0" || "$KEEP_YEARLY" -gt "0" ]] ; then
+      if [[ ! -z "$POLICIES" ]] ; then
         echo -e "$YELLOW""[Cleaning Repo...]""$ENDCOLOR"
-        restic forget --keep-last $KEEP_LAST --keep-hourly $KEEP_HOURLY --keep-daily $KEEP_DAILY --keep-weekly $KEEP_WEEKLY --keep-monthly $KEEP_MONTHLY --keep-yearly $KEEP_YEARLY
+        restic forget "${POLICIES[@]}"
         restic prune
         echo -e "$YELLOW""[Checking for Errors in Repo...]""$ENDCOLOR"
         restic check --cleanup-cache
@@ -1384,20 +1353,28 @@ function automatic {
   echo -e "=========================================================================="
   echo -e "| - - - - - - - - - > [ B A C K U P      E N D E D ] < - - - - - - - - - |"
   echo -e "=========================================================================="
+
+  if [[ "$CLEAN" -gt "0" && -z "$POLICIES" ]] ; then
+    if [[ "$CLEAN" == "1" ]] ; then
+      D="day"
+    else
+      D="days"
+    fi
+    echo "[rescript] noted that your CLEAN variable is $CLEAN, so [rescript] assumes that"
+    echo "you want to perform a 'cleanup' (forget, prune and check) every $CLEAN $D but"
+    echo "it can't execute it if you have not set the KEEP variables; please set your"
+    echo "desired KEEP values in order to perform the 'cleanup' every $CLEAN $D. If you"
+    echo "don't want [rescript] to 'cleanup' your repo automatically every $CLEAN $D,"
+    echo "just leave the CLEAN variable blank in your cofiguration file and this"
+    echo "message will not appear again."
+    echo ""
+    echo "For more info about this subject:"
+    echo "https://gitlab.com/sulfuror/rescript.sh/blob/master/README.md#usage"
+  fi
 }
 
 function backup {
-  if [ -e "$LOCK" ]; then
-    echo -e "WARNING: "$REPO" repo is already running..."
-    echo -e "If you are sure "$REPO" is not running, type"
-    echo -e " "
-    echo -e "	rescript "$REPO" unlock"
-    echo -e " "
-    echo -e "This will remove the lock for "$REPO""
-    exit
-  fi
-  touch "$LOCK"
-  trap 'rm -rf "$LOCK"' INT QUIT TERM EXIT
+  rescript-lock
   if [[ "$FLAGS" ]] ; then
     if [[ "$FLAGS" == "--help" || "$FLAGS" == "-h" ]] ; then
       backup-help
@@ -1430,7 +1407,7 @@ function backup {
     echo -e "$YELLOW""Backup Destination:""$ENDCOLOR" "$RESTIC_REPO"
   fi
   echo -e "--------------------------------------------------------------------------"
-  restic backup $BACKUP_DIR --tag "$TAG" --verbose --exclude-caches --exclude-file="$EXCLUDES" --host "$HOST"
+  restic backup $BACKUP_DIR --verbose --exclude-caches --exclude-file="$EXCLUDES" $RESTIC_TAG $RESTIC_HOST
   echo -e "--------------------------------------------------------------------------"
   echo -e "$YELLOW""End:""$ENDCOLOR" "$(date +%a\ %b\ %d\ %Y\ %r)"
   echo -e "$YELLOW""Duration:""$ENDCOLOR" "$(duration)"
@@ -1440,19 +1417,39 @@ function backup {
 }
 
 function cleanup {
-  if [ -e "$LOCK" ]; then
-    echo -e "WARNING: "$REPO" repo is already running..."
-    echo -e "If you are sure "$REPO" is not running, type"
-    echo -e " "
-    echo -e "	rescript "$REPO" unlock"
-    echo -e " "
-    echo -e "This will remove the lock for "$REPO""
-    exit
-  fi
-  touch "$LOCK"
-  trap 'rm -rf "$LOCK"' INT QUIT TERM EXIT
+  rescript-lock
   if [[ "$FLAGS" ]] ; then
-    if [[ "$FLAGS" == "--help" || "$FLAGS" == "-h" ]] ; then
+    if [[ "$FLAGS" == "--dry-run" || "$FLAGS" == "-d" ]] ; then
+      restic forget "${POLICIES[@]}" --dry-run $OPT
+      echo "Using [--dry-run] flag does not remove anything."
+      exit
+    elif [[ "$FLAGS" == "--exec" || "$FLAGS" == "-e" ]] ; then
+      echo -e "=========================================================================="
+      echo -e "|- - - - - - - - > [ S T A R T I N G    C L E A N U P ] < - - - - - - - -|"
+      echo -e "=========================================================================="
+      echo -e "$YELLOW""Date and Time:""$ENDCOLOR" "$(date +%a\ %b\ %d\ %Y\ %r)"
+      echo -e "$YELLOW""System:""$ENDCOLOR" "$(opsys)"
+      if [[ "$HOST" ]] ; then
+        echo -e "$YELLOW""Hostname:""$ENDCOLOR" "$HOST"
+      else
+        echo -e "$YELLOW""Hostname:""$ENDCOLOR" "$HOSTNAME"
+      fi
+      if [[ "$DESTINATION" ]] ; then
+        echo -e "$YELLOW""Backup Destination:""$ENDCOLOR" "$DESTINATION"
+      else
+        echo -e "$YELLOW""Backup Destination:""$ENDCOLOR" "$RESTIC_REPO"
+      fi
+      echo -e "--------------------------------------------------------------------------"
+      restic forget "${POLICIES[@]}" $OPT
+      restic prune --cleanup-cache
+      echo -e "--------------------------------------------------------------------------"
+      echo -e "$YELLOW""End:""$ENDCOLOR" "$(date +%a\ %b\ %d\ %Y\ %r)"
+      echo -e "$YELLOW""Duration:""$ENDCOLOR" "$(duration)"
+      echo -e "=========================================================================="
+      echo -e "| - - - - - - - - - > [ C L E A N U P    E N D E D ] < - - - - - - - - - |"
+      echo -e "=========================================================================="
+      exit
+    elif [[ "$FLAGS" == "--help" || "$FLAGS" == "-h" ]] ; then
       cleanup-help
       exit
     elif [[ "$FLAGS" == "--log" || "$FLAGS" == "-l" ]] ; then
@@ -1461,8 +1458,18 @@ function cleanup {
       logger-help
       exit
     elif [[ "$FLAGS" == "--next" || "$FLAGS" == "-n" ]] ; then
-      cleanup-next
-      exit
+      if [[ -z "$CLEAN" || "$CLEAN" -lt "1" ]] ; then
+        echo -e "$YELLOW""You have not indicated any policy for the CLEAN value...""$ENDCOLOR"
+        echo "The scrip will run check, forget and prune every time it runs"
+        echo "unless you change the CLEAN variable at the beginning of this script."
+        echo "The number indicated in the CLEAN variable must be in days."
+        echo "For more information about the usage check out the following link:"
+        echo "https://gitlab.com/sulfuror/rescript.sh/blob/master/README.md#usage"
+        exit
+      else
+        cleanup-next
+        exit
+      fi
     else
       echo "Invalid flag ["$FLAGS"]..."
       echo ""
@@ -1470,120 +1477,84 @@ function cleanup {
       exit
     fi
   fi
-  if [[ "$KEEP_LAST" -gt "0" || "$KEEP_HOURLY" -gt "0" || "$KEEP_DAILY" -gt "0" || "$KEEP_WEEKLY" -gt "0" || "$KEEP_MONTHLY" -gt "0" || "$KEEP_YEARLY" -gt "0" ]] ; then
-	echo -e "=========================================================================="
-	echo -e "|- - - - - - - - > [ S T A R T I N G    C L E A N U P ] < - - - - - - - -|"
-	echo -e "=========================================================================="
-	echo -e "$YELLOW""Date and Time:""$ENDCOLOR" "$(date +%a\ %b\ %d\ %Y\ %r)"
-	echo -e "$YELLOW""System:""$ENDCOLOR" "$(opsys)"
-	if [[ "$HOST" ]] ; then
-	  echo -e "$YELLOW""Hostname:""$ENDCOLOR" "$HOST"
-	else
-	  echo -e "$YELLOW""Hostname:""$ENDCOLOR" "$HOSTNAME"
-	fi
-	if [[ "$DESTINATION" ]] ; then
-	  echo -e "$YELLOW""Backup Destination:""$ENDCOLOR" "$DESTINATION"
-	else
-	  echo -e "$YELLOW""Backup Destination:""$ENDCOLOR" "$RESTIC_REPO"
-	fi
-	echo -e "--------------------------------------------------------------------------"
-        restic forget --keep-last $KEEP_LAST --keep-hourly $KEEP_HOURLY --keep-daily $KEEP_DAILY --keep-weekly $KEEP_WEEKLY --keep-monthly $KEEP_MONTHLY --keep-yearly $KEEP_YEARLY
-        restic prune --cleanup-cache
-	if [[ -f "$HOME/.rescript/config/"$REPO"-datefile" || "$CLEAN" -gt "0" ]] ; then
-          if [[ "$(uname -s)" == "Linux" || "$(uname -s)" == "GNU" ]] ; then
-            NOW=$(date +"%s")
-            NEXT=$(date -f "$HOME/.rescript/config/"$REPO"-datefile" "+%s")
-          elif [[ "$(uname -s)" == "Darwin"* || "$(uname -s)" == "FreeBSD"* ]] ; then
-            NOW=$(gdate +"%s")
-            NEXT=$(gdate -f "$HOME/.rescript/config/"$REPO"-datefile" "+%s")
-          fi
-	  RESULT=$((NEXT-NOW))
-	  DAYS=$((RESULT / 86400))
-	  HOURS=$(((RESULT / 3600) % 24))
-	  MINUTES=$(((RESULT / 60) % 60))
-          if [[ "$DAYS" == "1" ]] ; then
-            D="day"
-          else
-            D="days"
-          fi
-          if [[ "$HOURS" == "1" ]] ; then
-            H="hour"
-          else
-            H="hours"
-          fi
-          if [[ "$MINUTES" == "1" ]] ; then
-            M="minute"
-          else
-            M="minutes"
-          fi
-	  if [[ "$DAYS" -gt "0" ]] ; then
-	    echo -e "$YELLOW""[Next check and cleanup in $DAYS $D $HOURS $H and $MINUTES $M...]""$ENDCOLOR"
-	  elif [[ "$HOURS" -gt "0" ]] ; then
-	    echo -e "$YELLOW""[Next check and cleanup in $HOURS $H and $MINUTES $M...]""$ENDCOLOR"
-	  elif [[ "$MINUTES" -gt "0" ]] ; then
-	    echo -e "$YELLOW""[Next check and cleanup in $MINUTES $M...]""$ENDCOLOR"
-	  else
-	    echo -e "$YELLOW""[Repo will be checked and cleaned in the next run...]""$ENDCOLOR"
-	  fi
-	fi
-	echo -e "--------------------------------------------------------------------------"
-	echo -e "$YELLOW""End:""$ENDCOLOR" "$(date +%a\ %b\ %d\ %Y\ %r)"
-	echo -e "$YELLOW""Duration:""$ENDCOLOR" "$(duration)"
-	echo -e "=========================================================================="
-	echo -e "| - - - - - - - - - > [ C L E A N U P    E N D E D ] < - - - - - - - - - |"
-	echo -e "=========================================================================="
+  if [[ ! -z "$POLICIES" ]] ; then
+    echo -e "=========================================================================="
+    echo -e "|- - - - - - - - > [ S T A R T I N G    C L E A N U P ] < - - - - - - - -|"
+    echo -e "=========================================================================="
+    echo -e "$YELLOW""Date and Time:""$ENDCOLOR" "$(date +%a\ %b\ %d\ %Y\ %r)"
+    echo -e "$YELLOW""System:""$ENDCOLOR" "$(opsys)"
+    if [[ "$HOST" ]] ; then
+      echo -e "$YELLOW""Hostname:""$ENDCOLOR" "$HOST"
+    else
+      echo -e "$YELLOW""Hostname:""$ENDCOLOR" "$HOSTNAME"
+    fi
+    if [[ "$DESTINATION" ]] ; then
+      echo -e "$YELLOW""Backup Destination:""$ENDCOLOR" "$DESTINATION"
+    else
+      echo -e "$YELLOW""Backup Destination:""$ENDCOLOR" "$RESTIC_REPO"
+    fi
+    echo -e "--------------------------------------------------------------------------"
+    restic forget "${POLICIES[@]}"
+    restic prune --cleanup-cache
+    if [[ -f "$HOME/.rescript/config/"$REPO"-datefile" || "$CLEAN" -gt "0" ]] ; then
+      cleanup-next
+    fi
+    echo -e "--------------------------------------------------------------------------"
+    echo -e "$YELLOW""End:""$ENDCOLOR" "$(date +%a\ %b\ %d\ %Y\ %r)"
+    echo -e "$YELLOW""Duration:""$ENDCOLOR" "$(duration)"
+    echo -e "=========================================================================="
+    echo -e "| - - - - - - - - - > [ C L E A N U P    E N D E D ] < - - - - - - - - - |"
+    echo -e "=========================================================================="
   else
-	echo -e "$YELLOW""You have not indicated any policy value...""$ENDCOLOR"
-	echo "If you want to use [cleanup] option you need to set the [KEEP] variables."
-	echo "For more information about the Usage check out the following link:"
-	echo "https://gitlab.com/sulfuror/rescript.sh/blob/master/README.md#usage"
+    echo -e "$YELLOW""You have not indicated any policy value...""$ENDCOLOR"
+    echo "If you want to use [cleanup] option you need to set the [KEEP] variables."
+    echo "For more information about the Usage check out the following link:"
+    echo "https://gitlab.com/sulfuror/rescript.sh/blob/master/README.md#usage"
   fi
 }
 
 function cleanup-next {
-  if [[ -z "$CLEAN" || "$CLEAN" -lt "1" ]] ; then
-    echo -e "$YELLOW""You have not indicated any policy for the CLEAN value...""$ENDCOLOR"
-    echo "The scrip will run check, forget and prune every time it runs"
-    echo "unless you change the CLEAN variable at the beginning of this script."
-    echo "The number indicated in the CLEAN variable must be in days."
-    echo "For more information about the usage check out the following link:"
-    echo "https://gitlab.com/sulfuror/rescript.sh/blob/master/README.md#usage"
+  if [[ ! -f "$HOME/.rescript/config/"$REPO"-datefile" ]] ; then
+    touch "$HOME/.rescript/config/"$REPO"-datefile"
+  fi
+  if [[ "$(uname -s)" == "Linux" || "$(uname -s)" == "GNU" ]] ; then
+    NOW=$(date +"%s")
+    NEXT=$(date -f "$HOME/.rescript/config/"$REPO"-datefile" "+%s")
+  elif [[ "$(uname -s)" == "Darwin"* || "$(uname -s)" == "FreeBSD"* ]] ; then
+    NOW=$(gdate +"%s")
+    NEXT=$(gdate -f "$HOME/.rescript/config/"$REPO"-datefile" "+%s")
+  fi
+  RESULT=$((NEXT-NOW))
+  DAYS=$((RESULT / 86400))
+  HOURS=$(((RESULT / 3600) % 24))
+  MINUTES=$(((RESULT / 60) % 60))
+  if [[ "$DAYS" == "1" ]] ; then
+    D="day"
   else
-    if [[ "$(uname -s)" == "Linux" || "$(uname -s)" == "GNU" ]] ; then
-      NOW=$(date +"%s")
-      NEXT=$(date -f "$HOME/.rescript/config/"$REPO"-datefile" "+%s")
-    elif [[ "$(uname -s)" == "Darwin"* || "$(uname -s)" == "FreeBSD"* ]] ; then
-      NOW=$(gdate +"%s")
-      NEXT=$(gdate -f "$HOME/.rescript/config/"$REPO"-datefile" "+%s")
-    fi
-    RESULT=$((NEXT-NOW))
-    DAYS=$((RESULT / 86400))
-    HOURS=$(((RESULT / 3600) % 24))
-    MINUTES=$(((RESULT / 60) % 60))
-    if [[ "$DAYS" == "1" ]] ; then
-      D="day"
+    D="days"
+  fi
+  if [[ "$HOURS" == "1" ]] ; then
+    H="hour"
+  else
+    H="hours"
+  fi
+  if [[ "$MINUTES" == "1" ]] ; then
+    M="minute"
+  else
+    M="minutes"
+  fi
+  if [[ "$DAYS" -gt "0" ]] ; then
+    if [[ "$HOURS" -gt "0" ]] ; then
+      echo -e "$YELLOW""Next cleanup and check in $DAYS $D, $HOURS $H and $MINUTES $M...""$ENDCOLOR"
     else
-      D="days"
+      echo -e "$YELLOW""Next cleanup and check in $DAYS $D and $MINUTES $M...""$ENDCOLOR"
     fi
-    if [[ "$HOURS" == "1" ]] ; then
-      H="hour"
-    else
-      H="hours"
-    fi
-    if [[ "$MINUTES" == "1" ]] ; then
-      M="minute"
-    else
-      M="minutes"
-    fi
-    if [[ "$DAYS" -gt "0" ]] ; then
-      echo -e "$YELLOW""Next cleanup and check in $DAYS $D $HOURS $H and $MINUTES $M...""$ENDCOLOR"
-    elif [[ "$HOURS" -gt "0" ]] ; then
-      echo -e "$YELLOW""Next cleanup and check in $HOURS $H and $MINUTES $M...""$ENDCOLOR"
-    elif [[ "$MINUTES" -gt "0" ]] ; then
-      echo -e "$YELLOW""Next cleanup and check in $MINUTES $M...""$ENDCOLOR"
-    else
-      echo -e "$YELLOW""Repo will be cleaned and checked in the next run...""$ENDCOLOR"
-    fi
+  elif [[ "$HOURS" -gt "0" ]] ; then
+    echo -e "$YELLOW""Next cleanup and check in $HOURS $H and $MINUTES $M...""$ENDCOLOR"
+  elif [[ "$MINUTES" -gt "0" ]] ; then
+    echo -e "$YELLOW""Next cleanup and check in $MINUTES $M...""$ENDCOLOR"
+  else
+    echo -e "$YELLOW""Repo will be cleaned and checked in the next run...""$ENDCOLOR"
   fi
 }
 
@@ -1602,7 +1573,7 @@ function logs {
     fi
   elif [[ "$FLAGS" == "--help" || "$FLAGS" == "-h" ]] ; then
     logs-help
-  elif [[ "$FLAGS" == "--list" || "$FLAGS" == "-l" ]] ; then
+  elif [[ "$FLAGS" == "--list" || "$FLAGS" == "-L" ]] ; then
     if ls $HOME/.rescript/logs/"$REPO"-* 1> /dev/null 2>&1 ; then
       ls $HOME/.rescript/logs/ | grep -e "$REPO"
       echo ""
@@ -1642,17 +1613,7 @@ function mounter {
       exit
     fi
   fi
-  if [ -e "$LOCK" ]; then
-    echo -e "WARNING: "$REPO" repo is already running..."
-    echo -e "If you are sure "$REPO" is not running, type"
-    echo -e " "
-    echo -e "	rescript "$REPO" unlock"
-    echo -e " "
-    echo -e "This will remove the lock for "$REPO""
-    exit
-  fi
-  touch "$LOCK"
-  trap 'rm -rf "$LOCK"' INT QUIT TERM EXIT
+  rescript-lock
   mkdir "$RMOUNT"
   restic mount "$RMOUNT"
   rm -rf "$RMOUNT"
@@ -1675,17 +1636,7 @@ function random-check {
       exit
     fi
   fi
-  if [ -e "$LOCK" ]; then
-    echo -e "WARNING: "$REPO" repo is already running..."
-    echo -e "If you are sure "$REPO" is not running, type"
-    echo -e " "
-    echo -e "	rescript "$REPO" unlock"
-    echo -e " "
-    echo -e "This will remove the lock for "$REPO""
-    exit
-  fi
-  touch "$LOCK"
-  trap 'rm -rf "$LOCK"' INT QUIT TERM EXIT
+  rescript-lock
   echo -e "$YELLOW""Starting [checkout] for ["$REPO"]...""$ENDCOLOR"
   echo -e "$YELLOW""Date and Time:""$ENDCOLOR" "$(date +%a\ %b\ %d\ %Y\ %r)"
   echo -e "--------------------------------------------------------------------------"
@@ -1695,7 +1646,7 @@ function random-check {
   echo -e "$YELLOW""Duration:""$ENDCOLOR" "$(duration)"
 }
 
-function restorer {
+function rescript-lock {
   if [ -e "$LOCK" ]; then
     echo -e "WARNING: "$REPO" repo is already running..."
     echo -e "If you are sure "$REPO" is not running, type"
@@ -1707,6 +1658,10 @@ function restorer {
   fi
   touch "$LOCK"
   trap 'rm -rf "$LOCK"' INT QUIT TERM EXIT
+}
+
+function restorer {
+  rescript-lock
   if [[ "$LOGGER" ]] ; then
     if [[ "$LOGGER" == "--log" || "$LOGGER" == "-l" ]] ; then
       echo "You must use [$LOGGER] only before any other command."
@@ -1885,17 +1840,7 @@ elif [[ "$2" == "--log" || "$2" == "-l" ]] ; then
       echo ""
       exit
     fi
-    if [ -e "$LOCK" ]; then
-      echo -e "WARNING: "$REPO" repo is already running..."
-      echo -e "If you are sure "$REPO" is not running, type"
-      echo -e " "
-      echo -e "	rescript "$REPO" unlock"
-      echo -e " "
-      echo -e "This will remove the lock for "$REPO""
-      exit
-    fi
-    touch "$LOCK"
-    trap 'rm -rf "$LOCK"' INT QUIT TERM EXIT
+    rescript-lock
     CMD="$4"
     logger
     time-start
@@ -1911,6 +1856,8 @@ elif [[ "$2" == "--log" || "$2" == "-l" ]] ; then
     random-check
   elif [[ "$3" == "cleanup" ]] ; then
     CMD="$3"
+    FLAGS="$4"
+    OPT="${@:5}"
     logger
     cleanup
   elif [[ "$3" == "restorer" ]] ; then
@@ -1921,17 +1868,7 @@ elif [[ "$2" == "--log" || "$2" == "-l" ]] ; then
     logger
     restorer
   else
-    if [ -e "$LOCK" ]; then
-      echo -e "WARNING: "$REPO" repo is already running..."
-      echo -e "If you are sure "$REPO" is not running, type"
-      echo -e " "
-      echo -e "	rescript "$REPO" unlock"
-      echo -e " "
-      echo -e "This will remove the lock for "$REPO""
-      exit
-    fi
-    touch "$LOCK"
-    trap 'rm -rf "$LOCK"' INT QUIT TERM EXIT
+    rescript-lock
     CMD="$3"
     logger
     restic "${@:3}"
@@ -1951,17 +1888,7 @@ elif [[ "$2" == "--time" || "$2" == "-t" ]] ; then
       echo ""
       exit
     fi
-    if [ -e "$LOCK" ]; then
-      echo -e "WARNING: "$REPO" repo is already running..."
-      echo -e "If you are sure "$REPO" is not running, type"
-      echo -e " "
-      echo -e "	rescript "$REPO" unlock"
-      echo -e " "
-      echo -e "This will remove the lock for "$REPO""
-      exit
-    fi
-    touch "$LOCK"
-    trap 'rm -rf "$LOCK"' INT QUIT TERM EXIT
+    rescript-lock
     CMD="$4"
     logger
     time-start
@@ -1975,17 +1902,7 @@ elif [[ "$2" == "--time" || "$2" == "-t" ]] ; then
     echo ""
     exit
   else
-    if [ -e "$LOCK" ]; then
-      echo -e "WARNING: "$REPO" repo is already running..."
-      echo -e "If you are sure "$REPO" is not running, type"
-      echo -e " "
-      echo -e "	rescript "$REPO" unlock"
-      echo -e " "
-      echo -e "This will remove the lock for "$REPO""
-      exit
-    fi
-    touch "$LOCK"
-    trap 'rm -rf "$LOCK"' INT QUIT TERM EXIT
+    rescript-lock
     CMD="$3"
     time-start
     restic "${@:3}"
@@ -2004,6 +1921,7 @@ elif [[ "$2" == "checkout" ]] ; then
 elif [[ "$2" == "cleanup" ]] ; then
   CMD="$2"
   FLAGS="$3"
+  OPT="${@:4}"
   cleanup
   exit
 elif [[ "$2" == "help" || "$2" == "--help" || "$2" == "-h" ]] ; then
@@ -2029,16 +1947,6 @@ elif [[ "$2" == "unlocker" ]] ; then
   unlocker
   exit
 else
-  if [ -e "$LOCK" ]; then
-    echo -e "WARNING: "$REPO" repo is already running..."
-    echo -e "If you are sure "$REPO" is not running, type"
-    echo -e " "
-    echo -e "	rescript "$REPO" unlock"
-    echo -e " "
-    echo -e "This will remove the lock for "$REPO""
-    exit
-  fi
-  touch "$LOCK"
-  trap 'rm -rf "$LOCK"' INT QUIT TERM EXIT
+  rescript-lock
   restic "${@:2}"
 fi
