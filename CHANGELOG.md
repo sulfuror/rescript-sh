@@ -1,3 +1,52 @@
+# January 23, 2019
+**Changes and Fixes**:
+
+1. Changed shebang to `env bash` for compatibility with OS's other than GNU/Linux.
+2. Changes in editor menu code (it actually doesn't change behavior).
+3. Added `--keep-within --keep-tag` to code; from v3.6 onwards, KEEP variables
+   can be left blank if not used and it is advise to do so because if you do not
+   use all KEEP, leaving it blank prevent the script to pass an additional flag
+   and misbehave (it doesn't behave weirdly as far as I tested). So, if, for example,
+   you use just "KEEP_LAST" variable, the script will pass `forget` command as follows:
+   ```
+   restic forget --keep-last N`
+   ```
+   Before this change, the script was passing all flags even if the value was "0" like this"
+   ```
+   restic forget --keep-last n --keep-hourly --keep-daily --keep-weekly --keep-monthly --keep-yearly
+   ```
+4. Added new flags to `cleanup`.
+   1. `-d, --dry-run`: this flag will allow you to pass `--dry-run` so it will actually 
+      delete nothing. e.g.:
+      ```
+      rescript [repo_name] cleanup -d
+      ```
+      It also allow your to add other restic flags for `forget`. e.g.:
+      ```
+      rescript [repo_name] cleanup -d --group-by [host|tags|path] --tag [tag]
+      ```
+   2. `-e, --exec`: this flag, like `-d` allows other restic flags for `forget` but
+      it will actually forget snapshots and delete data with `prune` at the end. e.g.:
+      ```
+      rescript [repo_name] cleanup -e --group-by [host|tags|path] --tag [tag]
+      ```
+5. Added new variables in script to set keep rules (it doesn't change anything for
+   user's usage).
+6. Added new variables in script to set `$TAG` and `$HOST`, if used (it doesn't change
+   anything for user's usage).
+7. Removed code for "rescript locks" and added a new function for the "rescript lock" file
+   (it doesn't change anything for user's usage).
+8. Change function for displaying the next `cleanup` time (it doesn't change the behavior,
+   just simplify the code a little bit).
+9. Added an array for keep policies to improve script behaviour preventing it to
+   pass unneded blank keep policies (see point number 3).
+10. Added new message if CLEAN is greater than 0 and keep policies are not set.
+11. An error message was being displayed if the "datefile" was deleted from the `config` directory.
+    Added code to create one if CLEAN if greater than 0 so it doesn't display the
+    annoying error.
+12. Simplified `cleanup -n` function and now is being re-used for other functions (it doesn't
+    change anything for user's usage or behavior).
+    
 # January 12, 2019
 **Changes**:
 
