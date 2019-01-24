@@ -9,7 +9,7 @@
    and misbehave (it doesn't behave weirdly as far as I tested). So, if, for example,
    you use just "KEEP_LAST" variable, the script will pass `forget` command as follows:
    ```
-   restic forget --keep-last N`
+   restic forget --keep-last N
    ```
    Before this change, the script was passing all flags even if the value was "0" like this"
    ```
