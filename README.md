@@ -20,9 +20,10 @@ operation and the duration of the whole operation.
    You should take the time to study the script and see if it can help you
    for what you need; if you use it without knowing what you're doing, that's on you too.
 2. You need `restic 0.9.2` or latest installed to use this script (`stats` are not in older versions of `restic`).
-3. This script was made for GNU/Linux use. You could use it for other systems but you'll
-   probably have to edit some things depending on your system. As far as I know, it works with
-   FreeBSD and Mac OS with some issues / workarounds.
+   To install `restic` follow [these instructions](https://restic.readthedocs.io/en/stable/020_installation.html).
+   It is advise to use their official standalone binary. Official binaries can be updated in place
+   easily using `restic self-update`. Download it [here](https://github.com/restic/restic/releases/tag/v0.9.4).
+3. This script was made for GNU/Linux in mind but it also works with MacOS and FreeBSD.
 4. I'm not a developer, programmer or anything related; I'm just a regular user
    sharing my basic knowledge. I created this for my personal use but decided
    to share it because when I was looking for something like this, I did not
@@ -38,7 +39,7 @@ operation and the duration of the whole operation.
 3. `brew install gnu-sed --with-default-names`
 4. **NOTE**: `nano` works great as a default text editor; chosing another one with Mac
    could require a little tweaking with your script.
-5. **OPTIONAL**: to include `$HOME/bin` or `$HOME/.local/bin` in your `PATH`, edit or create
+5. **OPTIONAL**: to include `~/bin` or `~/.local/bin` in your `PATH`, edit or create
    a file called `.bash_profile` in your `$HOME` by typing `nano .bash_profile`
    and after pasting this following line save it and close it using Ctl+x:
 ```
@@ -48,11 +49,12 @@ export PATH=$PATH:$HOME/bin:$HOME/.local/bin
 **For FreeBSD**:
 
 1. Install `coreutils` package by typing: `pkg install coreutils`.
-2. Set the `PATH` for your `$HOME/bin` or `$HOME/.local/bin`.
-3. You may need to: 1) replace `#!/bin/bash` to `#!/usr/local/bin/bash` (this is the first line in the script),
-   OR 2) use as follows: `bash /path/to/rescript [repo_name] [command]`. If you prefer the first method
-   you can type `bash` which will open a bash session and call it without the full path; you need
-   to set your `PATH` for this preferably for `$HOME/bin` or `$HOME/.local/bin`.
+2. Set the `PATH` for your `~/bin` or `~/.local/bin`.
+
+**NOTE**: If `~/bin` doesn't exists and you decide to use `install` command,
+`rescript` will automatically decides to use `~/.local/bin`, so before using
+`install` you have to make sure to set your `$PATH` for both locations or move the
+script manually to your `$PATH`.
 
 ## Installation:
 
@@ -155,12 +157,20 @@ after configuring `rescript` or else it will fail to do anything.
 * `RESTIC_PASSWORD=""`: Put your restic password between the "".
 * `RESTIC_REPO=""`: Put your repository directory.
 * `BACKUP_DIR="$HOME"`: This is what you're backing up; by default is your home directory.
-* `KEEP_LAST="0"`: Indicate the number of "last" backups you want to keep
+* `KEEP_LAST=""`: Indicate the number of "last" backups you want to keep.
 * `KEEP_HOURLY="8"`: Indicate the number of hourly backups you want to keep.
 * `KEEP_DAILY="7"`: Indicate the number of daily backups you want to keep.
 * `KEEP_WEEKLY="4"`: Indicate the number of weekly backups you want to keep.
 * `KEEP_MONTHLY="12"`: Indicate the number of montly backups you want to keep.
 * `KEEP_YEARLY="10"`: Indicate the number of yearly backups you want to keep.
+* `KEEP_WITHIN=""`: Keep within duration needs to be a number of years, months,
+   and days, e.g. 2y5m7d will keep all snapshots made in the two years,
+   five months, and seven days before the latest snapshot (taken from [original
+   restic documentaion](https://restic.readthedocs.io/en/stable/060_forget.html?highlight=keep-within#removing-snapshots-according-to-a-policy)).
+* `KEEP_TAG=""`: Indicate the tag you want to keep; for example, if you have one specific
+   snapshot that you want to keep forever, you can tag that snapshot with `keep-forever`
+   and then put the `keep-forever` tag inside the "" for this variable so next `cleanup` onwards
+   it will pass this specfic policy and keep all snapshots with this tag.
 
 **Optional variables**:
 
@@ -229,27 +239,53 @@ Please see restic `help` and [documentation](https://restic.readthedocs.io/en/st
 2. `checkout`: this command is will execute `check --read-data-subset #/10` 
    and it will select a random number between 1-10 out of 10 groups.
 3. `cleanup`: this will perform `forget` according to the policies in your configuration file and `prune`.
+   Command flags:
+   1. `-d, --dry-run`: do not delete anything, just print what would be done.
+      This flag can be used with other restic flags like: `--host, --tag, --path,
+      --group-by` and any other flag and option available but it must be specified
+      before restic options and after `cleanup`.
+      e.g.:
+      ```
+      rescript [repo_name] cleanup -d --group-by tags --tag YOURTAG
+      ```
+   2. `-e, --exec`: this is a special tag that will allow you to pass all restic options
+      for `forget` using the policies specified on your configuration file. This WILL NOT
+      use `--dry-run` and it will actually remove and delete (using `prune` at the end)
+      data from your repository.
+      e.g.:
+      ```
+      rescript [repo_name] cleanup -e --group-by tags --tag YOURTAG
+      ```
+   3. `-n, --next`: this flag will display the next scheduled `cleanup` based on the `datefile`
+      created by `rescript`; work only when CLEANUP variable is set.
 4. `config`: this will open the configuration dialog. This command does not need a `[repo_name]`.
 5. `editor`: change the default rescript text editor (for configuration and exclusion files). This command does not need a `[repo_name]`.
 6. `help`: display help dialog. This command does not need a `[repo_name]`.
 7. `install`: this will place rescript in your `$PATH` (in your home directory). This command does not need a `[repo_name]`.
 8. `logs`: this command needs an option. Options are as follows:
-	1. `-c, --cat`: display output of selected log file (you need to copy and paste the filename to display it).
-	e.g.: `rescript [repo_name] logs --cat rescript-log-2018-01-01-00:00`
-	2. `-l, --list`: list all log files saved.
-	3. `-r, --remove`: remove all log files related to your script (if you have different scripts for different repositoies
+   1. `-c, --cat`: display output of selected log file (you need to copy and paste the filename to display it).
+      e.g.: 
+      ``` 
+      rescript [repo_name] logs --cat rescript-log-2018-01-01-00:00
+      ```
+   2. `-L, --list`: list all log files saved.
+   3. `-r, --remove`: remove all log files related to your script (if you have different scripts for different repositoies
 	  you need to call `--remove` for every instance).
 9. `mounter`: this option will mount your repository; it'll create a 
    directory in your `/home` so it can mount your repository. Once you quit
    the mount option with `Ctrl+c` it will delete the directory.
 10. `restorer`: this command will restore the snapshot you want to restore. You need to indicate
-   the snapshot-ID you want to restore. With this command you don't need to indicate where to restore,
-   it will automatically create a new file in your home directory called `restore-snapshotID-randomnumber`.
-   It will do the random number so it will not conflict with maybe a file called the same in your
-   home directory. You can use `restorer` with the following restic flags: `-H, --host`, `-p, --path` and `-T, --tag`;
-   there is also a tag for indicating the snapshot ID alone and this is `-s, --snapshot`. This "snapshot"
-   tag is only available for `rescript`. For help type `rescript [repo_name] restorer --help`.
-   This command with any flag used with `rescript` will run `--verify` flag when restoring.
+    the snapshot-ID you want to restore. With this command you don't need to indicate where to restore,
+    it will automatically create a new file in your home directory called `restore-snapshotID-randomnumber`.
+    It will do the random number so it will not conflict with maybe a file called the same in your
+    home directory. You can use `restorer` with the following restic flags:
+    1. `-H, --host`: indicate hostname.
+    2. `-p, --path`: indicate path.
+    3. `-T, --tag`: indicate tag.
+    4. `-s, --snapshot`: indicate snapshot-ID.
+    
+    This "snapshot" flag is only available for `rescript`. For help type
+    `rescript help restorer`. This command will automatically use `--verify` when restoring.
 11. `unlocker`: this command WILL NOT unlock your repository. When you run this
    script it will create a separate lock just for the script (it has nothing
    to do with the restic locks), so if your latest run left a lock (which is
