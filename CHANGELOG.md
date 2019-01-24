@@ -13,7 +13,7 @@
    ```
    Before this change, the script was passing all flags even if the value was "0" like this"
    ```
-   restic forget --keep-last n --keep-hourly --keep-daily --keep-weekly --keep-monthly --keep-yearly
+   restic forget --keep-last N --keep-hourly --keep-daily --keep-weekly --keep-monthly --keep-yearly
    ```
 4. Added new flags to `cleanup`.
    1. `-d, --dry-run`: this flag will allow you to pass `--dry-run` so it will actually 
