@@ -1,3 +1,11 @@
+# January 26, 2019
+**Changes**:
+
+1. Changes in the editor menu that removes a bit part of the menu code making
+   it a little bit simple. This change remove the need to use `sudo rescript editor`
+   when the script is istalled in `/usr/bin`. There is also a new `.deb` package
+   for an easier installation that you can find in the [release page](https://gitlab.com/sulfuror/rescript.sh/releases).
+
 # January 23, 2019
 **Changes and Fixes**:
 

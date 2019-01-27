@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ============================================================== #
-version="rescript-v3.6"
+version="rescript-v3.7"
 usage="
 Author		: Sulfuror, Copyright (c) 2018 <sulfuror@gmail.com>
 URL		: https://gitlab.com/sulfuror/rescript.sh
@@ -87,7 +87,6 @@ EXCLUDES="$HOME/.rescript/config/$1-exclusions"
 LOCK="$HOME/.rescript/lock/$1.lock"
 RMOUNT="$HOME/"$1"-repo-$(date +%s)"
 REPO="$1"
-EDITOR=""
 
 # Create a rescript directories if they are not present
 if [[ ! -d "$HOME/.rescript" ]]; then
@@ -102,6 +101,11 @@ fi
 if [[ ! -d "$HOME/.rescript/logs" ]]; then
   mkdir -p "$HOME/.rescript/logs"
 fi
+# Create "editor" file if not present
+if [[ ! -f "$HOME/.rescript/config/.editor" ]] ; then
+  touch $HOME/.rescript/config/.editor
+fi
+EDITOR="$(cat $HOME/.rescript/config/.editor)"
 # Set PATH so it includes user's private bin if it exists (cron jobs may require this)
 if [ -d "$HOME/bin" ] ; then
     PATH="$HOME/bin:$PATH"
@@ -163,172 +167,52 @@ function duration {
 # ============================================================== #
 # Select Editor Menu
 function select_editor {
-  if [[ "$(uname -s)" == "Linux" || "$(uname -s)" == "GNU" || "$(uname -s)" == "Darwin"* ]] ; then
-    clear
-    echo "======================"
-    echo "  Select Text Editor  "
-    echo "======================"
-    echo " [1] Nano             "
-    echo " [2] Vim              "
-    echo " [3] Gedit            "
-    echo " [4] Mousepad         "
-    echo " [5] Leafpad          "
-    echo " [6] Pluma            "
-    echo " [7] Kate             "
-    echo " [8] Other            "
-    echo " [9] Exit             "
-    echo "======================"
-    read -p "Select the Text Editor you want to use [ 1 - 9 ]: " texteditor
-    if [[ "$(which $(basename "$0"))" ]] ; then
-      if [[ "$texteditor" == "1" || "$texteditor" == "Nano" || "$texteditor" == "nano" ]] ; then
-        sed -i 's/^\(EDITOR=\).*/\1"nano"/' "$(which $(basename "$0"))"
-        echo "You have selected [Nano] as your default text editor."
-      elif [[ "$texteditor" == "2" || "$texteditor" == "Vim" || "$texteditor" == "vim" ]] ; then
-        sed -i 's/^\(EDITOR=\).*/\1"vim"/' "$(which $(basename "$0"))"
-        echo "You have selected [Vim] as your default text editor."
-      elif [[ "$texteditor" == "3" || "$texteditor" == "Gedit" || "$texteditor" == "gedit" ]] ; then
-        sed -i 's/^\(EDITOR=\).*/\1"gedit"/' "$(which $(basename "$0"))"
-        echo "You have selected [Gedit] as your default text editor."
-      elif [[ "$texteditor" == "4" || "$texteditor" == "Mousepad" || "$texteditor" == "mousepad" ]] ; then
-        sed -i 's/^\(EDITOR=\).*/\1"mousepad"/' "$(which $(basename "$0"))"
-        echo "You have selected [Mousepad] as your default text editor."
-      elif [[ "$texteditor" == "5" || "$texteditor" == "Leafpad" || "$texteditor" == "leafpad" ]] ; then
-        sed -i 's/^\(EDITOR=\).*/\1"leafpad"/' "$(which $(basename "$0"))"
-        echo "You have selected [Leafpad] as your default text editor."
-      elif [[ "$texteditor" == "6" || "$texteditor" == "Pluma" || "$texteditor" == "pluma" ]] ; then
-        sed -i 's/^\(EDITOR=\).*/\1"pluma"/' "$(which $(basename "$0"))"
-        echo "You have selected [Pluma] as your default text editor."
-      elif [[ "$texteditor" == "7" || "$texteditor" == "Kate" || "$texteditor" == "kate" ]] ; then
-        sed -i 's/^\(EDITOR=\).*/\1"kate"/' "$(which $(basename "$0"))"
-        echo "You have selected [Kate] as your default text editor."
-      elif [[ "$texteditor" == "8" || "$texteditor" == "Other" || "$texteditor" == "other" ]] ; then
-        read -p "Type the executable name of the Text Editor you want to use: " othertextedit
-        sed -i "s/^\(EDITOR=\).*/\1"$othertextedit"/" "$(which $(basename "$0"))"
-        echo "You have selected [$othertextedit] as your default text editor."
-      elif [[ "$texteditor" == "9" || "$texteditor" == "Exit" || "$texteditor" == "exit" ]] ; then
-        echo "Exiting..."
-        exit
-      else
-        echo "Invalid option; exiting..."  
-        exit
-      fi
-    else
-      if [[ "$texteditor" == "1" || "$texteditor" == "Nano" || "$texteditor" == "nano" ]] ; then
-        sed -i 's/^\(EDITOR=\).*/\1"nano"/' "$(basename "$0")"
-        echo "You have selected [Nano] as your default text editor."
-      elif [[ "$texteditor" == "2" || "$texteditor" == "Vim" || "$texteditor" == "vim" ]] ; then
-        sed -i 's/^\(EDITOR=\).*/\1"vim"/' "$(basename "$0")"
-        echo "You have selected [Vim] as your default text editor."
-      elif [[ "$texteditor" == "3" || "$texteditor" == "Gedit" || "$texteditor" == "gedit" ]] ; then
-        sed -i 's/^\(EDITOR=\).*/\1"gedit"/' "$(basename "$0")"
-        echo "You have selected [Gedit] as your default text editor."
-      elif [[ "$texteditor" == "4" || "$texteditor" == "Mousepad" || "$texteditor" == "mousepad" ]] ; then
-        sed -i 's/^\(EDITOR=\).*/\1"mousepad"/' "$(basename "$0")"
-        echo "You have selected [Mousepad] as your default text editor."
-      elif [[ "$texteditor" == "5" || "$texteditor" == "Leafpad" || "$texteditor" == "leafpad" ]] ; then
-        sed -i 's/^\(EDITOR=\).*/\1"leafpad"/' "$(basename "$0")"
-        echo "You have selected [Leafpad] as your default text editor."
-      elif [[ "$texteditor" == "6" || "$texteditor" == "Pluma" || "$texteditor" == "pluma" ]] ; then
-        sed -i 's/^\(EDITOR=\).*/\1"pluma"/' "$(basename "$0")"
-        echo "You have selected [Pluma] as your default text editor."
-      elif [[ "$texteditor" == "7" || "$texteditor" == "Kate" || "$texteditor" == "kate" ]] ; then
-        sed -i 's/^\(EDITOR=\).*/\1"kate"/' "$(basename "$0")"
-        echo "You have selected [Kate] as your default text editor."
-      elif [[ "$texteditor" == "8" || "$texteditor" == "Other" || "$texteditor" == "other" ]] ; then
-        read -p "Type the executable name of the Text Editor you want to use: " othertextedit
-        sed -i "s/^\(EDITOR=\).*/\1"$othertextedit"/" "$(basename "$0")"
-        echo "You have selected [$othertextedit] as your default text editor."
-      elif [[ "$texteditor" == "9" || "$texteditor" == "Exit" || "$texteditor" == "exit" ]] ; then
-        echo "Exiting..."
-        exit
-      else
-        echo "Invalid option; exiting..."  
-        exit
-      fi
-    fi
-  elif [[ "$(uname -s)" == "FreeBSD"* ]] ; then
-    clear
-    echo "======================"
-    echo "  Select Text Editor  "
-    echo "======================"
-    echo " [1] Nano             "
-    echo " [2] Vim              "
-    echo " [3] Gedit            "
-    echo " [4] Mousepad         "
-    echo " [5] Leafpad          "
-    echo " [6] Pluma            "
-    echo " [7] Kate             "
-    echo " [8] Other            "
-    echo " [9] Exit             "
-    echo "======================"
-    read -p "Select the Text Editor you want to use [ 1 - 9 ]: " texteditor
-    if [[ "$(which $(basename "$0"))" ]] ; then
-      if [[ "$texteditor" == "1" || "$texteditor" == "Nano" || "$texteditor" == "nano" ]] ; then
-        sed -i '' 's/^\(EDITOR=\).*/\1"nano"/' "$(which $(basename "$0"))"
-        echo "You have selected [Nano] as your default text editor."
-      elif [[ "$texteditor" == "2" || "$texteditor" == "Vim" || "$texteditor" == "vim" ]] ; then
-        sed -i '' 's/^\(EDITOR=\).*/\1"vim"/' "$(which $(basename "$0"))"
-        echo "You have selected [Vim] as your default text editor."
-      elif [[ "$texteditor" == "3" || "$texteditor" == "Gedit" || "$texteditor" == "gedit" ]] ; then
-        sed -i '' 's/^\(EDITOR=\).*/\1"gedit"/' "$(which $(basename "$0"))"
-        echo "You have selected [Gedit] as your default text editor."
-      elif [[ "$texteditor" == "4" || "$texteditor" == "Mousepad" || "$texteditor" == "mousepad" ]] ; then
-        sed -i '' 's/^\(EDITOR=\).*/\1"mousepad"/' "$(which $(basename "$0"))"
-        echo "You have selected [Mousepad] as your default text editor."
-      elif [[ "$texteditor" == "5" || "$texteditor" == "Leafpad" || "$texteditor" == "leafpad" ]] ; then
-        sed -i '' 's/^\(EDITOR=\).*/\1"leafpad"/' "$(which $(basename "$0"))"
-        echo "You have selected [Leafpad] as your default text editor."
-      elif [[ "$texteditor" == "6" || "$texteditor" == "Pluma" || "$texteditor" == "pluma" ]] ; then
-        sed -i '' 's/^\(EDITOR=\).*/\1"pluma"/' "$(which $(basename "$0"))"
-        echo "You have selected [Pluma] as your default text editor."
-      elif [[ "$texteditor" == "7" || "$texteditor" == "Kate" || "$texteditor" == "kate" ]] ; then
-        sed -i '' 's/^\(EDITOR=\).*/\1"kate"/' "$(which $(basename "$0"))"
-        echo "You have selected [Kate] as your default text editor."
-      elif [[ "$texteditor" == "8" || "$texteditor" == "Other" || "$texteditor" == "other" ]] ; then
-        read -p "Type the executable name of the Text Editor you want to use: " othertextedit
-        sed -i '' "s/^\(EDITOR=\).*/\1"$othertextedit"/" "$(which $(basename "$0"))"
-        echo "You have selected [$othertextedit] as your default text editor."
-      elif [[ "$texteditor" == "9" || "$texteditor" == "Exit" || "$texteditor" == "exit" ]] ; then
-        echo "Exiting..."
-        exit
-      else
-        echo "Invalid option; exiting..."  
-        exit
-      fi
-    else
-      if [[ "$texteditor" == "1" || "$texteditor" == "Nano" || "$texteditor" == "nano" ]] ; then
-        sed -i '' 's/^\(EDITOR=\).*/\1"nano"/' "$(basename "$0")"
-        echo "You have selected [Nano] as your default text editor."
-      elif [[ "$texteditor" == "2" || "$texteditor" == "Vim" || "$texteditor" == "vim" ]] ; then
-        sed -i '' 's/^\(EDITOR=\).*/\1"vim"/' "$(basename "$0")"
-        echo "You have selected [Vim] as your default text editor."
-      elif [[ "$texteditor" == "3" || "$texteditor" == "Gedit" || "$texteditor" == "gedit" ]] ; then
-        sed -i '' 's/^\(EDITOR=\).*/\1"gedit"/' "$(basename "$0")"
-        echo "You have selected [Gedit] as your default text editor."
-      elif [[ "$texteditor" == "4" || "$texteditor" == "Mousepad" || "$texteditor" == "mousepad" ]] ; then
-        sed -i '' 's/^\(EDITOR=\).*/\1"mousepad"/' "$(basename "$0")"
-        echo "You have selected [Mousepad] as your default text editor."
-      elif [[ "$texteditor" == "5" || "$texteditor" == "Leafpad" || "$texteditor" == "leafpad" ]] ; then
-        sed -i '' 's/^\(EDITOR=\).*/\1"leafpad"/' "$(basename "$0")"
-        echo "You have selected [Leafpad] as your default text editor."
-      elif [[ "$texteditor" == "6" || "$texteditor" == "Pluma" || "$texteditor" == "pluma" ]] ; then
-        sed -i '' 's/^\(EDITOR=\).*/\1"pluma"/' "$(basename "$0")"
-        echo "You have selected [Pluma] as your default text editor."
-      elif [[ "$texteditor" == "7" || "$texteditor" == "Kate" || "$texteditor" == "kate" ]] ; then
-        sed -i '' 's/^\(EDITOR=\).*/\1"kate"/' "$(basename "$0")"
-        echo "You have selected [Kate] as your default text editor."
-      elif [[ "$texteditor" == "8" || "$texteditor" == "Other" || "$texteditor" == "other" ]] ; then
-        read -p "Type the executable name of the Text Editor you want to use: " othertextedit
-        sed -i '' "s/^\(EDITOR=\).*/\1"$othertextedit"/" "$(basename "$0")"
-        echo "You have selected [$othertextedit] as your default text editor."
-      elif [[ "$texteditor" == "9" || "$texteditor" == "Exit" || "$texteditor" == "exit" ]] ; then
-        echo "Exiting..."
-        exit
-      else
-        echo "Invalid option; exiting..."  
-        exit
-      fi
-    fi
+  clear
+  echo "======================"
+  echo "  Select Text Editor  "
+  echo "======================"
+  echo " [1] Nano             "
+  echo " [2] Vim              "
+  echo " [3] Gedit            "
+  echo " [4] Mousepad         "
+  echo " [5] Leafpad          "
+  echo " [6] Pluma            "
+  echo " [7] Kate             "
+  echo " [8] Other            "
+  echo " [9] Exit             "
+  echo "======================"
+  read -p "Select the Text Editor you want to use [ 1 - 9 ]: " texteditor
+  if [[ "$texteditor" == "1" || "$texteditor" == "Nano" || "$texteditor" == "nano" ]] ; then
+    echo "nano" > $HOME/.rescript/config/.editor
+    echo "You have selected [Nano] as your default text editor."
+  elif [[ "$texteditor" == "2" || "$texteditor" == "Vim" || "$texteditor" == "vim" ]] ; then
+    echo "vim" > $HOME/.rescript/config/.editor
+    echo "You have selected [Vim] as your default text editor."
+  elif [[ "$texteditor" == "3" || "$texteditor" == "Gedit" || "$texteditor" == "gedit" ]] ; then
+    echo "gedit" > $HOME/.rescript/config/.editor
+    echo "You have selected [Gedit] as your default text editor."
+  elif [[ "$texteditor" == "4" || "$texteditor" == "Mousepad" || "$texteditor" == "mousepad" ]] ; then
+    echo "mousepad" > $HOME/.rescript/config/.editor
+    echo "You have selected [Mousepad] as your default text editor."
+  elif [[ "$texteditor" == "5" || "$texteditor" == "Leafpad" || "$texteditor" == "leafpad" ]] ; then
+    echo "leafpad" > $HOME/.rescript/config/.editor
+    echo "You have selected [Leafpad] as your default text editor."
+  elif [[ "$texteditor" == "6" || "$texteditor" == "Pluma" || "$texteditor" == "pluma" ]] ; then
+    echo "pluma" > $HOME/.rescript/config/.editor
+    echo "You have selected [Pluma] as your default text editor."
+  elif [[ "$texteditor" == "7" || "$texteditor" == "Kate" || "$texteditor" == "kate" ]] ; then
+    echo "kate" > $HOME/.rescript/config/.editor
+    echo "You have selected [Kate] as your default text editor."
+  elif [[ "$texteditor" == "8" || "$texteditor" == "Other" || "$texteditor" == "other" ]] ; then
+    read -p "Type the executable name of the Text Editor you want to use: " othertextedit
+    echo "$othertextedit" > $HOME/.rescript/config/.editor
+    echo "You have selected [$othertextedit] as your default text editor."
+  elif [[ "$texteditor" == "9" || "$texteditor" == "Exit" || "$texteditor" == "exit" ]] ; then
+    echo "Exiting..."
+    exit
+  else
+    echo "Invalid option; exiting..."  
+    exit
   fi
 }
 
