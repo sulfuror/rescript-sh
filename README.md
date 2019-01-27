@@ -62,7 +62,13 @@ _**Note**: if you were using v2.0 or earlier make sure to backup your script bef
 continuing and rename your config file to `repo_name.conf`, your exclusion to
 `repo_name-exclusions` and your datefile to `repo_name-datefile`._
 
-You can install the script easily using the following commands:
+You can download the `.deb` package in the [relase page](https://gitlab.com/sulfuror/rescript.sh/releases)
+and execute the following command:
+```
+sudo dpkg -i rescript_v3.7.deb
+```
+
+You can also install the script easily using the following commands:
 
 ```
 ~$ git clone https://gitlab.com/sulfuror/rescript.sh.git
