@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ============================================================== #
-version="rescript-v3.7"
+version="3.8"
 usage="
 Author		: Sulfuror, Copyright (c) 2018 <sulfuror@gmail.com>
 URL		: https://gitlab.com/sulfuror/rescript.sh
@@ -45,6 +45,8 @@ Rescript configuration commands:
   install		Install rescript (this just move the script
   			to your .local/bin directory for convenience.
   			This command does not need a [repo_name].
+  update		Update is used to update the script itself
+  			when a new version is available.
   
 Rescript commands:
   backup		Take a snapshot using the values set in
@@ -682,7 +684,7 @@ function build_exclusions {
 }
 
 # ============================================================== #
-# Install							 #
+# Install & Update																							 #
 # ============================================================== #
 function install {
   if [[ -d "$HOME/bin" ]] ; then
@@ -714,8 +716,47 @@ function install {
   fi
 }
 
+function update {
+	wget -O .rescript-latest https://gitlab.com/sulfuror/rescript.sh/raw/master/rescript 2> /dev/null
+
+	if [[ "$(sed '3!d' $(which rescript))" == "$(sed '3!d' .rescript-latest)" ]] ; then
+	  rm .rescript-latest
+	  echo "You're already running the latest version!"
+	  echo "$(rescript version)"
+	else
+	  chmod 755 .rescript-latest
+	  read -p "$(./.rescript-latest version) is available; do you want to install it? (y/n):" updater
+	  if [[ "$updater" == "y" || "$updater" == "Y" || "$updater" == "yes" || "$updater" == "YES" ]] ; then
+  	  if [[ $(which rescript) == /usr/bin/rescript || $(which rescript) == /bin/rescript || $(which rescript) == /usr/local/bin/rescript ]] ; then
+	      if [[ $USER == root ]] ; then
+	        mv .rescript-latest $(which rescript)
+	        echo "Rescript have been updated to the latest version!"
+  	      echo "$(rescript version)"
+	      else
+	        rm .rescript-latest
+	        echo "Rescript is located at $(which rescript)."
+	        echo "To update in this location you need to run [update] again with [sudo]:"
+  	      echo ""
+	        echo "  sudo rescript udpate"
+	        echo "" 
+	        echo "Nothing done... exiting."
+	        exit
+  	    fi
+	    else
+	      chmod +x .rescript-latest
+	      mv .rescript-latest $(which rescript)
+  	    echo "Rescript have been updated to the latest version!"
+	      echo "$(rescript version)"
+	    fi
+	  else
+	    echo "Nothing done... exiting."
+	    exit
+	  fi
+	fi
+}
+
 # ============================================================== #
-# Commands Help							 #
+# Commands Help																									 #
 # ============================================================== #
 function backup-help {
   echo "[backup] is for [backup] command in restic"
@@ -942,6 +983,20 @@ function unlocker-help {
   echo ""
 }
 
+function update-help {
+  echo "[update] is to update the rescript script itself."
+  echo ""
+  echo "Usage:"
+  echo "  rescript update"
+  echo ""
+  echo "If script is located in /usr/bin:"
+  echo "  sudo rescript update"
+  echo ""
+  echo "Available flags:"
+  echo "  -h, --help		Display this help dialog."
+  echo ""
+}
+
 # ============================================================== #
 # Rescript Commands						 #
 # ============================================================== #
@@ -1041,6 +1096,9 @@ elif [[ "$1" == "help" || "$1" == "--help" || "$1" == "-h" ]] ; then
   elif [[ "$2" == "unlocker" ]] ; then
     unlocker-help
     exit
+  elif [[ "$2" == "update" ]] ; then
+    update-help
+    exit
   else
     echo "You have not indicated a valid option..."
     echo "$usage"
@@ -1074,8 +1132,16 @@ elif [[ "$1" == "unlocker" ]] ; then
   echo ""
   unlocker-help
   exit
+elif [[ "$1" == "update" ]] ; then
+  if [[ "$2" == "--help" || "$2" == "-h" ]] ; then
+    update-help
+    exit
+  else
+    update
+    exit
+  fi
 elif [[ "$1" == "version" || "$1" == "--version" || "$1" == "-v" ]] ; then
-  echo "$version"
+  echo "rescript $version"
   exit
 elif [[ ! -e "$HOME/.rescript/config/$1.conf" ]] ; then
   echo "There is no repo or command for ["$1"]. Indicate a valid"
@@ -1671,6 +1737,18 @@ function restorer {
   fi  
 }
 
+function time-start {
+  echo -e "$YELLOW""Starting ["$CMD"] for ["$REPO"]...""$ENDCOLOR"
+  echo -e "$YELLOW""Date and Time:""$ENDCOLOR" "$(date +%a\ %b\ %d\ %Y\ %r)"
+  echo -e "--------------------------------------------------------------------------"
+}
+
+function time-end {
+  echo -e "--------------------------------------------------------------------------"
+  echo -e "$YELLOW""End:""$ENDCOLOR" "$(date +%a\ %b\ %d\ %Y\ %r)"
+  echo -e "$YELLOW""Duration:""$ENDCOLOR" "$(duration)"
+}
+
 function unlocker {
   if [[ "$FLAGS" ]] ; then
     if [[ "$FLAGS" == "--help" || "$FLAGS" == "-h" ]] ; then
@@ -1689,18 +1767,6 @@ function unlocker {
     rm -rf "$LOCK"
     echo "Script unlocked..."
   fi
-}
-
-function time-start {
-  echo -e "$YELLOW""Starting ["$CMD"] for ["$REPO"]...""$ENDCOLOR"
-  echo -e "$YELLOW""Date and Time:""$ENDCOLOR" "$(date +%a\ %b\ %d\ %Y\ %r)"
-  echo -e "--------------------------------------------------------------------------"
-}
-
-function time-end {
-  echo -e "--------------------------------------------------------------------------"
-  echo -e "$YELLOW""End:""$ENDCOLOR" "$(date +%a\ %b\ %d\ %Y\ %r)"
-  echo -e "$YELLOW""Duration:""$ENDCOLOR" "$(duration)"
 }
 
 # ============================================================== #
