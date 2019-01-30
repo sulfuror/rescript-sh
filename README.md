@@ -121,6 +121,8 @@ assigning an easy name to remember for each repository.
 
 ## Usage:
 
+[![asciicast](https://asciinema.org/a/224460.svg)](https://asciinema.org/a/224460)
+
 You can use this script using an **_automatic_** function that will run `backup`,
 `snapshots`, `forget`, `prune`, `check` and `stats` using your configuration
 file. If your "LOGGING" variable is "yes" it will also create a log file with
