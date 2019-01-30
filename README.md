@@ -300,7 +300,9 @@ Please see restic `help` and [documentation](https://restic.readthedocs.io/en/st
    script is already running and it will not run again until the lock file is removed.
    If you're really sure the script is not running you can just run this command
    and it will delete the lock file so you can continue with your operation.
-12. `version`: display rescript version. This command does not need a `[repo_name]`.
+12. `update`: use this command to check and install newest version of `rescript`
+    (works from versions 3.8 onward).
+13. `version`: display rescript version. This command does not need a `[repo_name]`.
 
 **Rescript Global Flags**:
 

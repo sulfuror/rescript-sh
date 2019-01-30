@@ -1,3 +1,9 @@
+# January 29, 2019
+**Changes**:
+
+1. Added `update` command. This command can be used to update the script in place.
+   This will work from version 3.8 onward.
+
 # January 26, 2019
 **Changes**:
 
