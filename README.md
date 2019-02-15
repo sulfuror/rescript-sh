@@ -246,6 +246,37 @@ Please see restic `help` and [documentation](https://restic.readthedocs.io/en/st
 1. `backup`: take a snapshot using the values set in your configuration file.
 2. `checkout`: this command is will execute `check --read-data-subset #/10` 
    and it will select a random number between 1-10 out of 10 groups.
+3. `changes`: this command will automatically select the two most recent snapshots
+   and compare them using `restic diff`. When used alone it will select the snapshots
+   according to the hostname in the machine that it is running or with the hostname
+   indicated in the configuration file (HOST variable).
+   Usage:
+     ```
+     rescript [repo_name] changes [flags] [options]
+     ```
+   Command flags:
+   1. `-H, --host`: only consider snapshots for this host.
+      e.g.:
+      ```
+      rescript [repo_name] changes -H YOURHOSTNAME
+      ```
+   2. `-m, --metadata`: print changes in metadata (can be used with -H, -p, -T).
+      e.g.:
+      ```
+      rescript [repo_name] changes -m
+      OR
+      rescript [repo_name] changes [-H|-p|-T] [hostname|path|tag] -m
+      ```
+   3. `-p, --path`: only consider snapshots which include this [absolute] path.
+      e.g.:
+      ```
+      rescript [repo_name] changes -p YOURPATH
+      ```
+   4. `-T, --tag`: only consider snapshots which include this taglist.
+      e.g.:
+      ```
+      rescript [repo_name] changes -T YOURTAG
+      ```
 3. `cleanup`: this will perform `forget` according to the policies in your configuration file and `prune`.
    Command flags:
    1. `-d, --dry-run`: do not delete anything, just print what would be done.
