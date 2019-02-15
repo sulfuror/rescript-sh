@@ -1,3 +1,33 @@
+# February 14, 2018
+**Changes, Fixes and additions**:
+
+1. "usage" is now a function instead of a variable; nothing relevant for users.
+2. The script variables are now lowercase to make easier to know if the variable
+   is just for the script or for the configuration file / system vars.
+3. Instead of using commands to work with rescript directories and files, now
+   they will work with new script variables for those directories and files;
+   this means if you want to move your ".rescript" directory to another location,
+   you can just move it manually and set the script variables to point to that
+   new location so you don't have to mess around with the whole script and guess
+   what function is using the rescript directories/files to manually change it
+   all. For example, if you want to use `/etc/rescript` to store your configuration
+   files, then you just need to adjust these variables and copy your existing files
+   to the new directory. You'll need to make sure to set the right permissions to
+   those directory/files.
+4. Change a lot of the "if" statements to "case"; it made the whole script longer
+   but easier to understand/edit.
+5. The script now will read any letter as lowercase except for `logs` and `restorer`.
+6. Added a new menu for easier installation when using `rescript install`.
+7. Added `printf` to display output so it will automatically display lines and text
+   instead of adding custom lines and text per function (it actually shorten the code
+   a lot, but as I said, the use of "case" instead of "if" statements makes it longer now).
+8. Added a new command called `changes`. This new command will automatically select two must recent
+   snapshots and compare them using `restic diff`. This command works per hostname automatically;
+   if you are using `HOST` variable in your configuration file, it will automatically use
+   that hostname. You can override this behaviour using `-H|--host, -p|--path, -T|--tag`
+   flags. It also have an `-m|--metadata` flag to display changes in metadata and this flag
+   can be used with `-H, -p, -T`.
+
 # January 29, 2019
 **Changes**:
 
