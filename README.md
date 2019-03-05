@@ -45,11 +45,18 @@ operation and the duration of the whole operation.
 ```
 export PATH=$PATH:$HOME/bin:$HOME/.local/bin
 ```
+6. In order to use `mounter` (`restic mount`) you need to install a package
+   called `osxfuse` via `brew`: `brew install osxfuse`. If you're using Mojave,
+   you may need to type: `brew cask install osxfuse` or follow the instructions
+   displayed in your terminal emulator when you typed the first command.
+7. Installing `rescript` system-wide may not work. I advise to install it for the user.
 
 **For FreeBSD**:
 
 1. Install `coreutils` package by typing: `pkg install coreutils`.
 2. Set the `PATH` for your `~/bin` or `~/.local/bin`.
+3. Install `rsync` if it is not installed yet: `pkg install rsync`.
+4. `csh` work just fine with `rescript`.
 
 **NOTE**: If `~/bin` doesn't exists and you decide to use `install` command,
 `rescript` will automatically decides to use `~/.local/bin`, so before using
@@ -201,6 +208,8 @@ These variables are optional because the script will still work if you don't wan
    create a log; logs only will be created when you run the script without any
    command and option. You can turn logging off by swtiching this variable from
    "yes" to "no".
+* `ARCHIVE=""`: Indicate "yes" if you want to create a new snapshot with the tag "archive"
+   containing files deleted from the latest snapshot.
 
 The configuration file also have variables for B2 and AWS ID's and Keys. If not required
 just leave it blank.
@@ -243,10 +252,40 @@ Please see restic `help` and [documentation](https://restic.readthedocs.io/en/st
 
 **Rescript Commands**:
 
-1. `backup`: take a snapshot using the values set in your configuration file.
-2. `checkout`: this command is will execute `check --read-data-subset #/10` 
+1. `archive`: this command will check for differences between the latest two snapshots
+   and will make a new snapshot tagged as "archive" containing all files deleted from
+   the latest snapshot. For a better result of an "archive" it is better to run this
+   command after taking a snapshot; if you run it from time to time the result will not
+   be the best because it will be comparing just the latest two snapshot.
+   Usage:
+     ```
+     rescript [repo_name] archive [flags] [options]
+     ```
+   Command flags:
+   1. `-H, --host`: only consider snapshots for this host.
+      e.g.:
+      ```
+      rescript [repo_name] changes -H YOURHOSTNAME
+      ```
+   If you do not indicate the "hostname" it will take the hostname from the system or
+   the one indicated in the `HOST` variable in your configuration file. This function
+   is also available as a flag for `backup` and `cleanup`.
+2. `backup`: take a snapshot using the values set in your configuration file.
+   Command flags:
+   1. `-a, --archive`: perform archive function (see `archive` command) after `backup`.
+      e.g.:
+      ```
+      rescript [repo_name] backup --archive
+      ```
+   2. `-e, --exec`: use other restic flags/options like: `--no-lock, --no-cache` and others.
+      e.g.:
+      ```
+      rescript [repo_name] backup --exec [restic_flags/options]
+      ```
+      Note: this flags will still use the variables set in your configuration file.
+3. `checkout`: this command is will execute `check --read-data-subset #/10` 
    and it will select a random number between 1-10 out of 10 groups.
-3. `changes`: this command will automatically select the two most recent snapshots
+4. `changes`: this command will automatically select the two most recent snapshots
    and compare them using `restic diff`. When used alone it will select the snapshots
    according to the hostname in the machine that it is running or with the hostname
    indicated in the configuration file (HOST variable).
@@ -277,9 +316,14 @@ Please see restic `help` and [documentation](https://restic.readthedocs.io/en/st
       ```
       rescript [repo_name] changes -T YOURTAG
       ```
-3. `cleanup`: this will perform `forget` according to the policies in your configuration file and `prune`.
+5. `cleanup`: this will perform `forget` according to the policies in your configuration file and `prune`.
    Command flags:
-   1. `-d, --dry-run`: do not delete anything, just print what would be done.
+   1. `-a, --archive`: perform archive function (see `archive` command) before `cleanup`.
+      e.g.:
+      ```
+      rescript [repo_name] backup --archive
+      ```
+   2. `-d, --dry-run`: do not delete anything, just print what would be done.
       This flag can be used with other restic flags like: `--host, --tag, --path,
       --group-by` and any other flag and option available but it must be specified
       before restic options and after `cleanup`.
@@ -287,7 +331,7 @@ Please see restic `help` and [documentation](https://restic.readthedocs.io/en/st
       ```
       rescript [repo_name] cleanup -d --group-by tags --tag YOURTAG
       ```
-   2. `-e, --exec`: this is a special tag that will allow you to pass all restic options
+   3. `-e, --exec`: this is a special tag that will allow you to pass all restic options
       for `forget` using the policies specified on your configuration file. This WILL NOT
       use `--dry-run` and it will actually remove and delete (using `prune` at the end)
       data from your repository.
@@ -295,25 +339,32 @@ Please see restic `help` and [documentation](https://restic.readthedocs.io/en/st
       ```
       rescript [repo_name] cleanup -e --group-by tags --tag YOURTAG
       ```
-   3. `-n, --next`: this flag will display the next scheduled `cleanup` based on the `datefile`
+   4. `-n, --next`: this flag will display the next scheduled `cleanup` based on the `datefile`
       created by `rescript`; work only when CLEANUP variable is set.
-4. `config`: this will open the configuration dialog. This command does not need a `[repo_name]`.
-5. `editor`: change the default rescript text editor (for configuration and exclusion files). This command does not need a `[repo_name]`.
-6. `help`: display help dialog. This command does not need a `[repo_name]`.
-7. `install`: this will place rescript in your `$PATH` (in your home directory). This command does not need a `[repo_name]`.
-8. `logs`: this command needs an option. Options are as follows:
-   1. `-c, --cat`: display output of selected log file (you need to copy and paste the filename to display it).
+6. `config`: this will open the configuration dialog. This command does not need a `[repo_name]`.
+7. `editor`: change the default rescript text editor (for configuration and exclusion files). This command does not need a `[repo_name]`.
+8. `help`: display help dialog. This command does not need a `[repo_name]`.
+9. `install`: this will place rescript in your `$PATH` (in your home directory). This command does not need a `[repo_name]`.
+10. `logs`: this command needs an option. Options are as follows:
+      1. `-c, --cat`: display output of selected log file (you need to copy and paste the filename to display it).
       e.g.: 
       ``` 
       rescript [repo_name] logs --cat rescript-log-2018-01-01-00:00
       ```
-   2. `-L, --list`: list all log files saved.
-   3. `-r, --remove`: remove all log files related to your script (if you have different scripts for different repositoies
-	  you need to call `--remove` for every instance).
-9. `mounter`: this option will mount your repository; it'll create a 
+      2. `-L, --list`: list all log files saved.
+      3. `-r, --remove`: remove all log files related to your script (if you have different scripts for different repositoies
+	     you need to call `--remove` for every instance).
+11. `mounter`: this option will mount your repository; it'll create a 
    directory in your `/home` so it can mount your repository. Once you quit
    the mount option with `Ctrl+c` it will delete the directory.
-10. `restorer`: this command will restore the snapshot you want to restore. You need to indicate
+   Command flags:
+      1. `-e, --exec`: this special flag can be used to pass other restic flags/options like:
+      `--allow-other, --allow-root, --host, --path` and any other flags/options available in restic.
+      e.g.:
+      ```
+      rescript [repo_name] mounter -e [restic_flags/options]
+      ```
+12. `restorer`: this command will restore the snapshot you want to restore. You need to indicate
     the snapshot-ID you want to restore. With this command you don't need to indicate where to restore,
     it will automatically create a new file in your home directory called `restore-snapshotID-randomnumber`.
     It will do the random number so it will not conflict with maybe a file called the same in your
@@ -322,10 +373,14 @@ Please see restic `help` and [documentation](https://restic.readthedocs.io/en/st
     2. `-p, --path`: indicate path.
     3. `-T, --tag`: indicate tag.
     4. `-s, --snapshot`: indicate snapshot-ID.
+    e.g.:
+    ```
+    rescript [repo_name] restorer [flag] [host|path|snapshot|tag]
+    ```
     
     This "snapshot" flag is only available for `rescript`. For help type
     `rescript help restorer`. This command will automatically use `--verify` when restoring.
-11. `unlocker`: this command WILL NOT unlock your repository. When you run this
+13. `unlocker`: this command WILL NOT unlock your repository. When you run this
    script it will create a separate lock just for the script (it has nothing
    to do with the restic locks), so if your latest run left a lock (which is
    very unlikely unless it occurs an abrupt shut down while the script was running)
@@ -333,9 +388,9 @@ Please see restic `help` and [documentation](https://restic.readthedocs.io/en/st
    script is already running and it will not run again until the lock file is removed.
    If you're really sure the script is not running you can just run this command
    and it will delete the lock file so you can continue with your operation.
-12. `update`: use this command to check and install newest version of `rescript`
+14. `update`: use this command to check and install newest version of `rescript`
     (works from versions 3.8 onward).
-13. `version`: display rescript version. This command does not need a `[repo_name]`.
+15. `version`: display rescript version. This command does not need a `[repo_name]`.
 
 **Rescript Global Flags**:
 

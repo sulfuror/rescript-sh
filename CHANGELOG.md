@@ -1,5 +1,46 @@
-# February 14, 2018
-**Changes, Fixes and additions**:
+# March 4, 2019
+**Changes, fixes and additions**:
+
+1. Fixed output so now it doesn't display 0 days, 0 hours, 0 minutes or 0 seconds;
+   now instead of displaying "1 hour 0 minutes and 20 seconds" (for example) it will
+   display "1 hour and 20 seconds". This applies for the "duration" and when it display
+   "next cleanup".
+2. Added a variable called "ARCHIVE". By default is blank and you should change it to
+   "yes" if you want to use it for the automatic function (see point 3).
+3. Added a new command called `archive`. This command will check differences between
+   the latest two snapshot and it will create a new "special snapshot" with the path `/tmp/archive`
+   and tag `archive` containing only the files deleted from the latest snapshot. It will also
+   be dated as "2015-01-01" so it will always be the first snapshot displayed. To properly have a
+   real archive of all deleted files, it is better to use this option after every
+   `backup` made, so it will consider all deleted files. If it is used just from time to time,
+   it will work but `rescript` will not know if there are other deleted files. For example, if you used
+   the `archive` function today and then you took five snapshots and use it again, it will be a gap
+   of three snapshots (being the latest two of the five used by `diff`); rescript will only check
+   differences between the latest two snapshots and "archive" deleted files between them.
+   This function also available as a flag for other commands. For example, you can use 
+   `rescript [repo_name] backup --archive` and it will perform a backup and then will
+   execute the "archive" function. `archive` could take time if there are a lot of big files; keep
+   in mind that this function will need to perform `diff` first, then it will restore all deleted
+   files from the second most newest snapshot, then will restore the "archive" snapshot (if exists),
+   merge all data and then create a new snapshot with all deleted data. Good thing is that, since
+   all this data is already in your repository, the `backup` progress should not take too long.
+   This command also have a `-H, --host` flag so you can use it indicating one specific hostname.
+   If no hostname is indicated, the default is to use your machine's hostname or the hostname
+   in the variable `HOST` in your configuration file. IMPORTANT: must have `rsync` installed 
+   to use this function; the script will not display any errors but it will not work correctly.
+4. Added flags `-a, --archive` to `backup` and `cleanup` commands.
+5. Added `-e, --exec` to `mounter` so you could pass flags like `--allow-other, --allow-root, --host, --path`
+   and others but it is sill using tha variables in your configuragion file.
+6. Added `-e, --exec` to `backup` so you could pass flags like `--no-lock, --no-cache`
+   and others but it is sill using tha variables in your configuragion file.
+7. Fixed `stats` output for the "automatic" function, so now will display the hostname and use
+   `restic stats --host [hostname]` for original and deduplicated size for latest snapshot.
+8. Fixed `changes` command. Now if there is no host, path, tag, etc., it will display
+   a message saying that there is no value for your option; it will also now display
+   an error message for invalid flags.
+
+# February 14, 2019
+**Changes, fixes and additions**:
 
 1. "usage" is now a function instead of a variable; nothing relevant for users.
 2. The script variables are now lowercase to make easier to know if the variable
@@ -43,7 +84,7 @@
    for an easier installation that you can find in the [release page](https://gitlab.com/sulfuror/rescript.sh/releases).
 
 # January 23, 2019
-**Changes and Fixes**:
+**Changes and fixes**:
 
 1. Changed shebang to `env bash` for compatibility with OS's other than GNU/Linux.
 2. Changes in editor menu code (it actually doesn't change behavior).
