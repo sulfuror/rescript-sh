@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ============================================================== #
-version="3.9"
+version="4.0"
 function usage {
 echo "Author		: Sulfuror, Copyright (c) 2018 <sulfuror@gmail.com>
 URL		: https://gitlab.com/sulfuror/rescript.sh
@@ -49,6 +49,10 @@ Rescript configuration commands:
                         when a new version is available.
   
 Rescript commands:
+  archive               This command check for differences between
+                        the two most recent snapshots, restore deleted
+                        files from the latest snapshot and creates a new
+                        snapshot with all deleted files using [archive] tag.
   backup                Take a snapshot using the values set in
                         your configuration file.
   changes               This command will automatically select the
@@ -75,8 +79,7 @@ Rescript glogal flags:
                         commands. This will create a log file
                         with the command output. You can combine this
                         flag with [--time].
-  -t, --time            This flag is available ONLY for restic commands.
-                        This flag will display an output with the date,
+  -t, --time            This flag will display an output with the date,
                         time and duration of the command. You can
                         combine this flag with [--log].
 
@@ -181,13 +184,61 @@ function duration {
     sec="seconds"
   fi
   if [[ "$d" -gt "0" ]] ; then
-    echo "$d $days $h $hrs $m $min and $s $sec"
+    if [[ "$h" -gt "0" ]] ; then
+      if [[ "$m" -gt "0" ]] ; then
+        if [[ "$s" -gt "0" ]] ; then
+          echo "$d $days, $h $hrs, $m $min and $s $sec"
+        else
+          echo "$d $days, $h $hrs and $m $min"
+        fi
+      else
+        if [[ "$s" -gt "0" ]] ; then
+          echo "$d $days, $h $hrs and $s $sec"
+        else
+          echo "$d $days and $h $hrs"
+        fi
+      fi
+    else
+      if [[ "$m" -gt "0" ]] ; then
+        if [[ "$s" -gt "0" ]] ; then
+          echo "$d $days, $m $min and $s $sec"
+        else
+          echo "$d $days and $m $min"
+        fi
+      else
+        if [[ "$s" -gt "0" ]] ; then
+          echo "$d $days and $s $sec"
+        else
+          echo "$d $days"
+        fi
+      fi
+    fi
   elif [[ "$h" -gt "0" ]] ; then
-    echo "$h $hrs $m $min and $s $sec"
+    if [[ "$m" -gt "0" ]] ; then
+      if [[ "$s" -gt "0" ]] ; then
+        echo "$h $hrs, $m $min and $s $sec"
+      else
+        echo "$h $hrs and $m $min"
+      fi
+    else
+      if [[ "$s" -gt "0" ]] ; then
+        echo "$h $hrs and $s $sec"
+      else
+        echo "$h $hrs"
+      fi
+    fi
   elif [[ "$m" -gt "0" ]] ; then
-    echo "$m $min and $s $sec"
+    if [[ "$s" -gt "0" ]] ; then
+      echo "$m $min and $s $sec"
+    else
+      echo "$m $min"
+    fi
   else
-    echo "$s $sec"
+    if [[ "$s" -gt "0" ]] ; then
+      echo "$s $sec"
+    else
+      echo "Well, that was too fast!"
+    fi
   fi
 }
 # ============================================================== #
@@ -415,6 +466,12 @@ function new_config_file {
   echo 'TAG=""'
   echo 'DESTINATION=""'
   echo 'HOST=""'
+  echo ""
+  echo "# The variable "ARCHIVE" is blank by default. If you want to archive deleted files from"
+  echo "# newest snapshots set the variable to "yes" and it will automatically save deleted"
+  echo "# files from newest snapshots in a special snapshot tagged as "archive". It is advise"
+  echo "# to set "KEEP_TAG" variable to "archive" if used."
+  echo 'ARCHIVE=""'
   echo ""
   echo "# The variable "LOGGING" is "yes" by default. If you don't want logs to be saved"
   echo "# at .rescript/logs directory just change the "yes" to "no". This will only save"
@@ -911,6 +968,7 @@ function update {
         fi
         ;;
       *)
+        rm "$rescript_latest"
         echo "Nothing done... exiting."
         exit
         ;;
@@ -921,6 +979,34 @@ function update {
 # ============================================================== #
 # Commands Help																									 #
 # ============================================================== #
+function archive-help {
+  echo "[archive] is a special feature that uses [diff], [restore]"
+  echo "and [backup]"
+  echo ""
+  echo "This command check for differences between the latest two"
+  echo "snapshots, then restores only deleted files from the latest"
+  echo "snapshot and finally creates a new backup with a tag named"
+  echo "[archive]. This function is also available as a flag for"
+  echo "[backup] and [cleanup] commands (-a|--archive)."
+  echo ""
+  echo "Usage:"
+  echo "  rescript [repo_name] archive"
+  echo ""
+  echo "Command flags:"
+  echo "  -H, --host            Only consider snapshots for this host."
+  echo ""
+  echo "Global flags:"
+  echo "  -h, --help            Display this help dialog."
+  echo "  -l, --log             This will create a log file with"
+  echo "                        the command output."
+  echo "  -t, --time            This flag will display an output with"
+  echo "                        the date, time and duration of the command."
+  echo ""
+  echo "[-H] usage example:"
+  echo "  rescript [repo_name] archive -H [hostname]"
+  echo ""
+}
+
 function backup-help {
   echo "[backup] is for [backup] command in restic"
   echo ""
@@ -930,10 +1016,26 @@ function backup-help {
   echo "Usage:"
   echo "  rescript [repo_name] backup"
   echo ""
+  echo "Command flags:"
+  echo "  -a, --archive         Check for differences between the two"
+  echo "                        most recent snapshots, restore deleted"
+  echo "                        files from the latest snapshot and"
+  echo "                        create a new snapshot with all deleted"
+  echo "                        files using [archive] tag."
+  echo "  -e, --exec            This 'special' flag can be used to"
+  echo "                        pass other restic flags/options like:"
+  echo "                        --no-lock, --no-cache and any other"
+  echo "                        flag and option available in restic."
+  echo "                        This flag must be specified before"
+  echo "                        restic options and after [backup]."
+  echo ""
   echo "Global flags:"
-  echo "  -h, --help		Display this help dialog."
-  echo "  -l, --log		This will create a log file with"
-  echo "			the command output."
+  echo "  -h, --help            Display this help dialog."
+  echo "  -l, --log             This will create a log file with"
+  echo "                        the command output."
+  echo ""
+  echo "[-e] usage example:"
+  echo "  rescript [repo_name] backup -e [restic_flags/options]"
   echo ""
 }
 
@@ -948,35 +1050,41 @@ function cleanup-help {
   echo "  rescript [repo_name] cleanup [command_flag] [options]"
   echo ""
   echo "Command flags:"
-  echo "  -d, --dry-run		Do not delete anything, just print"
-  echo "			what would be done. This flag can"
-  echo "			be used with any other restic flag"
-  echo "			like: --host, --tag, --path"
-  echo "			--group-by and any other flag and"
-  echo "			option available but it must be"
-  echo "			specified before restic options and"
-  echo "			after [cleanup]."
-  echo "  -e, --exec		This "special" flag can be used to"
-  echo "			pass other restic flags like:"
-  echo "			--host, --tag, --path, --group-by"
-  echo "			and any other flag and option available"
-  echo "			in restic but it will execute [prune]"
-  echo "			at the end. This flag must be specified"
-  echo "			before restic options and after [cleanup]."
-  echo "  -n, --next		Display next scheduled; work only when"
-  echo "			CLEANUP variable is set."
+  echo "  -a, --archive         Check for differences between the two"
+  echo "                        most recent snapshots, restore deleted"
+  echo "                        files from the latest snapshot and"
+  echo "                        create a new snapshot with all deleted"
+  echo "                        files using [archive] tag."
+  echo "  -d, --dry-run         Do not delete anything, just print"
+  echo "                        what would be done. This flag can"
+  echo "                        be used with any other restic flags/options"
+  echo "                        like: --host, --tag, --path"
+  echo "                        --group-by and any other flag and"
+  echo "                        option available but it must be"
+  echo "                        specified before restic options and"
+  echo "                        after [cleanup]."
+  echo "  -e, --exec            This 'special' flag can be used to"
+  echo "                        pass other restic flags/options like:"
+  echo "                        --host, --tag, --path, --group-by"
+  echo "                        and any other flag and option available"
+  echo "                        in restic but it will execute [prune]"
+  echo "                        at the end. This flag must be specified"
+  echo "                        before restic options and after [cleanup]."
+  echo "  -n, --next            Display next scheduled; work only when"
+  echo "                        CLEANUP variable is set."
+  echo ""
   echo "Global flags:"
-  echo "  -h, --help		Display this help dialog."
-  echo "  -l, --log		This will create a log file with"
-  echo "			the command output."
+  echo "  -h, --help            Display this help dialog."
+  echo "  -l, --log             This will create a log file with"
+  echo "                        the command output."
   echo ""
   echo "[-d] and [-e] usage examples:"
-  echo "  rescript [repo_name] cleanup -d --group-by tags"
-  echo "	This will run the commands with [--dry-run], so it will not"
-  echo "	delete anything"
-  echo "  rescript [repo_name] cleanup -e --group-by tags"
-  echo "	This will execute the commands, flags and options indicated"
-  echo "	with [prune] at the end and IT WILL delete data"
+  echo "  rescript [repo_name] cleanup -d [restic_flags/options]"
+  echo "        This will run the commands with [--dry-run], so it will not"
+  echo "        delete anything"
+  echo "  rescript [repo_name] cleanup -e [restic_flags/options]"
+  echo "        This will execute the commands, flags and options indicated"
+  echo "        with [prune] at the end and IT WILL delete data"
   echo ""
 }
 
@@ -1014,7 +1122,7 @@ function config-help {
   echo "  rescript config"
   echo ""
   echo "Global flags:"
-  echo "  -h, --help		Display this help dialog."
+  echo "  -h, --help            Display this help dialog."
   echo ""
 }
 
@@ -1029,7 +1137,7 @@ function editor-help {
   echo "  rescript editor"
   echo ""
   echo "Global flags:"
-  echo "  -h, --help		Display this help dialog."
+  echo "  -h, --help            Display this help dialog."
   echo ""
 }
 
@@ -1047,7 +1155,7 @@ function install-help {
   echo "  rescript install"
   echo ""
   echo "Global flags:"
-  echo "  -h, --help		Display this help dialog."
+  echo "  -h, --help            Display this help dialog."
   echo ""
 }
 
@@ -1074,12 +1182,12 @@ function logs-help {
   echo "  rescript [repo_name] logs [command_flag] [logfile]"
   echo ""
   echo "Command flags:"
-  echo "  -c, --cat		Display output of selected log file."
-  echo "  -L, --list		List all log files saved."
-  echo "  -r, --remove		Remove all log files."
+  echo "  -c, --cat             Display output of selected log file."
+  echo "  -L, --list            List all log files saved."
+  echo "  -r, --remove          Remove all log files."
   echo ""
   echo "Global flags:"
-  echo "  -h, --help		Display this help dialog."
+  echo "  -h, --help            Display this help dialog."
   echo ""
 }
 
@@ -1092,8 +1200,19 @@ function mounter-help {
   echo "Usage:"
   echo "  rescript mounter"
   echo ""
+  echo "Command flags:"
+  echo "  -e, --exec            This 'special' flag can be used to"
+  echo "                        pass other restic flags/options like:"
+  echo "                        --allow-other, --allow-root, --host, --path,"
+  echo "                        and any other flags/options available in restic."
+  echo "                        This flag must be specified before"
+  echo "                        restic options and after [mounter]."
+  echo ""
   echo "Global flags:"
-  echo "  -h, --help		Display this help dialog."
+  echo "  -h, --help            Display this help dialog."
+  echo ""
+  echo "[-e] usage example:"
+  echo "  rescript [repo_name] mounter -e [restic_flags/options]"
   echo ""
 }
 
@@ -1107,9 +1226,9 @@ function random-check-help {
   echo "  rescript [repo_name] checkout"
   echo ""
   echo "Global flags:"
-  echo "  -h, --help		Display this help dialog."
-  echo "  -l, --log		This will create a log file with"
-  echo "			the command output."
+  echo "  -h, --help            Display this help dialog."
+  echo "  -l, --log             This will create a log file with"
+  echo "                        the command output."
   echo ""
 }
 
@@ -1125,18 +1244,18 @@ function restorer-help {
   echo "  rescript [repo_name] restorer [command_flag] [host|path|snapshot ID|tag]"
   echo ""
   echo "Command flags:"
-  echo "  -H, --host		Only consider snapshots for this host"
-  echo "			when snapshot-ID is [latest]."
-  echo "  -p, --path		Only consider snapshots which include"
-  echo "			this [absolute] path for snapshot-ID [latest]."
-  echo "  -s, --snapshot	Indicate snapshot-ID to restore."
-  echo "  -T, --tag		Only consider snapshots which include this"
-  echo "			taglist for snapshot-ID [latest]."
+  echo "  -H, --host            Only consider snapshots for this host"
+  echo "                        when snapshot-ID is [latest]."
+  echo "  -p, --path            Only consider snapshots which include"
+  echo "                        this [absolute] path for snapshot-ID [latest]."
+  echo "  -s, --snapshot        Indicate snapshot-ID to restore."
+  echo "  -T, --tag             Only consider snapshots which include this"
+  echo "                        taglist for snapshot-ID [latest]."
   echo ""
   echo "Global flags:"
-  echo "  -h, --help		Display this help dialog."
-  echo "  -l, --log		This will create a log file with"
-  echo "			the command output."
+  echo "  -h, --help            Display this help dialog."
+  echo "  -l, --log             This will create a log file with"
+  echo "                        the command output."
   echo ""
 }
 
@@ -1166,8 +1285,9 @@ function unlocker-help {
   echo ""
   echo "Usage:"
   echo "  rescript [repo_name] unlocker"
-  echo "Available flags:"
-  echo "  -h, --help		Display this help dialog."
+  echo ""
+  echo "Global flags:"
+  echo "  -h, --help            Display this help dialog."
   echo ""
 }
 
@@ -1180,8 +1300,8 @@ function update-help {
   echo "If script is located in /usr/bin:"
   echo "  sudo rescript update"
   echo ""
-  echo "Available flags:"
-  echo "  -h, --help		Display this help dialog."
+  echo "Global flags:"
+  echo "  -h, --help            Display this help dialog."
   echo ""
 }
 
@@ -1204,6 +1324,12 @@ case "$1" in
     echo "You have not indicated any repo for ["$1"]..."
     echo ""
     time-help
+    exit
+    ;;
+  archive)
+    echo "You have not indicated any repo for ["$1"]..."
+    echo ""
+    archive-help
     exit
     ;;
   backup)
@@ -1251,6 +1377,10 @@ case "$1" in
       exit  
     fi
     case "$2" in
+      archive)
+        archive-help
+        exit
+        ;;
       backup)
         backup-help
         exit
@@ -1406,6 +1536,118 @@ if [[ ! -z "$TAG" ]] ; then
   restic_tag="--tag $TAG"
 fi
 
+function archive {
+  shopt -u nocasematch
+  rescript-lock
+  case "$cmd" in
+    backup|cleanup)
+      if [[ ! -z "$HOST" ]] ; then
+        host_archive="$HOST"
+      else
+        host_archive="$(hostname)"
+      fi
+      echo "Starting archive..."
+      ;;
+    *)
+      if [[ "$flags" ]] ; then
+        case "$flags" in
+          -h|--help)
+            archive-help
+            exit
+            ;;
+          -H|--host)
+            if [[ ! "$opt" ]] ; then
+              echo "No [host] indicated."
+              echo ""
+              archive-help
+              exit
+            elif [[ "$(restic snapshots --compact --host "$opt" | tail -1 | awk '{print $1}')" = "0" ]] ; then
+              echo "There is no host named ["$opt"] in your repository."
+              exit
+            fi
+            host_archive="$opt"
+            ;;
+          *)
+            echo "Invalid option ["$flags"]..."
+            exit
+            ;;
+        esac
+      elif [[ ! -z "$HOST" ]] ; then
+        host_archive="$HOST"
+      else
+        host_archive="$(hostname)"
+      fi
+      ;;
+  esac
+  if [[ "$(restic snapshots --compact --host "$host_archive" | tail -1 | awk '{print $1}')" -lt "2" ]] ; then
+    echo "There is only $(restic snapshots --compact --host "$host_archive" | tail -1 | awk '{print $1}') snapshot available."
+    exit
+  fi
+  if [[ "$(restic snapshots --compact --host "$host_archive" | tail -1 | awk '{print $1}')" == "2" && "$(restic snapshots --compact --host "$host_archive" --tag "archive" --path "/tmp/archive" | tail -1 | awk '{print $1}')" -gt "0" ]] ; then
+    echo "There are no files to archive..."
+    exit
+  fi
+  echo -ne 'Checking for files to archive: [########                ](33%)\r'
+  prevsnap=$(restic snapshots --compact --host "$host_archive" | tail -4 | head -1 | awk '{print $1}')
+  echo -ne 'Checking for files to archive: [################        ](66%)\r'
+  latesnap=$(restic snapshots --compact --host "$host_archive" | tail -3 | head -1 | awk '{print $1}')
+  rescript_diff="/tmp/rescript_diff.txt"
+  rescript_archive="/tmp/rescript_archive.txt"
+  archiver="/tmp/archive"
+  archiver_old="/tmp/archive_old"
+  restic diff "$prevsnap" "$latesnap" > "$rescript_diff"
+  echo -ne 'Checking for files to archive : [########################](100%)\r'
+  echo -ne '\n'
+  cat "$rescript_diff" | grep -e '-    /' | sed -e 's/^-    //g' > "$rescript_archive"
+  wait
+  if [[ ! -s "$rescript_archive" ]] ; then
+    rm -rf "$rescript_diff" >> /dev/null 2>&1
+    rm -rf "$rescript_archive" >> /dev/null 2>&1
+    echo "There are no files to archive..."
+  else
+    if [[ "$(grep "/" $rescript_archive | wc -l)" == "1" ]] ; then
+      echo "There is "$(grep "/" $rescript_archive | wc -l)" file deleted from the latest snapshot:"
+    else
+      echo "There are "$(grep "/" $rescript_archive | wc -l)" files deleted from the latest snapshot:"
+    fi
+    echo "$(cat -n $rescript_archive)"
+    echo -ne 'Restoring deleted files       : [#####                   ](20%)\r'
+    eval filter=( $(cat "$rescript_archive" | sed 's/ \+/\\ /g' | sed 's/^/--include="/' | sed 's/$/"/') )
+    wait
+    restic restore "${filter[@]}" --verify $prevsnap -t "$archiver" >> /dev/null 2>&1 &
+    wait
+    echo -ne 'Restoring deleted files       : [##########              ](40%)\r'
+    restic restore --host "$host_archive" --tag archive --path /tmp/archive --verify latest -t "$archiver_old" >> /dev/null 2>&1
+    wait
+    echo -ne 'Restoring deleted files       : [###############         ](60%)\r'
+    restic forget --host "$host_archive" --tag archive --path /tmp/archive --keep-last 1 >> /dev/null 2>&1
+    wait
+    echo -ne 'Restoring deleted files       : [####################    ](80%)\r'
+    restic forget --host "$host_archive" --tag archive --path /tmp/archive latest >> /dev/null 2>&1
+    wait
+    echo -ne 'Restoring deleted files       : [########################](100%)\r'
+    echo -ne '\n'
+    if [[ -d "$archiver_old" ]] ; then
+      echo -ne 'Merging data                  : [############            ](50%)\r'
+      rsync -a /tmp/archive_old/tmp/archive/* /tmp/archive >> /dev/null 2>&1
+      wait
+      echo -ne 'Merging data                  : [########################](100%)\r'
+      echo -ne '\n'
+    else
+      echo "No data to merge."
+    fi
+    echo -ne 'Archiving deleted files       : [############            ](50%)\r'
+    restic backup --time '2015-01-01 00:00:00' --tag archive --host "$host_archive" /tmp/archive >> /dev/null 2>&1
+    wait
+    rm -rf "$rescript_diff" >> /dev/null 2>&1
+    rm -rf "$rescript_archive" >> /dev/null 2>&1
+    rm -rf "$archiver" >> /dev/null 2>&1
+    rm -rf "$archiver_old" >> /dev/null 2>&1
+    echo -ne 'Archiving deleted files       : [########################](100%)\r'
+    echo -ne '\nArchive Completed!\n'
+  fi
+}
+
 function automatic {
   rescript-lock
   case "$LOGGING" in
@@ -1425,6 +1667,13 @@ function automatic {
   # Snapshot List
   echo -e "$yellow""[Snapshots List...]""$endcolor"
   restic snapshots
+  case "$ARCHIVE" in
+    y|yes)
+      echo -e "$yellow""[Starting archive...]""$endcolor"
+      rm -rf "$lock"
+      archive
+      ;;
+  esac
   # Check and Clean Repo Based on User's Policy
   if [[ -f "$config_dir/"$repo"-datefile" || "$CLEAN" -gt "0" ]]; then
     if [[ ! -f "$config_dir/"$repo"-datefile" ]] ; then
@@ -1469,10 +1718,15 @@ function automatic {
   fi
   # Stats
   printf "%$((80/1))s\n" "" | tr ' ' -
-  echo -e "$yellow""[Original Size for Latest Snapshot...]""$endcolor"
-  restic stats --host "" latest
-  echo -e "$yellow""[Deduplicated Size for Latest Snapshot...]""$endcolor"
-  restic stats --mode raw-data --host "" latest
+  if [[ ! -z "$HOST" ]] ; then
+    stat_host="$HOST"
+  else
+    stat_host="$(hostname)"
+  fi
+  echo -e "$yellow""[Original Size for "$stat_host" Latest Snapshot...]""$endcolor"
+  restic stats --host "$stat_host" latest
+  echo -e "$yellow""[Deduplicated Size for "$stat_host" Latest Snapshot...]""$endcolor"
+  restic stats --mode raw-data --host "$stat_host" latest
   echo -e "$yellow""[Original Size for All Snapshots...]""$endcolor"
   restic stats
   echo -e "$yellow""[Deduplicated Size for All Snapshots...]""$endcolor"
@@ -1502,6 +1756,20 @@ function backup {
   rescript-lock
   if [[ "$flags" ]] ; then
     case "$flags" in
+      -a|--archive)
+        time-start
+        restic backup $BACKUP_DIR --verbose --exclude-caches --exclude-file="$excludes" $restic_tag $restic_host
+        rm -rf "$lock"
+        archive
+        time-end
+        exit
+        ;;
+      -e|--exec)
+        time-start
+        restic backup $BACKUP_DIR --verbose --exclude-caches --exclude-file="$excludes" $restic_tag $restic_host $opt
+        time-end
+        exit
+        ;;
       -h|--help)
         backup-help
         exit
@@ -1533,43 +1801,48 @@ function changes {
       exit
       ;;
     -H|--host|-p|--path|-T|--tag)
-      if [[ ! "$hpts" ]] ; then
-        case "$flags" in
-          -H|--host)
+      case "$flags" in
+        -H|--host)
+          if [[ ! "$hpts" ]] ; then
             echo "No [host] indicated..."
             echo ""
             changes-help
             exit
-            ;;
-          -p|--path)
+          elif [[ "$(restic snapshots --compact --host "$hpts" | tail -1 | awk '{print $1}')" = "0" ]] ; then
+            echo "There is no host named ["$hpts"] in your repository."
+            exit
+          fi
+          restic_flag="--host"
+          ;;
+        -p|--path)
+          if [[ ! "$hpts" ]] ; then
             echo "No [path] indicated..."
             echo ""
             changes-help
             exit
-            ;;
-          -T|--tag)
+          elif [[ "$(restic snapshots --compact --path "$hpts" | tail -1 | awk '{print $1}')" = "0" ]] ; then
+            echo "There is no snapshot with ["$hpts"] path in your repository."
+            exit
+          fi
+          restic_flag="--path"
+          ;;
+        -T|--tag)
+          if [[ ! "$hpts" ]] ; then
             echo "No [tag] indicated..."
             echo ""
             changes-help
             exit
-            ;;
-          *)
-            echo "No valid option indicated..."
-            echo ""
-            changes-help
+          elif [[ "$(restic snapshots --compact --tag "$hpts" | tail -1 | awk '{print $1}')" = "0" ]] ; then
+            echo "There is no ["$hpts"] tag in your repository."
             exit
-            ;;
-        esac
-      fi
-      case "$flags" in
-        -H|--host)
-          restic_flag="--host"
-          ;;
-        -p|--path)
-          restic_flag="--path"
-          ;;
-        -T|--tag)
+          fi
           restic_flag="--tag"
+          ;;
+        *)
+          echo "No valid option indicated..."
+          echo ""
+          changes-help
+          break
           ;;
       esac
       case "$opt" in
@@ -1579,6 +1852,12 @@ function changes {
           time-start
           restic diff "$previous_snapshot" "$latest_snapshot" --metadata
           time-end
+          exit
+          ;;
+        [a-z]*|-*|--*)
+          echo "Invalid option ["$opt"]..."
+          echo ""
+          changes-help
           exit
           ;;
         *)
@@ -1595,42 +1874,41 @@ function changes {
       if [[ "$hpts" ]] ; then
         case "$hpts" in
           -H|--host|-p|--path|-T|--tag)
-            if [[ ! "$opt" ]] ; then
-              case "$opt" in
-                -H|--host)
+            case "$hpts" in
+              -H|--host)
+                if [[ ! "$opt" ]] ; then
                   echo "No [host] indicated..."
                   echo ""
                   changes-help
                   exit
-                  ;;
-                -p|--path)
+                elif [[ "$(restic snapshots --compact --host "$opt" | tail -1 | awk '{print $1}')" = "0" ]] ; then
+                  echo "There is no host named ["$opt"] in your repository."
+                  exit
+                fi
+                restic_flag="--host"
+                ;;
+              -p|--path)
+                if [[ ! "$opt" ]] ; then
                   echo "No [path] indicated..."
                   echo ""
                   changes-help
                   exit
-                  ;;
-                -T|--tag)
+                elif [[ "$(restic snapshots --compact --path "$opt" | tail -1 | awk '{print $1}')" = "0" ]] ; then
+                  echo "There is no snapshot with ["$opt"] path in your repository."
+                  exit
+                fi
+                restic_flag="--path"
+                ;;
+              -T|--tag)
+                if [[ ! "$opt" ]] ; then
                   echo "No [tag] indicated..."
                   echo ""
                   changes-help
                   exit
-                  ;;
-                *)
-                  echo "No valid option indicated..."
-                  echo ""
-                  changes-help
+                elif [[ "$(restic snapshots --compact --tag "$opt" | tail -1 | awk '{print $1}')" = "0" ]] ; then
+                  echo "There is no ["$opt"] tag in your repository."
                   exit
-                  ;;
-              esac
-            fi
-            case "$hpts" in
-              -H|--host)
-                restic_flag="--host"
-                ;;
-              -p|--path)
-                restic_flag="--path"
-                ;;
-              -T|--tag)
+                fi
                 restic_flag="--tag"
                 ;;
             esac
@@ -1640,6 +1918,19 @@ function changes {
             restic diff "$previous_snapshot" "$latest_snapshot" --metadata
             time-end
             ;;
+            [a-z]*|-*|--*)
+              echo "Invalid option ["$hpts"]..."
+              echo ""
+              changes-help
+              exit
+              ;;
+            *)
+              previous_snapshot=$(restic snapshots --compact "$restic_flag" "$opt" | tail -4 | head -1 | awk '{print $1}')
+              latest_snapshot=$(restic snapshots --compact "$restic_flag" "$opt" | tail -3 | head -1 | awk '{print $1}')
+              time-start
+              restic diff "$previous_snapshot" "$latest_snapshot" --metadata
+              time-end
+            ;;
         esac
       elif [[ ! -z "$HOST" ]] ; then
         previous_snapshot=$(restic snapshots --compact --host "$HOST" | tail -4 | head -1 | awk '{print $1}')
@@ -1648,12 +1939,18 @@ function changes {
         restic diff "$previous_snapshot" "$latest_snapshot" --metadata
         time-end
       else
-        previous_snapshot=$(restic snapshots --compact --host "$HOSTNAME" | tail -4 | head -1 | awk '{print $1}')
-        latest_snapshot=$(restic snapshots --compact --host "$HOSTNAME" | tail -3 | head -1 | awk '{print $1}')
+        previous_snapshot=$(restic snapshots --compact --host "$(hostname)" | tail -4 | head -1 | awk '{print $1}')
+        latest_snapshot=$(restic snapshots --compact --host "$(hostname)" | tail -3 | head -1 | awk '{print $1}')
         time-start
         restic diff "$previous_snapshot" "$latest_snapshot" --metadata
         time-end
       fi
+      exit
+      ;;
+    [a-z]*|-*|--*)
+      echo "Invalid option ["$flags"]..."
+      echo ""
+      changes-help
       exit
       ;;
     *)
@@ -1664,8 +1961,8 @@ function changes {
         restic diff "$previous_snapshot" "$latest_snapshot"
         time-end
       else
-        previous_snapshot=$(restic snapshots --compact --host "$HOSTNAME" | tail -4 | head -1 | awk '{print $1}')
-        latest_snapshot=$(restic snapshots --compact --host "$HOSTNAME" | tail -3 | head -1 | awk '{print $1}')
+        previous_snapshot=$(restic snapshots --compact --host "$(hostname)" | tail -4 | head -1 | awk '{print $1}')
+        latest_snapshot=$(restic snapshots --compact --host "$(hostname)" | tail -3 | head -1 | awk '{print $1}')
         time-start
         restic diff "$previous_snapshot" "$latest_snapshot"
         time-end
@@ -1679,6 +1976,26 @@ function cleanup {
   rescript-lock
   if [[ "$flags" ]] ; then
     case "$flags" in
+      -a|--archive)
+        if [[ ! -z "$policies" ]] ; then
+          time-start
+          rm -rf "$lock"
+          archive
+          restic forget "${policies[@]}"
+          restic prune --cleanup-cache
+          if [[ -f "$config_dir/"$repo"-datefile" || "$CLEAN" -gt "0" ]] ; then
+            cleanup-next
+          fi
+          time-end
+          exit
+        else
+          echo -e "$yellow""You have not indicated any policy value...""$endcolor"
+          echo "If you want to use [cleanup] option you need to set the [KEEP] variables."
+          echo "For more information about the Usage check out the following link:"
+          echo "https://gitlab.com/sulfuror/rescript.sh/blob/master/README.md#usage"
+          exit
+        fi
+        ;;
       -d|--dry-run)
         echo "This is just a test..."
         printf "%$((80/1))s\n" "" | tr ' ' -
@@ -1768,12 +2085,22 @@ function cleanup-next {
   fi
   if [[ "$days" -gt "0" ]] ; then
     if [[ "$hours" -gt "0" ]] ; then
-      echo -e "$yellow""Next cleanup and check in $days $d, $hours $h and $minutes $m...""$endcolor"
-    else
+        if [[ "$minutes" -gt "0" ]] ; then
+          echo -e "$yellow""Next cleanup and check in $days $d, $hours $h and $minutes $m...""$endcolor"
+        else
+          echo -e "$yellow""Next cleanup and check in $days $d and $hours $h...""$endcolor"
+        fi
+    elif [[ "$minutes" -gt "0" ]] ; then
       echo -e "$yellow""Next cleanup and check in $days $d and $minutes $m...""$endcolor"
+    else
+      echo -e "$yellow""Next cleanup and check in $days $d...""$endcolor"
     fi
   elif [[ "$hours" -gt "0" ]] ; then
-    echo -e "$yellow""Next cleanup and check in $hours $h and $minutes $m...""$endcolor"
+    if [[ "$minutes" -gt "0" ]] ; then
+      echo -e "$yellow""Next cleanup and check in $hours $h and $minutes $m...""$endcolor"
+    else
+      echo -e "$yellow""Next cleanup and check in $hours $h...""$endcolor"
+    fi
   elif [[ "$minutes" -gt "0" ]] ; then
     echo -e "$yellow""Next cleanup and check in $minutes $m...""$endcolor"
   else
@@ -1838,8 +2165,15 @@ function logger {
 }
 
 function mounter {
+  rescript-lock
   if [[ "$flags" ]] ; then
     case "$flags" in
+      -e|--exec)
+        mkdir "$rmount"
+        restic mount "$rmount" $opt
+        rm -rf "$rmount"
+        exit
+        ;;
       -h|--help)
         mounter-help
         exit
@@ -1852,7 +2186,6 @@ function mounter {
         ;;
     esac
   fi
-  rescript-lock
   mkdir "$rmount"
   restic mount "$rmount"
   rm -rf "$rmount"
@@ -2046,7 +2379,7 @@ function time-start {
     if [[ "$HOST" ]] ; then
       echo -e "$yellow""Hostname:""$endcolor" "$HOST"
     else
-      echo -e "$yellow""Hostname:""$endcolor" "$HOSTNAME"
+      echo -e "$yellow""Hostname:""$endcolor" "$(hostname)"
     fi
     if [[ "$DESTINATION" ]] ; then
       echo -e "$yellow""Backup Destination:""$endcolor" "$DESTINATION"
@@ -2075,7 +2408,7 @@ function time-start {
         if [[ "$HOST" ]] ; then
           echo -e "$yellow""Hostname:""$endcolor" "$HOST"
         else
-          echo -e "$yellow""Hostname:""$endcolor" "$HOSTNAME"
+          echo -e "$yellow""Hostname:""$endcolor" "$(hostname)"
         fi
         if [[ "$DESTINATION" ]] ; then
           echo -e "$yellow""Backup Destination:""$endcolor" "$DESTINATION"
@@ -2180,6 +2513,16 @@ case "$2" in
             echo ""
             exit
             ;;
+          archive)
+            cmd="$4"
+            flags="$5"
+            opt="$6"
+            logger
+            time-start
+            archive
+            time-end
+            exit
+            ;;
           *)
             rescript-lock
             cmd="$4"
@@ -2190,8 +2533,18 @@ case "$2" in
             ;;
         esac
         ;;
+        archive)
+          cmd="$3"
+          flags="$4"
+          opt="$5"
+          logger
+          archive
+          exit
+          ;;
         backup)
           cmd="$3"
+          flags="$4"
+          opt="${@:5}"
           logger
           backup
           ;;
@@ -2213,6 +2566,11 @@ case "$2" in
           logger
           cleanup
           ;;
+        mounter)
+          echo "[-l, --log] is not available for [mounter]"
+          echo ""
+          exit
+          ;;
         restorer)
           cmd="$3"
           flags="$4"
@@ -2233,7 +2591,7 @@ case "$2" in
     if [[ ! "$3" ]] ; then
       echo "You have not indicated any command for [$2]..."
       echo ""
-      logger-help
+      time-help
       exit
     fi
     case "$3" in
@@ -2245,6 +2603,16 @@ case "$2" in
             echo "Since rescript commands provide output with duration,"
             echo "this flag is intended only for restic commands use."
             echo ""
+            exit
+            ;;
+          archive)
+            cmd="$4"
+            flags="$5"
+            opt="$6"
+            logger
+            time-start
+            archive
+            time-end
             exit
             ;;
           *)
@@ -2265,6 +2633,15 @@ case "$2" in
         echo ""
         exit
         ;;
+      archive)
+        cmd="$3"
+        flags="$4"
+        opt="$5"
+        time-start
+        archive
+        time-end
+        exit
+        ;;
       *)
         rescript-lock
         cmd="$3"
@@ -2274,9 +2651,17 @@ case "$2" in
         ;;
     esac
     ;;
+  archive)
+    cmd="$2"
+    flags="$3"
+    opt="$4"
+    archive
+    exit
+    ;;
   backup)
     cmd="$2"
     flags="$3"
+    opt="${@:4}"
     backup
     exit
     ;;
@@ -2313,6 +2698,7 @@ case "$2" in
     ;;
   mounter)
     flags="$3"
+    opt="${@:4}"
     mounter
     exit
     ;;
