@@ -1,3 +1,32 @@
+# March 7, 2019
+**Fixes**:
+
+1. Fixed `archive` function. Before it was working okay but it was not syncing
+   new files. For example: you have snapshot 1 and 2. There is a file called "ImportantFile.txt"
+   in the snapshot 1 but it was deleted after that snapshot, so snapshot 2 does not
+   have the "ImportantFile.txt"; `archive` took care of it and saved it to the
+   special "archive" snapshot. That is expected. Then the file was restored and edited
+   and after that a snapshot 3 happened. For some misterious reason the file was deleted
+   again and when restic took snapshot 4 the file was missing, so `archive` do its work
+   again. You would think that now "archive" snapshot contains the latest "ImportantFile.txt"
+   version, but that is not true; the file is in there but is the oldest version. Why this
+   happened? `archive` uses rsync to sync the deleted files but the error in the code was
+   to use rsync to sync the old snapshot to the new one like this:
+   ```
+   rsync -a /path/to/old/snapshot/* /tmp/archive
+   ```
+   In theory it was working but for this specific unsusual behaviour it was taking
+   old files and deleting the new ones. Now rsync will execute twice and it will sync
+   the old snapshot first and then the new one, so all newly edited files would be
+   there but it needs to create a new directory instead of 2, which at the end are deleted;
+   now it looks like this:
+   ```
+   rsync -a /path/to/old/snapshot/* /tmp/archive
+   rsync -a /path/to/latest/snapshot/* /tmp/archive
+   ```
+   After that it will create the new snapshot and that's it.
+   
+
 # March 4, 2019
 **Changes, fixes and additions**:
 
