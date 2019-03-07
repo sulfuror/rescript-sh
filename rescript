@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ============================================================== #
-version="4.0"
+version="4.1"
 function usage {
 echo "Author		: Sulfuror, Copyright (c) 2018 <sulfuror@gmail.com>
 URL		: https://gitlab.com/sulfuror/rescript.sh
@@ -1591,17 +1591,15 @@ function archive {
   prevsnap=$(restic snapshots --compact --host "$host_archive" | tail -4 | head -1 | awk '{print $1}')
   echo -ne 'Checking for files to archive: [################        ](66%)\r'
   latesnap=$(restic snapshots --compact --host "$host_archive" | tail -3 | head -1 | awk '{print $1}')
-  rescript_diff="/tmp/rescript_diff.txt"
-  rescript_archive="/tmp/rescript_archive.txt"
+  rescript_archive="/tmp/$(cat /dev/urandom | tr -dc '0-9A-Z' | head -c 40)"
   archiver="/tmp/archive"
+  archiver_latest="/tmp/archive_latest"
   archiver_old="/tmp/archive_old"
-  restic diff "$prevsnap" "$latesnap" > "$rescript_diff"
+  restic diff "$prevsnap" "$latesnap" | grep -e '-    /' | sed -e 's/^-    //g' > "$rescript_archive"
   echo -ne 'Checking for files to archive : [########################](100%)\r'
   echo -ne '\n'
-  cat "$rescript_diff" | grep -e '-    /' | sed -e 's/^-    //g' > "$rescript_archive"
   wait
   if [[ ! -s "$rescript_archive" ]] ; then
-    rm -rf "$rescript_diff" >> /dev/null 2>&1
     rm -rf "$rescript_archive" >> /dev/null 2>&1
     echo "There are no files to archive..."
   else
@@ -1612,9 +1610,9 @@ function archive {
     fi
     echo "$(cat -n $rescript_archive)"
     echo -ne 'Restoring deleted files       : [#####                   ](20%)\r'
-    eval filter=( $(cat "$rescript_archive" | sed 's/ \+/\\ /g' | sed 's/^/--include="/' | sed 's/$/"/') )
+    eval filter="( $(cat "$rescript_archive" | sed 's/ \+/\\ /g' | sed 's/^/--include="/' | sed 's/$/"/') )"
     wait
-    restic restore "${filter[@]}" --verify $prevsnap -t "$archiver" >> /dev/null 2>&1 &
+    restic restore "${filter[@]}" --verify $prevsnap -t "$archiver_latest" >> /dev/null 2>&1 &
     wait
     echo -ne 'Restoring deleted files       : [##########              ](40%)\r'
     restic restore --host "$host_archive" --tag archive --path /tmp/archive --verify latest -t "$archiver_old" >> /dev/null 2>&1
@@ -1628,8 +1626,11 @@ function archive {
     echo -ne 'Restoring deleted files       : [########################](100%)\r'
     echo -ne '\n'
     if [[ -d "$archiver_old" ]] ; then
-      echo -ne 'Merging data                  : [############            ](50%)\r'
+      echo -ne 'Merging data                  : [########                ](33%)\r'
       rsync -a /tmp/archive_old/tmp/archive/* /tmp/archive >> /dev/null 2>&1
+      wait
+      echo -ne 'Merging data                  : [################        ](66%)\r'
+      rsync -a /tmp/archive_latest/* /tmp/archive >> /dev/null 2>&1
       wait
       echo -ne 'Merging data                  : [########################](100%)\r'
       echo -ne '\n'
@@ -1637,11 +1638,11 @@ function archive {
       echo "No data to merge."
     fi
     echo -ne 'Archiving deleted files       : [############            ](50%)\r'
-    restic backup --time '2015-01-01 00:00:00' --tag archive --host "$host_archive" /tmp/archive >> /dev/null 2>&1
+    restic backup --time "2015-$(date +%m-%d) $(date +%H:%M:%S)" --tag archive --host "$host_archive" /tmp/archive >> /dev/null 2>&1
     wait
-    rm -rf "$rescript_diff" >> /dev/null 2>&1
     rm -rf "$rescript_archive" >> /dev/null 2>&1
     rm -rf "$archiver" >> /dev/null 2>&1
+    rm -rf "$archiver_latest" >> /dev/null 2>&1
     rm -rf "$archiver_old" >> /dev/null 2>&1
     echo -ne 'Archiving deleted files       : [########################](100%)\r'
     echo -ne '\nArchive Completed!\n'
