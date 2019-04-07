@@ -1,3 +1,33 @@
+# April 7, 2019
+**Fixes and additions**:
+
+1. Fixed variables quotes, unnecessary commands and others.
+2. Added variable "SKIP_OFFICE" for the configuration file and added
+   `-S|--skip-office` flag for `backup`. This variable and flag can be used
+   to temporarily exclude open (in-use) "Office Documents" at the moment
+   a backup process is running. For example, if you have backups running
+   automatically via cron or using this script, you could only set the variable
+   "SKIP_OFFICE" to "yes" so when a backup is performed the "Office" documents
+   in use at the moment will be excluded for this unique snapshot. Why exclude
+   open documents? When restic is backing up at the moment an "Office Document" is
+   open, there is a posibility that restic saves a truncated/damaged file. For more
+   about this subject check [this thread](https://forum.restic.net/t/excluding-in-use-files-necessary/1476)
+   in the restic forum.
+3. Added `env` command. This command will display variable values in your configuration file.
+4. Added `snaps` command. This command is for displaying snapshots but unless `restic`, this
+   command will display snapshots in compact mode by default. Also, and this specific flag
+   was the real purpose for this command, `snaps` has a flag `-g, --group-by` and it works
+   for displaying snapshots by host or tags. So if you execute `rescript [repo_name] snaps --group-by host`
+   it will display all snapshots ordered by hostname. It works for host and tags in compact mode only.
+5. Fixed `archive` function. If you had an "archive" snapshot already it worked but if not, it was not
+   creating a snapshot. Also, the `tmp` directory will now be determined by variables, so if your system
+   have another `$TMPDIR`, it will follow that instead of a fixed directory that my or may not exist,
+   depending on the operating system (termux in android, for example).
+6. Fixed policies array so when determining if there are policies, it will now read them correctly.
+7. Fixed `update` and `install` commands. They will now respond properly when using Mac or FreeBSD.
+8. `archive` and `update` will now complain for dependencies (`wget, rsync`) if they're not installed.
+9. Added a little something to display Android version if used with Termux.
+
 # March 7, 2019
 **Fixes**:
 

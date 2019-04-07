@@ -210,6 +210,16 @@ These variables are optional because the script will still work if you don't wan
    "yes" to "no".
 * `ARCHIVE=""`: Indicate "yes" if you want to create a new snapshot with the tag "archive"
    containing files deleted from the latest snapshot.
+* `KEEP_ARCHIVE="yes"`: By default is "yes" and this will trigger a new "keep" policy to keep the 
+   the tag "archive" when running `cleanup`. Set the variable to blank if not planning on using
+   the "archive" function at all.
+* `SKIP_OFFICE=""`: Indicate "yes" between the quotes if you want to temporarily exclude open "Office Documents"
+   (.xlsx, .docx, .ods, .odt, etc.). This is useful if you have this script running via cron and
+   you work with "Office Documents" in a daily basis. If an Excel document, for example, is open
+   at the time a backup is running this option will exclude that file only until the next backup, after
+   the document is closed. This prevents to store possible damaged files in your repository because
+   if you are editing a document while a backup is running, restic will save the document but with the possibility
+   that the document will not be fully functional when restored.
 
 The configuration file also have variables for B2 and AWS ID's and Keys. If not required
 just leave it blank.
@@ -343,9 +353,10 @@ Please see restic `help` and [documentation](https://restic.readthedocs.io/en/st
       created by `rescript`; work only when CLEANUP variable is set.
 6. `config`: this will open the configuration dialog. This command does not need a `[repo_name]`.
 7. `editor`: change the default rescript text editor (for configuration and exclusion files). This command does not need a `[repo_name]`.
-8. `help`: display help dialog. This command does not need a `[repo_name]`.
-9. `install`: this will place rescript in your `$PATH` (in your home directory). This command does not need a `[repo_name]`.
-10. `logs`: this command needs an option. Options are as follows:
+8. `env`: display the variable values in your configuration file.
+9. `help`: display help dialog. This command does not need a `[repo_name]`.
+10. `install`: this will place rescript in your `$PATH` (in your home directory). This command does not need a `[repo_name]`.
+11. `logs`: this command needs an option. Options are as follows:
       1. `-c, --cat`: display output of selected log file (you need to copy and paste the filename to display it).
       e.g.: 
       ``` 
@@ -354,7 +365,7 @@ Please see restic `help` and [documentation](https://restic.readthedocs.io/en/st
       2. `-L, --list`: list all log files saved.
       3. `-r, --remove`: remove all log files related to your script (if you have different scripts for different repositoies
 	     you need to call `--remove` for every instance).
-11. `mounter`: this option will mount your repository; it'll create a 
+12. `mounter`: this option will mount your repository; it'll create a 
    directory in your `/home` so it can mount your repository. Once you quit
    the mount option with `Ctrl+c` it will delete the directory.
    Command flags:
@@ -364,7 +375,7 @@ Please see restic `help` and [documentation](https://restic.readthedocs.io/en/st
       ```
       rescript [repo_name] mounter -e [restic_flags/options]
       ```
-12. `restorer`: this command will restore the snapshot you want to restore. You need to indicate
+13. `restorer`: this command will restore the snapshot you want to restore. You need to indicate
     the snapshot-ID you want to restore. With this command you don't need to indicate where to restore,
     it will automatically create a new file in your home directory called `restore-snapshotID-randomnumber`.
     It will do the random number so it will not conflict with maybe a file called the same in your
@@ -380,7 +391,20 @@ Please see restic `help` and [documentation](https://restic.readthedocs.io/en/st
     
     This "snapshot" flag is only available for `rescript`. For help type
     `rescript help restorer`. This command will automatically use `--verify` when restoring.
-13. `unlocker`: this command WILL NOT unlock your repository. When you run this
+14. `snaps`: this command will display a list of snapshots but unlike `restic`, this command
+    displays snapshots in compact mode by default. Can be used with other `restic` flags.
+    Command flags:
+       1. `-g, --group-by`: group snapshots by host or tags.
+       e.g.
+       ```
+       rescript [repo_name] snaps --group-by host
+       ```
+       If using this command with other `restic` options, those options must be specified
+       after `rescript` commands, flags and options. e.g.:
+       ```
+       rescript [repo_name] snaps --group-by host --tag [your_tag]
+       ```
+15. `unlocker`: this command WILL NOT unlock your repository. When you run this
    script it will create a separate lock just for the script (it has nothing
    to do with the restic locks), so if your latest run left a lock (which is
    very unlikely unless it occurs an abrupt shut down while the script was running)
@@ -388,9 +412,9 @@ Please see restic `help` and [documentation](https://restic.readthedocs.io/en/st
    script is already running and it will not run again until the lock file is removed.
    If you're really sure the script is not running you can just run this command
    and it will delete the lock file so you can continue with your operation.
-14. `update`: use this command to check and install newest version of `rescript`
+16. `update`: use this command to check and install newest version of `rescript`
     (works from versions 3.8 onward).
-15. `version`: display rescript version. This command does not need a `[repo_name]`.
+17. `version`: display rescript version. This command does not need a `[repo_name]`.
 
 **Rescript Global Flags**:
 
