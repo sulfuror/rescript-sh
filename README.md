@@ -69,10 +69,17 @@ _**Note**: if you were using v2.0 or earlier make sure to backup your script bef
 continuing and rename your config file to `repo_name.conf`, your exclusion to
 `repo_name-exclusions` and your datefile to `repo_name-datefile`._
 
+You can add the `ppa`:
+```
+sudo add-apt-repository ppa:sulfuror/rescript
+sudo apt update
+sudo apt install rescript
+```
+
 You can download the `.deb` package in the [relase page](https://gitlab.com/sulfuror/rescript.sh/releases)
 and execute the following command:
 ```
-sudo dpkg -i rescript_v3.7.deb
+sudo dpkg -i rescript*.deb
 ```
 
 You can also install the script easily using the following commands:
