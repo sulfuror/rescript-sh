@@ -69,12 +69,29 @@ _**Note**: if you were using v2.0 or earlier make sure to backup your script bef
 continuing and rename your config file to `repo_name.conf`, your exclusion to
 `repo_name-exclusions` and your datefile to `repo_name-datefile`._
 
-You can add the `ppa`:
+Dependencies:
+1. restic
+2. rsync
+3. wget (wget is only used for the `update` command; if installation is via PPA this package is not needed)
+
+You can add the PPA:
 ```
 sudo add-apt-repository ppa:sulfuror/restic-tools
 sudo apt update
 sudo apt install rescript
 ```
+To add the repository manually in Debian and others (must be `root`):
+```
+echo -e 'deb http://ppa.launchpad.net/sulfuror/restic-tools/ubuntu bionic main\rdeb-src http://ppa.launchpad.net/sulfuror/restic-tools/ubuntu bionic main' > /etc/apt/sources.list.d/restic-tools.list
+apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 0FC71A57B62F6780
+apt update
+apt install rescript
+```
+
+Good thing about the PPA is that I manage to upload the `restic` binaries and
+if you install `rescript` this way, it will automatically download `restic` 
+and `rsync` (if not installed). The current `restic` version in the PPA
+is `version 0.9.4`.
 
 You can download the `.deb` package in the [relase page](https://gitlab.com/sulfuror/rescript.sh/releases)
 and execute the following command:
