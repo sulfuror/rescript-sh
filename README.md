@@ -71,7 +71,7 @@ continuing and rename your config file to `repo_name.conf`, your exclusion to
 
 You can add the `ppa`:
 ```
-sudo add-apt-repository ppa:sulfuror/rescript
+sudo add-apt-repository ppa:sulfuror/restic-tools
 sudo apt update
 sudo apt install rescript
 ```
