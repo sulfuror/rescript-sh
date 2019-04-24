@@ -1,13 +1,14 @@
 #!/usr/bin/env bash
 # ============================================================== #
-version="4.2"
+version="4.3"
 function usage {
-echo "Author		: Sulfuror, Copyright (c) 2018 <sulfuror@gmail.com>
-URL		: https://gitlab.com/sulfuror/rescript.sh
-License		: BSD 2-clause 'Simplified' License
-Version		: rescript $version
-Description	: rescript is a bash script created to manage
-		  backups made with restic program.
+echo "Author      : Sulfuror, Copyright (c) 2018 <sulfuror@gmail.com>
+URL         : https://gitlab.com/sulfuror/rescript.sh
+License     : BSD 2-Clause License
+Script Name : rescript
+Version     : $version
+Description : rescript is a bash script created to manage
+              backups made with restic program.
 
 'restic is a backup program which allows saving multiple revisions 
 of files and directories in an encrypted repository 
@@ -32,21 +33,19 @@ OR
 OR
   rescript [repo_name] [restic_command]
   
-Rescript configuration commands:
+Rescript configuration commands (these commands does not require
+a [repo_name]):
   config                Rescript configuration; set your default
                         text editor, open, delete or modify your
-                        configuration and exclusion files. This command
-                        does not need a [repo_name].
+                        configuration and exclusion files.
   editor                Change the default rescript text editor used
                         to open your configuration and exclusions files.
-                        This command does not need a [repo_name].
-  help                  Display rescript help and usage. This command
-                        does not need a [repo_name].
+  help                  Display rescript usage.
   install               Install rescript (this just move the script
                         to your .local/bin directory for convenience.
-                        This command does not need a [repo_name].
   update                Update is used to update the script itself
                         when a new version is available.
+  version               Display rescript version.
   
 Rescript commands:
   archive               This command check for differences between
@@ -74,13 +73,11 @@ Rescript commands:
                         list all snapshots in compact mode and also
                         has a flag to order snapshots by host or tags.
   unlocker              Remove lock created by rescript.
-  version               Display rescript version. This command does
-                        not need a [repo_name].
 
 Rescript glogal flags:
   -h, --help            This flag is available for all rescript commands
                         and it can be used to display the usage for every
-                        single rescript command.
+                        rescript command.
   -l, --log             This flag is available for all rescript and restic
                         commands. This will create a log file
                         with the command output. You can combine this
@@ -89,7 +86,7 @@ Rescript glogal flags:
                         time and duration of the command. You can
                         combine this flag with [--log].
 
-These global flags must be used BEFORE the command. To see usage and
+Global flags must be used BEFORE the command. To see usage and
 flags available for a specific command type:
   rescript help [command]
 "
@@ -174,22 +171,22 @@ function duration {
   h="$((SECONDS/60/60%24))"
   m="$((SECONDS/60%60))"
   s="$((SECONDS%60))"
-  if [[ "$d" == "1" ]] ; then
+  if [[ "$d" = "1" ]] ; then
     days="day"
   else
     days="days"
   fi
-  if [[ "$h" == "1" ]] ; then
+  if [[ "$h" = "1" ]] ; then
     hrs="hour"
   else
     hrs="hours"
   fi
-  if [[ "$m" == "1" ]] ; then
+  if [[ "$m" = "1" ]] ; then
     min="minute"
   else
     min="minutes"
   fi
-  if [[ "$s" == "1" ]] ; then
+  if [[ "$s" = "1" ]] ; then
     sec="second"
   else
     sec="seconds"
@@ -890,7 +887,7 @@ function install {
   case "$installation" in
     1|system)
       chmod 755 "$(basename "$0")"
-      if [[ "$(whoami)" == "root" ]] ; then
+      if [[ "$(whoami)" = "root" ]] ; then
         cp "$(basename "$0")" /usr/bin/rescript
         echo "Installation successful!"
         echo "Run [rescript config] to configure your repository."
@@ -953,7 +950,7 @@ function install {
 
 function update {
   if [[ ! $(which wget) ]] ; then
-    echo "***$(basename $0) warning***"
+    echo "***$(basename "$0") warning***"
     echo "[wget] not found..."
     echo ""
     echo "[$repo] works with [wget] to download the updated script."
@@ -969,7 +966,7 @@ function update {
   rescript_latest="$tmp_dir/rescript"
   trap 'rm -rf "$rescript_latest" 2> /dev/null' INT QUIT TERM EXIT
 
-  if [[ "$(sed '3!d' "$(which rescript)")" == "$(sed '3!d' "$rescript_latest")" ]] ; then
+  if [[ "$(sed '3!d' "$(which rescript)")" = "$(sed '3!d' "$rescript_latest")" ]] ; then
     echo "You're already running the latest version!"
     rescript version
     exit
@@ -979,7 +976,7 @@ function update {
     case "$updater" in
       y|yes)
         if [[ $(which rescript) == /usr/bin/rescript || $(which rescript) == /bin/rescript || $(which rescript) == /usr/local/bin/rescript ]] ; then
-          if [[ "$(whoami)" == "root" ]] ; then
+          if [[ "$(whoami)" = "root" ]] ; then
             cp "$rescript_latest" "$(which rescript)"
             echo "Rescript have been updated to the latest version!"
             rescript version
@@ -1054,6 +1051,10 @@ function backup-help {
   echo "                        create a new snapshot with all deleted"
   echo "                        files using [archive] tag. Can be used"
   echo "                        with [--office-tmp-exclude]."
+  echo "  -d, --dry-run         Do not backup anything, just print what"
+  echo "                        would be done. Since this option is"
+  echo "                        using [du] utility, it can be used with"
+  echo "                        any other [du] options."
   echo "  -e, --exec            This 'special' flag can be used to"
   echo "                        pass other restic flags/options like:"
   echo "                        --no-lock, --no-cache and any other"
@@ -1314,16 +1315,10 @@ function snaps-help {
   echo ""
   echo "This is nothing more than [snapshots --compact] in restic."
   echo "You can use any restic available flags for [snapshots] command"
-  echo "but rescript add the [-g|--group-by] flag for this command and"
-  echo "it will always display snapshots in compact mode."
+  echo "but it will always display snapshots in compact mode."
   echo ""
   echo "Usage:"
-  echo "  rescript [repo_name] snaps [flags] [options]"
-  echo ""
-  echo "Command flags:"
-  echo "  -g, --group-by        Group snashots by host or tags."
-  echo "                        Use only before other restic flags and"
-  echo "                        options."
+  echo "  rescript [repo_name] [glogal_flags] snaps [flags] [options]"
   echo ""
   echo "Global flags:"
   echo "  -h, --help            Display this help dialog."
@@ -1559,7 +1554,9 @@ case "$1" in
     exit
     ;;
   -v|--version|version)
-    echo "rescript $version"
+    usage | sed -ne '/Author/,/Version/p'
+    echo ""
+    echo 'Redistribution and use in source and binary forms, with or without modification, are permitted provided that the BSD 2-Clause License conditions are met.'
     exit
     ;;
   *)
@@ -1574,7 +1571,7 @@ esac
 # ============================================================== #
 # Functions                                                      #
 # ============================================================== #
-source "$config_dir/$1.conf"
+source "$config_dir/$repo.conf"
 export RESTIC_PASSWORD="$RESTIC_PASSWORD"
 export RESTIC_REPOSITORY="$RESTIC_REPO"
 export B2_ACCOUNT_ID="$B2_ID"
@@ -1608,7 +1605,7 @@ fi
 if [[ ! -z "$KEEP_TAG" ]] ; then
   forget_tag="--keep-tag $KEEP_TAG"
 fi
-if [[ "$KEEP_ARCHIVE" == "yes" ]] ; then
+if [[ "$KEEP_ARCHIVE" = "yes" ]] ; then
   keep_archive="--keep-tag archive"
 fi
 policies=(
@@ -1632,7 +1629,7 @@ fi
 
 function archive {
   if [[ ! $(which rsync) ]] ; then
-    echo "***$(basename $0) warning***"
+    echo "***$(basename "$0") warning***"
     echo "[rsync] not found..."
     echo ""
     echo "[$cmd] works with [rsync] to merge data into one directory."
@@ -1685,7 +1682,7 @@ function archive {
     echo "There is only $(restic snapshots --compact --host "$host_archive" | tail -1 | awk '{print $1}') snapshot available."
     exit
   fi
-  if [[ "$(restic snapshots --compact --host "$host_archive" | tail -1 | awk '{print $1}')" == "2" && "$(restic snapshots --compact --host "$host_archive" --tag "archive" --path "/tmp/archive" | tail -1 | awk '{print $1}')" -gt "0" ]] ; then
+  if [[ "$(restic snapshots --compact --host "$host_archive" | tail -1 | awk '{print $1}')" = "2" && "$(restic snapshots --compact --host "$host_archive" --tag "archive" --path "/tmp/archive" | tail -1 | awk '{print $1}')" -gt "0" ]] ; then
     echo "There are no files to archive..."
     exit
   fi
@@ -1717,7 +1714,7 @@ function archive {
     rm -rf "$rescript_archive" >> /dev/null 2>&1
     echo "There are no files to archive..."
   else
-    if [[ "$(grep -c "/" "$rescript_archive")" == "1" ]] ; then
+    if [[ "$(grep -c "/" "$rescript_archive")" = "1" ]] ; then
       echo "There is $(grep -c "/" "$rescript_archive") file deleted from the latest snapshot:"
     else
       echo "There are $(grep -c "/" "$rescript_archive") files deleted from the latest snapshot:"
@@ -1814,7 +1811,7 @@ function automatic {
         echo -e "$yellow""[Checking for Errors in Repo...]""$endcolor"
         restic check --cleanup-cache
         if [[ "$CLEAN" -gt "0" ]] ; then
-          if [[ "$CLEAN" == "1" ]] ; then
+          if [[ "$CLEAN" = "1" ]] ; then
             d="day"
           else
             d="days"
@@ -1858,7 +1855,7 @@ function automatic {
   # Time and Runtime
   time-end
   if [[ "$CLEAN" -gt "0" && -z "${policies[*]}" ]] ; then
-    if [[ "$CLEAN" == "1" ]] ; then
+    if [[ "$CLEAN" = "1" ]] ; then
       d="day"
     else
       d="days"
@@ -1912,6 +1909,28 @@ function backup {
         time-end
         exit
         ;;
+      -d|--dry-run)
+        if [[ "$opt" ]] ; then
+          time-start
+          echo 'This is a "dry-run" to display files and total size that would be added to'
+          echo 'your repository. This actually does nothing in your repository. Size'
+          echo 'displayed here and actual size once the data is in the repository'
+          echo 'may vary due to restic deduplication.'
+          echo ''
+          du -hc $BACKUP_DIR ${opt[@]} 2> /dev/null
+          time-end
+        else
+          time-start
+          echo 'This is a "dry-run" to display files and total size that would be added to'
+          echo 'your repository. This actually does nothing in your repository. Size'
+          echo 'displayed here and actual size once the data is in the repository'
+          echo 'may vary due to restic deduplication.'
+          echo ''
+          du -hc $BACKUP_DIR --exclude-from="$excludes" 2> /dev/null
+          time-end
+        fi
+        exit
+        ;;
       -h|--help)
         backup-help
         exit
@@ -1940,7 +1959,7 @@ function backup {
             ;;
           *)
             time-start
-            restic backup --verbose --exclude-caches --exclude-file="$excludes" $restic_tag $restic_host $opt --exclude-file=<(find "$BACKUP_DIR" -iname ".~lock.*" 2> /dev/null | sed -e 's/.~lock.//g' | sed -e 's/#//g') --exclude=".~lock.*" $BACKUP_DIR
+            restic backup --verbose --exclude-caches --exclude-file="$excludes" $restic_tag $restic_host --exclude-file=<(find "$BACKUP_DIR" -iname ".~lock.*" 2> /dev/null | sed -e 's/.~lock.//g' | sed -e 's/#//g') --exclude=".~lock.*" $BACKUP_DIR
             time-end
             exit
             ;;
@@ -2241,17 +2260,17 @@ function cleanup-next {
   days=$((result / 86400))
   hours=$(((result / 3600) % 24))
   minutes=$(((result / 60) % 60))
-  if [[ "$days" == "1" ]] ; then
+  if [[ "$days" = "1" ]] ; then
     d="day"
   else
     d="days"
   fi
-  if [[ "$hours" == "1" ]] ; then
+  if [[ "$hours" = "1" ]] ; then
     h="hour"
   else
     h="hours"
   fi
-  if [[ "$minutes" == "1" ]] ; then
+  if [[ "$minutes" = "1" ]] ; then
     m="minute"
   else
     m="minutes"
@@ -2362,7 +2381,7 @@ function mounter {
     case "$flags" in
       -e|--exec)
         mkdir "$rmount"
-        restic mount "$rmount" $opt
+        restic mount "$rmount" ${opt[@]}
         rm -rf "$rmount"
         exit
         ;;
@@ -2492,17 +2511,17 @@ function restorer {
   case "$flags" in
     -H|--host|-p|--path|-T|--tag)
       if [[ ! "$hpts" ]] ; then
-        if [[ "$flags" == "--host" || "$flags" == "-H" ]] ; then
+        if [[ "$flags" = "--host" || "$flags" = "-H" ]] ; then
           echo "No [host] indicated..."
           echo ""
           restorer-help
           exit
-        elif [[ "$flags" == "--path" || "$flags" == "-p" ]] ; then
+        elif [[ "$flags" = "--path" || "$flags" = "-p" ]] ; then
           echo "No [path] indicated..."
           echo ""
           restorer-help
           exit
-        elif [[ "$flags" == "--tag" || "$flags" == "-t" ]] ; then
+        elif [[ "$flags" = "--tag" || "$flags" = "-t" ]] ; then
           echo "No [tag] indicated..."
           echo ""
           restorer-help
@@ -2562,33 +2581,6 @@ function restorer {
 
 function snaps {
   case "$flags" in
-    -g|--group-by)
-      if [[ ! "$hpts" ]] ; then
-        echo "[$flags] needs an argument..."
-        echo ""
-        snaps-help
-        exit
-      fi
-      case "$hpts" in
-        host)
-          snapshots=$(restic snapshots --compact ${group_flags[@]})
-          echo "$snapshots" | head -2
-          echo "$snapshots" | sed '1,2d' | sort -d -f -k4 | sed '1,2d'
-          echo "$snapshots" | tail -2
-          ;;
-        tags)
-          snapshots=$(restic snapshots --compact ${group_flags[@]})
-          echo "$snapshots" | head -2
-          echo "$snapshots" | sed '1,2d' | sort -d -f -k5 | sed '1,2d'
-          echo "$snapshots" | tail -2
-          ;;
-        *)
-          echo "Invalid option [$hpts]"
-          echo ""
-          snaps-help
-          ;;
-      esac
-      ;;
     -h|--help)
       snaps-help
       ;;
@@ -2621,13 +2613,13 @@ function time-start {
   if [[ "$cmd" ]] ; then 
     case "$cmd" in
       backup|checkout|cleanup|restorer)
-        if [[ "$cmd" == "backup" ]] ; then
+        if [[ "$cmd" = "backup" ]] ; then
           title="S T A R T I N G    B A C K U P"
-        elif [[ "$cmd" == "checkout" ]] ; then
+        elif [[ "$cmd" = "checkout" ]] ; then
           title="S T A R T I N G    C H E C K O U T"
-        elif [[ "$cmd" == "cleanup" ]] ; then
+        elif [[ "$cmd" = "cleanup" ]] ; then
           title="S T A R T I N G    C L E A N U P"
-        elif [[ "$cmd" == "restorer" ]] ; then
+        elif [[ "$cmd" = "restorer" ]] ; then
           title="S T A R T I N G    R E S T O R E R"
         fi
         printf "%$((80/1))s\n" "" | tr ' ' =
@@ -2669,13 +2661,13 @@ function time-end {
   if [[ "$cmd" ]] ; then
     case "$cmd" in
       backup|checkout|cleanup|restorer)
-        if [[ "$cmd" == "backup" ]] ; then
+        if [[ "$cmd" = "backup" ]] ; then
           title="B A C K U P    E N D E D"
-        elif [[ "$cmd" == "checkout" ]] ; then
+        elif [[ "$cmd" = "checkout" ]] ; then
           title="C H E C K O U T    E N D E D"
-        elif [[ "$cmd" == "cleanup" ]] ; then
+        elif [[ "$cmd" = "cleanup" ]] ; then
           title="C L E A N U P    E N D E D"
-        elif [[ "$cmd" == "restorer" ]] ; then
+        elif [[ "$cmd" = "restorer" ]] ; then
           title="R E S T O R E R    E N D E D"
         fi
         printf "%$((80/1))s\n" "" | tr ' ' -
@@ -2720,11 +2712,79 @@ function unlocker {
 # ============================================================== #
 # Call Commands and Functions Related to a Repository            #
 # ============================================================== #
+if [[ ! $(which restic) ]] ; then
+  echo "***$(basename "$0") warning***"
+  echo "[restic] not found..."
+  echo ""
+  echo "This script is made to work with [restic]. Please, install"
+  echo "[restic] package to proceed. If you have [restic] binary"
+  echo "saved in some custom directory, move it to '/usr/bin' or"
+  echo "to your PATH so this script can recognize it. If you need"
+  echo "to install [restic] and you are using Debian or some Debian"
+  echo "based distribution like Ubuntu, you can add the [rescript]"
+  echo "PPA with the following commands:"
+  echo ""
+  echo "  sudo add-apt-repository ppa:sulfuror/restic-tools"
+  echo "  sudo apt update"
+  echo "  sudo apt install restic"
+  echo ""
+  echo "You can also download the standalone binary in the [restic]"
+  echo "release page: https://github.com/restic/restic/releases"
+  exit
+fi
 if [[ ! "$2" ]] ; then
   automatic
   exit
 fi
 case "$2" in
+  -h|--help)
+    if [[ ! "$3" ]] ; then
+      echo "You have not indicated any command for [$2]..."
+      echo ""
+      usage
+      exit
+    fi
+    case "$3" in
+      archive)
+        archive-help
+        ;;
+      backup)
+        backup-help
+        ;;
+      changes)
+        changes-help
+        ;;
+      checkout)
+        checkout-help
+        ;;
+      cleanup)
+        cleanup-help
+        ;;
+      env)
+        env-help
+        ;;
+      logs)
+        logs-help
+        ;;
+      mounter)
+        mounter-help
+        ;;
+      restorer)
+        restorer-help
+        ;;
+      snaps)
+        snaps-help
+        ;;
+      unlocker)
+        unlocker-help
+        ;;
+      -*)
+        echo "Invalid option [$3]..."
+        echo ""
+        usage
+        exit
+    esac
+    ;;
   -l|--log)
     if [[ ! "$3" ]] ; then
       echo "You have not indicated any command for [$2]..."

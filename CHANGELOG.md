@@ -1,3 +1,37 @@
+# April 24, 2019
+**Fixes, additions and removals**:
+
+1. Fixed `version` command to display more info.
+2. Replaced `==` with `=`.
+3. Edited help displayed.
+4. Since `restic 0.9.5` is out and it includes `--group-by` for `snapshots` command,
+   this `rescript` flag was removed; `restic` flag is more complete, you can use it
+   with host, paths and tags. The command `snaps` is still there because I like to
+   see the compact version by default, but that is all that this `rescript` command does;
+   to display compact version of snapshots by default.
+5. Fixed some quotes here and there, some variables, etc.
+6. Added a `-d, --dry-run` flag for `backup` command. This flag uses `du`. If you use
+   this flag, by default it will take your BACKUP_DIR variable and the exclusion file,
+   and it will display the files that would be saved and the size. Note that for this
+   flag to work properly with the exclusion file, directories must be specified with
+   the absolute path; if you have $HOME/Downloads, for example, it will not read it
+   properly for some reason. You can also specify other `du` options. e.g.:
+        
+        rescript [repo_name] backup --dry-run
+        
+   This command will display the directories that would be saved and the total size
+   using the BACKUP_DIR and your exclusion file.
+   
+        rescript [repo_name] backup --dry-run -s
+        
+   This `-s` option stands for `--summarize` option in `du`. So, this will use your
+   BACKUP_DIR but will omit the exclusion file. You can add the exclusion file manually
+   adding this other `du` flag `--exclude-from="/path/to/your/exclusion_list"` or
+   adding `--exclude="exclude_pattern"`, or both or any other `du` option. By default
+   `du` in this script will use `-hc` to display size in human readable and count.
+7. Added `--help` flag as in "Global Flags"; the "design" was there initially but
+   I never get to add the flag itself.
+
 # April 7, 2019
 **Fixes and additions**:
 
