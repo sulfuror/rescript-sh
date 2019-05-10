@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ============================================================== #
-version="4.3"
+version="4.4"
 function usage {
 echo "Author      : Sulfuror, Copyright (c) 2018 <sulfuror@gmail.com>
 URL         : https://gitlab.com/sulfuror/rescript.sh
@@ -968,18 +968,18 @@ function update {
 
   if [[ "$(sed '3!d' "$(which rescript)")" = "$(sed '3!d' "$rescript_latest")" ]] ; then
     echo "You're already running the latest version!"
-    rescript version
+    echo "rescript $version"
     exit
   else
     chmod 755 "$rescript_latest"
-    read -rp "$("$rescript_latest" version) is available; do you want to install it? (y/n): " updater
+    read -rp "rescript version $(sed '3!d' "$rescript_latest" | sed -e 's/version=//g') is available; do you want to install it? (y/n): " updater
     case "$updater" in
       y|yes)
         if [[ $(which rescript) == /usr/bin/rescript || $(which rescript) == /bin/rescript || $(which rescript) == /usr/local/bin/rescript ]] ; then
           if [[ "$(whoami)" = "root" ]] ; then
             cp "$rescript_latest" "$(which rescript)"
             echo "Rescript have been updated to the latest version!"
-            rescript version
+            echo "rescript $version"
           else
             echo "Rescript is located at $(which rescript)."
             echo "To update in this location you need to run [update] again as [root]:"
@@ -993,7 +993,7 @@ function update {
           chmod 700 "$rescript_latest"
           mv "$rescript_latest" "$(which rescript)"
           echo "Rescript have been updated to the latest version!"
-          rescript version
+          echo "rescript $version"
         fi
         ;;
       *)
@@ -1738,10 +1738,10 @@ function archive {
     echo -ne '\n'
     if [[ -d "$archiver_old" ]] ; then
       echo -ne 'Merging data                  : [########                ](33%)\r'
-      rsync -a $archiver_old/tmp/archive/* /tmp/archive >> /dev/null 2>&1
+      rsync -a $archiver_old/tmp/archive/* $archiver >> /dev/null 2>&1
       wait
       echo -ne 'Merging data                  : [################        ](66%)\r'
-      rsync -a $archiver_latest/* /tmp/archive >> /dev/null 2>&1
+      rsync -a $archiver_latest/* $archiver >> /dev/null 2>&1
       wait
       echo -ne 'Merging data                  : [########################](100%)\r'
       echo -ne '\n'

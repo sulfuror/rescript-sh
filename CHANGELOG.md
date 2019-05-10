@@ -1,3 +1,12 @@
+# May 10, 2019
+***Fixes***:
+
+1. Minor fixes when displaying version available to download with `update` command.
+2. Fixes in `archive` command. Instead of using the variable that sets the path, when
+   syncing directories it was doing it with `/tmp/archive`. Now it is fixed (it doesn't
+   affect GNU/Linux or FreeBSD distributions; I don't think that with Mac were any problems
+   either).
+
 # April 24, 2019
 **Fixes, additions and removals**:
 
