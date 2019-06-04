@@ -1,5 +1,86 @@
+# June 4, 2019
+**Improvements, Changes, Additions and others**:
+
+1. The entire script itself is less cluttered; 1,428 additions, 1,702 removed lines and a total of 274 lines less than version 4.4.
+2. Now the script uses `getopt` to manage flags, options, etc. It helped a lot reducing a lot of cluttered lines and simplifying the whole script.
+3. Help was modified. It is now shorter since every command have its own help explaining the command and flags.
+4. Added the abbility to report errros. Since `restic` is a backup tool and backups are really important,
+   the first error detected will trigger an exit and a message with the failed command and exit code.
+   For this purpose there is also a new variable used named EMAIL. You can add this variable EMAIL="user@example.com"
+   in your configuration file to use it. `rescript` will use `mail` (from `mailutils`) to send an email
+   if an error ocurred. This is useful if you use `rescript` with `cron`. If you're using `rescript` from
+   a terminal and an error ocurred it will not send an email but it will display the error message. If you don't want
+   any email, don't add this variable or leave it blank. It will still send an error message but without attempting
+   to send an email. For the emails to work you need to setup `mail` to send emails. I would
+   reccomend to install `mailutils` and setup `ssmtp`. You can follow [this tutorial](https://www.howtogeek.com/51819/how-to-setup-email-alerts-on-linux-using-gmail/).
+5. There is a new command named `info`. This command will display a small three column table with the latest
+   snapshot size (restore-size and raw-data) and all snapshots size (restore-size and raw-data).
+6. `-d, --debug` flag added. This will debug the script, not restic.
+7. `-q, --quiet` flag added. This flag will silence the output.
+8. `-c, --cleanup` flag added. Execute `cleanup` after your command. It is not available for every command.
+9. `-i, --info` flag added. Execute `info` after your command. It is not available for every command.
+10. `-v, --var` flag added for `env` command. Using the `grep` magic, this var can be used to retrieve just one variable from your configuration file.
+   For example, you want to see all your "keep" policies without listing all other variables, you do this: `rescript [repo_name] env --var KEEP` and you'll
+   see the following output (varname must be indicated UPPERCASE):
+   ```
+   KEEP_LAST=""
+   KEEP_HOURLY="8"
+   KEEP_DAILY="7"
+   KEEP_WEEKLY="4"
+   KEEP_MONTHLY="12"
+   KEEP_YEARLY="10"
+   KEEP_WITHIN=""
+   KEEP_TAG=""
+   KEEP_ARCHIVE="yes"
+   ```
+11. The usage of flags changed. Now all flags must be indicated after the command. You can use long options,
+   short options or both. There are some commands that can be used adding restic flags/options. These commands
+   are: `backup, cleanup, mounter, snaps`. To indicate restic flags/options you must use a double "minus" sign after
+   rescript flags/options. For example: `rescript [repo_name] backup -tl -- --cleanup-cache`. You must also do this when
+   if you want to use global flags with restic commands.
+   
+   Example:
+   ```
+   rescript [repo_name] -dlqt -- check --read-data
+   ```
+12. Now `rescript` output is optional for commands. If you want to display the output for any command just add the
+   `-t, --time` flag. There were some inconsistencies in the output displayed, so I made just one output for everything
+   except when running the "automatic" function (when indicating just the repository name).
+13. **_About MacOS_**: if you don't have `gnu-getopt` installed it will work but only with short options. Long options are not
+   supported in the default MacOS `getopt`. If you want to use long options you can install `gnu-getopt` with the following command: `brew install gnu-getopt`.
+   The script will automatically use the correct path for the new `gnu-getopt` installation, so you don't have to do anything else
+   besides installing it.
+14. `-d, --debug | -h, --help | -l, --log | -q,--quiet | -t, --time` flags are really now "glogal". They can be used with any command.
+    Well... except for `config, editor, help, install, update, version, env, logs` because there's not point for those to
+    have flags like that.
+15. **_About FreeBSD_**: I really tried but didn't get the `gnu-getopt` to work. `rescript` will still work but using only short options.
+16. **_Other miscelaneous improvements_**: simplify functions to use or re-use existing code/commands. For example, now the automatic function will use other functions
+    such as the backup, cleanup, info functions and so on. There was a lot of repeated code, so now it will make use of the existing one. Re-using commands/code makes functions like
+    `archive` are a bit faster since instead of checking for snapshots a couple of times, now it just does it two times and then use the ouptut of those two commands to proceed
+    and verify the output, and retrieve the information needed to know if it will proceed or not. This makes the function a little bit faster than before.
+
+**Note about `cron`**:
+
+At least for me, it seems to be a little trouble with `v4.5` and cron jobs. I'm guessing it is because of the `getopt` change
+that doesn't let me pass arguments (flags, options). If you use `cron` with the automatic function like this: `rescript [repo_name]`,
+it runs as expected. However, when you add commands and options it doesn't work at all. The following two workarounds worked for me:
+
+1. "Redirect" the output to `/dev/null` (if you use the log flag you don't have to worry about not getting the output in your logfile; it will
+   still save the output to your logfile).
+   ```
+   0 */1 * * * rescript [repo_name] backup -lt > /dev/null
+   ```
+2. Command substitution (I don't know if this is good practice but at least for me it worked).
+   ```
+   0 */1 * * * $(rescript [repo_name] backup -lt)
+   ```
+Both methods worked just fine. Of course, if you are not using the `--log` feature and you redirect the output yourself,
+then you probably won't have this problem since you'll need to use `>` (redirection) anyways and this is what is actually
+doing the "trick" for the command to run. If you are not having any problem at all, don't mind this note.
+
+
 # May 10, 2019
-***Fixes***:
+**Fixes**:
 
 1. Minor fixes when displaying version available to download with `update` command.
 2. Fixes in `archive` command. Instead of using the variable that sets the path, when
