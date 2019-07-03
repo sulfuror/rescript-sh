@@ -383,23 +383,24 @@ Please see restic `help` and [documentation](https://restic.readthedocs.io/en/st
 9. **help**: display help dialog. This command does not need a `[repo_name]`.
 10. **info**: this command will display stats for latest and all snapshots in a custom format.
 
-   Usage:
+    Usage:
     ```
     rescript [repo_name] info
     ```
-   Command flags:
+    Command flags:
+    
     1. `-H, --hostname`: only consider snapshots for this host.
     
-    Output example:
-     ```
-     Summarized Info                        Restore Size         Deduplicated Size
-     --------------------------------------------------------------------------------
-     Latest Snapshot                         232.880 GiB               220.390 GiB
-     All Snapshots                             2.276 TiB               221.253 GiB
+        Output example:
+         ```
+         Summarized Info                        Restore Size         Deduplicated Size
+         --------------------------------------------------------------------------------
+         Latest Snapshot                         232.880 GiB               220.390 GiB
+         All Snapshots                             2.276 TiB               221.253 GiB
 
-     ```
-10. **install**: this will move `rescript` in your `/usr/bin` if "system-wide" option is selected or, if "for this user" is selected, it will move it to `~/.local/bin` or `~/bin`. This command does not need a `[repo_name]`.
-11. **logs**: this command needs an option. Could be used to display logs saved, display output in logs and remove logs.
+        ```
+11. **install**: this will move `rescript` in your `/usr/bin` if "system-wide" option is selected or, if "for this user" is selected, it will move it to `~/.local/bin` or `~/bin`. This command does not need a `[repo_name]`.
+12. **logs**: this command needs an option. Could be used to display logs saved, display output in logs and remove logs.
 
     Usage:
      ```
@@ -412,7 +413,7 @@ Please see restic `help` and [documentation](https://restic.readthedocs.io/en/st
      2. `-r, --remove`: remove all log files related to your script (if you have different scripts for different repositoies
 	     you need to call `--remove` for every instance).
 	     
-12. **mounter**: this option will mount your repository; it'll create a 
+13. **mounter**: this option will mount your repository; it'll create a 
     directory in your `/home` so it can mount your repository. Once you quit
     the mount option with `Ctrl+c` it will delete the directory.
 
@@ -424,7 +425,7 @@ Please see restic `help` and [documentation](https://restic.readthedocs.io/en/st
      ```
      rescript [repo_name] mounter -- [restic_flags/options] ...
      ```
-13. **restorer**: this command will restore the snapshot you want to restore. You need to indicate
+14. **restorer**: this command will restore the snapshot you want to restore. You need to indicate
     the snapshot-ID you want to restore. With this command you don't need to indicate where to restore,
     it will automatically create a new file in your home directory called `restore-snapshotID-randomnumber`.
     It will do the random number so it will not conflict with maybe a file called the same in your
@@ -440,13 +441,13 @@ Please see restic `help` and [documentation](https://restic.readthedocs.io/en/st
      3. `-T, --tag`: indicate tag.
      4. `-s, --snapshot`: indicate snapshot-ID.
 
-14. **snaps**: this command is nothing more than `snapshots --compact` wrapped up. You may use it with any restic flags/options.
+15. **snaps**: this command is nothing more than `snapshots --compact` wrapped up. You may use it with any restic flags/options.
     If you want to use `rescript` global flags combined with other restic flags/options, do it as follows:
     ```
     rescript [repo_name] snaps [flags] -- [restic_flags/options] ...
     ```
     
-15. **unlocker**: this command WILL NOT unlock your repository. When you run this
+16. **unlocker**: this command WILL NOT unlock your repository. When you run this
    script it will create a separate lock just for the script (it has nothing
    to do with the restic locks), so if your latest run left a lock (which is
    very unlikely unless it occurs an abrupt shut down while the script was running)
@@ -455,10 +456,10 @@ Please see restic `help` and [documentation](https://restic.readthedocs.io/en/st
    If you're really sure the script is not running you can just run this command
    and it will delete the lock file so you can continue with your operation.
 
-16. **update**: use this command to check and install newest version of `rescript`
+17. **update**: use this command to check and install newest version of `rescript`
     (works from versions 3.8 onward).
 
-17. **version**: display rescript version. This command does not need a `[repo_name]`.
+18. **version**: display rescript version. This command does not need a `[repo_name]`.
 
 **Rescript Global Flags**:
 
@@ -600,8 +601,11 @@ unless you have edited the script to do so.
 You can "omit the configuration file" by indicating `-r, --repo` after calling
 `rescript [repo_name]`. You will not really completely omit the configuration file
 but if you want to "override" what you're backing up and the exclusion list, then
-you can do this (at least use one global flag):
+you can do this:
 ```
+# Without rescript global flags
+rescript [repo_name] -r /your/repo/location backup /backup/directory
+# Using rescript global flags
 rescript [repo_name] --time -- -r /your/repo/location backup /backup/directory
 ```
 This could be useful if you want to add something quickly to your repo. Maybe you found
