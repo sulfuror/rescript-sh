@@ -1,3 +1,44 @@
+# July 2, 2019
+**Additions**:
+1. Added a new function to send email confirmation when job is done. This function will not always send you an email. There is a new option for the configuration file called `CONFIRMATION_EMAIL`. You can add it to your configuration file like this `CONFIRMATION_EMAIL="yes"` to receive an email every time a job is successfully done via cron. If you don't set this variable it will not send you an email. Also, you need to install `mailutils` and `ssmtp` (not working on Debian buster), [nullmailer](https://christopherbaek.wordpress.com/2016/05/22/nullmailer-send-mail/) or something that cand allow you to send emails outside your network via `mail` from `mailutils`. If you need a simple tool to send emails outside your network, I would go for `nullmailer`; really easy to configure.
+2. Added a new global flag called `-e, --email`. This option will force the script to send the output via email (again, `mailutils` needs to be installed and configured to send emails).
+3. Added a way to determine the size of the terminal in session. This way the `rescript` output will rezise itself. This is useful (at least for me) because somethimes, depending on the machine, the output lines and stuff looks kind of messed and now it will adjust to the terminal emulator size.
+4. Added a new flag for `backup`: `-C, --check`. This flag will execute `check` after `backup`.
+5. Added the abbility to check if target is present. This small part of the code works for `sftp`, `rclone` backends and if the repository is located locally (meaning `/path/to/my/repository`). If the repository you're using `sftp`, then `rescript` will ping your remote server to make sure is reachable and proceed; if the repository is not reachable it will display an error message and exit. If you're using `rclone` backend then it will first execute `rclone about remote:directory`; if that fails it will display an error message and exit. If the repository is stored locally, it will first check if the directory exists and if it doesn't it will display an error message and exit.
+6. Added `--host` flag for `info` command. It works just for "Latest Snapshots" and this is not because of the script; `restic` only accept `--host` flag when the snapshot is latest.
+7. Added credential variables in configuration file for Azure and Google Cloud Storage; B2 and AWS were already in older versions of this script. For Minio Server, AWS credentials can be used. If you need to setup other services, they can be exported in the configuration file, for example, OpenStack Swift has a lot of different variables that can be used; you can export those in the configuration file.
+8. Added `EXCLUDE_FILE="yes"` in the configuration file. Just for compatibility with previous versions, if this variable doesn't exists in the configuration file it will still use the exclusion list created unless you add this variable to the configuration file and set it to "no".
+9. Added `EXCLUDE_CACHE="yes"` in the configuration file, and also for compatibility with previous versions, by default is added unless you add this variable to the configuration file and set it to "no".
+10. Added `ONE_FILE_SYSTEM=""` in configuration file; by default is blank and it is not used, as in previous versions. If set "yes" then it will add the `--one-file-system` flag for backups.
+11. Added a flag for `cleanup` command called `--reset`. This will delete the `datefile` created. The point is to reset the `CLEAN` var and if the datefile gets deleted, then the script will have to create it again and it will "reset" the dates. If used, in the next run will do all cleanup and set the date as in the `CLEAN` var.
+12. Added a function for the configuration file and exclusions to make it easier to read the script and also deleting all `echo` commands to send the template to a new configuration file (it was time).
+13. There is a new variable called `RESCRIPT_PASS`; this was made with "security" in mind. If you have everything needed in your configuration file you don't have to worry about this. This is for people who does not want to save the  repository password inside the configuration file for security reasons. You can export this variable in your session and make use of `rescript` until the session is closed. i.e.: `export RESCRIPT_PASS="mytotallysecurepassword"`.
+14. There is a new function to cleanup files for the archive function.
+
+**Changes / Improvements**:
+1. A couple of improvements were made for existing functions and features; this version have some new stuff but initially it was just improvements in the code.
+2. Set `PATH` once for all instead of using `if` statements to check if `~/bin` or `~/.local/bin` exists.
+3. Improved the function to send errors emails.
+4. Updated the `update` command; now this command can be used in Mac OS to install it system-wide.
+5. Fixed the function in charge to determine the operating system; didn't notice before but apparently not all GNU/Linux distributions comes with `lsb-release` package installed so now if it is not installed, it will use `cat /etc/issue.net` instead.
+6. The option `--var` for `env` command now supports lowercase.
+7. `logs` command alone now will display all logs related to the [repo_name]. Also, `--remove` option have a "special" option `all`; if you use `rescript [repo_name] logs --remove all` it will delete all logs related to the [repo_name]; you can still copy and paste just one log file instead.
+8. Now `policies` are declared and added if present.
+9. Finally, `archive` will not need to create a temp text file to read the files to restore when deleted from the latest snapshot; now it will store it in a variable and read it from there.
+10. Headers for output are back and now for any command.
+11. `CLEAN` variable can now be set to minutes, hours, days or any format accepted by `date`. If you're using it you need, then you are using it with "days" values; so if you do a cleanup every 7 days, change this variable in your configuration file to `CLEAN="7days"`. NO SPACES between the numbers and letters. If it is not configured correctly, it will be displayed a warning message.
+12. Improvements in columns printing.
+13. Improvements in `backup` function managing options.
+14. Improvements in `env` command.
+15. `rescript` will now save a log no matter if the `--log` option is used or not. The difference is that when the `--log` option is used, the log is saved to the logs directory (`~/.rescript/logs`). If the option is not used, `rescript` will create a temporary log file in `/tmp` using `mktmp`. Why? Because that's the only way I figure out to send the output via email if `--email` is used without the `--log` option. To send the output via email I needed to retrieve the output from somewhere and if a log was not present I could't send the output. This temporary log gets always deleted at the end.
+16. The time functions were simplified a lot.
+17. `getopt` is now called once instead of calling it for every command (except when calling `restic` commands instead of the script's commands).
+18. Simplified the `duration` function; it will display the same but now it is shorter.
+19. Minor changes in the lock function because if there was a lock created by `rescript` and you're not looking at the terminal, you were never gonna receive an message about that; now it can send an email or log the error with the output telling you that maybe there's another instance running.
+20. When you run a `restic` command (no the commands from the script) like check and use something like this: `rescript reponame -t -- --repo /path/to/repo backup ...` and there was an error, the command displayed in the error message was `[--repo] failed...`; now it's fixeded so it display the correct command.
+
+The new features to test/ping the remote server and to send emails when job is done are thanks to **_killmasta93_** (user from restic forum). I'm still looking new ways to improve the script and any suggestion is really welcome. 
+
 # June 4, 2019
 **Improvements, Changes, Additions and others**:
 

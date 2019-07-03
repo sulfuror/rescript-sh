@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ============================================================== #
-version="4.5"
+version="4.6"
 function usage {
 cat <<EOF
 Name        : rescript
@@ -47,6 +47,7 @@ Commands:
 
 Glogal flags:
   -d, --debug           Debug script.
+  -e, --email           Force to send email with output.
   -h, --help            Display usage.
   -l, --log             Create log file with command output.
   -q, --quiet           Silence output.
@@ -56,23 +57,25 @@ Commands usage:
   rescript help [command]
 
 Make use of global flags with any restic command as follows:
-  rescript [repo_name] -dlqt -- [restic_command] [flags] ...
+  rescript [repo_name] -delqt -- [restic_command] [flags] ...
 
 EOF
 }
 # ============================================================== #
 yellow="\033[33m"
 endcolor="\033[0m"
+repo="$1"
 
 # Rescript directories and files
 rescript_dir="$HOME/.rescript"
-config_dir="$HOME/.rescript/config"
-lock_dir="$HOME/.rescript/lock"
-logs_dir="$HOME/.rescript/logs"
+config_dir="$rescript_dir/config"
+lock_dir="$rescript_dir/lock"
+logs_dir="$rescript_dir/logs"
+tmplog=$(mktemp)
 excludes="$config_dir/$1-exclusions"
-lock="$HOME/.rescript/lock/$1.lock"
-rmount="$HOME/$1-repo-$(date +%s)"
-repo="$1"
+lock="$lock_dir/$repo.lock"
+config_file="$config_dir/$repo.conf"
+unix_name=$(uname -s)
 
 if [[ -d "/tmp" ]] ; then
   tmp_dir="/tmp"
@@ -80,57 +83,7 @@ else
   tmp_dir="$TMPDIR"
 fi
 
-declare -a error_message
-
-function report_errors {
-  if [[ ! -z "$HOST" ]] ; then
-    error_host="$HOST"
-  else
-    error_host="$(hostname)"
-  fi
-  if [[ "${error_message}" ]] ; then
-    echo ""
-    echo -e "WARNING!"
-    echo -e "${error_message}"
-    if [[ ! -z "$EMAIL" ]] ; then
-      if [[ "$(which mail)" ]] ; then
-        if [[ ! -t 1 ]] ; then
-          if [[ "$log" ]] ; then
-            logmessage=$(echo -e "\nCheck log for more info: $log")
-          fi
-          echo -e "Hostname: $error_host" "\nRepository Name: $repo" "\nDate: $(date)""\n" "\nCommand error:" "\n${error_message}" "\n" "$logmessage" | mail -s "rescript: there was an error with [$repo] repository!" $EMAIL
-        fi
-      else
-        echo "[rescript] can't send emails; install [mailutils] package to do so."
-      fi
-    fi
-  fi
-}
-
-function latest_error {
-  exec 6>&-
-  if [[ "$cmd_error" != "0" ]] ; then
-    if [[  ! -z "$rest_cmd" ]] ; then
-      error_message+="$(echo -e "[$rest_cmd] failed with exit code $cmd_error")"
-      report_errors
-      time_end
-      exit "$cmd_error"
-    elif [[ "$(echo $latest_cmd | awk '{print $1}')" = "restic" ]] ; then
-      error_message+="$(echo -e "[$(echo $latest_cmd | awk '{print $2}')] failed with exit code $cmd_error")"
-      report_errors
-      time_end
-      exit "$cmd_error"
-    else
-      error_message+="$(echo -e "[$(echo $latest_cmd | awk '{print $1}')] failed with exit code $cmd_error")"
-      report_errors
-      time_end
-      exit "$cmd_error"
-    fi
-  fi
-}
-
 shopt -s nocasematch
-trap ctrl_c INT
 
 function ctrl_c {
   echo ""
@@ -138,6 +91,8 @@ function ctrl_c {
   echo ""
   exit 130
 }
+
+trap ctrl_c INT
 
 # Create a rescript directories if they are not present
 if [[ ! -d "$rescript_dir" ]]; then
@@ -158,22 +113,126 @@ if [[ ! -f "$config_dir/.editor" ]] ; then
 fi
 rescript_editor="$(cat "$config_dir/.editor")"
 # Set PATH so it includes user's private bin if it exists (cron jobs may require this)
-if [ -d "$HOME/bin" ] ; then
-    PATH="$HOME/bin:$PATH"
-fi
-if [ -d "$HOME/.local/bin" ] ; then
-    PATH="$HOME/.local/bin:$PATH"
+PATH="$HOME/bin:$HOME/.local/bin:$PATH"
+
+tput_columns=$(tput cols 2>/dev/null)
+
+if [[ "$tput_columns" -gt "0" ]] ; then
+  if [[ "$tput_columns" -gt "80" ]] ; then
+    cols="80"
+  else
+    cols="$(tput cols)"
+  fi
+else
+  cols="80"
 fi
 
+if [[ -t 1 ]] ; then
+  int="true"
+else
+  int="false"
+fi
+
+function job_done {
+  if [[ -z "$cmd" ]] ; then
+    cmd="backup"
+  fi
+  if [[ "$CONFIRMATION_EMAIL" = "y" || "$CONFIRMATION_EMAIL" = "yes" ]] ; then
+    if [[ -n "$EMAIL" ]] ; then
+      if [[ "$(which mail)" ]] ; then
+        if [[ "$int" = "false" ]] ; then
+          if [[ -e "$log" ]] ; then
+            logmessage="Logfile: $log"
+            catlog=$(sed -r "s/\x1B\[([0-9]{1,2}(;[0-9]{1,2})?)?[mGK]//g" "$log")
+          else
+            logmessage="Output for this job:"
+            catlog=$(sed -r "s/\x1B\[([0-9]{1,2}(;[0-9]{1,2})?)?[mGK]//g" "$tmplog")
+          fi
+          if [[ "$time_flag" = "true" ]] ; then
+            echo -e "$logmessage" "\n" "$catlog" | mail -s "rescript: [$repo] $cmd finished successfully!" $EMAIL
+          else
+            echo -e "Date: $(date +%a\ %b\ %d\ %Y\ %r)" "\nSystem: $(opsys)" "\nHostname: $rhost" "\nRepository Location: $dest" "\nRestic Version: $(restic version | awk '{print $2}')" "\n" "\n$logmessage" "\n$(printf "%${cols}s\n" "" | tr ' ' -)" "\n$catlog" "\n$(printf "%${cols}s\n" "" | tr ' ' -)" "\nEnd: $(date +%a\ %b\ %d\ %Y\ %r)" "\nDuration: $(duration)"  | mail -s "rescript: [$repo] $cmd finished successfully!" $EMAIL
+          fi
+        fi
+      else
+        echo "[rescript] can't send emails; install [mailutils] package to do so."
+      fi
+    fi
+  fi
+}
+
+function report_errors {
+  if [[ -z "$cmd" ]] ; then
+    cmd="backup"
+  fi
+  if [[ -n "$error_message" ]] ; then
+    if [[ "$ping_code" -gt "0" ]] ; then
+      echo -e "$error_message"
+    else
+      echo ""
+      echo -e "WARNING!"
+      echo -e "$error_message"
+    fi
+    if [[ -n "$EMAIL" ]] ; then
+      if [[ "$(which mail)" ]] ; then
+        if [[ "$int" = "false" ]] ; then
+          time_end
+          if [[ -e "$log" ]] ; then
+            logmessage="Logfile: $log"
+            catlog=$(sed -r "s/\x1B\[([0-9]{1,2}(;[0-9]{1,2})?)?[mGK]//g" "$log")
+          else
+            logmessage="Output for this job:"
+            catlog=$(sed -r "s/\x1B\[([0-9]{1,2}(;[0-9]{1,2})?)?[mGK]//g" "$tmplog")
+          fi
+          if [[ "$time_flag" = "true" ]] ; then
+            echo -e "$logmessage" "\n" "$catlog" | mail -s "rescript: [$repo] $cmd failed!" $EMAIL
+          else
+            echo -e "Date: $(date +%a\ %b\ %d\ %Y\ %r)" "\nSystem: $(opsys)" "\nHostname: $rhost" "\nRepository Location: $dest" "\nRestic Version: $(restic version | awk '{print $2}')" "\n" "\n$logmessage" "\n$(printf "%${cols}s\n" "" | tr ' ' -)" "\n$catlog" "\n$(printf "%${cols}s\n" "" | tr ' ' -)" "\nEnd: $(date +%a\ %b\ %d\ %Y\ %r)" "\nDuration: $(duration)"  | mail -s "rescript: [$repo] $cmd failed!" $EMAIL
+          fi
+          exit "$exit_code"
+        fi
+      else
+        echo "[rescript] can't send emails; install [mailutils] package to do so."
+      fi
+    fi
+  fi
+}
+
+function latest_error {
+  exec 6>&-
+  if [[ "$exit_code" != "0" ]] ; then
+    if [[  -n "$rest_cmd" ]] ; then
+      error_message="[$rest_cmd] failed; exit code $exit_code"
+      report_errors
+      time_end
+      exit "$exit_code"
+    elif [[ "$(echo "$latest_cmd" | awk '{print $1}')" = "restic" || "$(echo "$latest_cmd" | awk '{print $1}')" = *"restic" ]] ; then
+      error_message="[$(echo "$latest_cmd" | awk '{print $2}')] failed; exit code $exit_code"
+      report_errors
+      time_end
+      exit "$exit_code"
+    else
+      error_message="[$(echo "$latest_cmd" | awk '{print $1}')] failed; exit code $exit_code"
+      report_errors
+      time_end
+      exit "$exit_code"
+    fi
+  fi
+}
+
 function opsys {
-  case "$(uname -s)" in
+  case "$unix_name" in
     Linux|GNU)
       if [[ "$(uname -o)" = "Android" ]] ; then
         os="$(uname -o)"
         os_vers="$(getprop ro.build.version.release)"
         echo -e "$os" "$os_vers"
       else
-        lsb_release -ds
+        if [[ $(which lsb_release) ]] ; then
+          lsb_release -ds
+        else
+          cat /etc/issue.net
+        fi
       fi
       ;;
     FreeBSD|NetBSD|OpenBSD)
@@ -191,87 +250,47 @@ function opsys {
 }
 
 function duration {
+  declare -a dur
   d="$((SECONDS/60/60/24))"
   h="$((SECONDS/60/60%24))"
   m="$((SECONDS/60%60))"
   s="$((SECONDS%60))"
+  days="days"
+  hrs="hours"
+  min="minutes"
+  sec="seconds"
   if [[ "$d" = "1" ]] ; then
     days="day"
-  else
-    days="days"
   fi
   if [[ "$h" = "1" ]] ; then
     hrs="hour"
-  else
-    hrs="hours"
   fi
   if [[ "$m" = "1" ]] ; then
     min="minute"
-  else
-    min="minutes"
   fi
   if [[ "$s" = "1" ]] ; then
     sec="second"
-  else
-    sec="seconds"
   fi
   if [[ "$d" -gt "0" ]] ; then
-    if [[ "$h" -gt "0" ]] ; then
-      if [[ "$m" -gt "0" ]] ; then
-        if [[ "$s" -gt "0" ]] ; then
-          echo "$d $days, $h $hrs, $m $min and $s $sec"
-        else
-          echo "$d $days, $h $hrs and $m $min"
-        fi
-      else
-        if [[ "$s" -gt "0" ]] ; then
-          echo "$d $days, $h $hrs and $s $sec"
-        else
-          echo "$d $days and $h $hrs"
-        fi
-      fi
-    else
-      if [[ "$m" -gt "0" ]] ; then
-        if [[ "$s" -gt "0" ]] ; then
-          echo "$d $days, $m $min and $s $sec"
-        else
-          echo "$d $days and $m $min"
-        fi
-      else
-        if [[ "$s" -gt "0" ]] ; then
-          echo "$d $days and $s $sec"
-        else
-          echo "$d $days"
-        fi
-      fi
-    fi
-  elif [[ "$h" -gt "0" ]] ; then
-    if [[ "$m" -gt "0" ]] ; then
-      if [[ "$s" -gt "0" ]] ; then
-        echo "$h $hrs, $m $min and $s $sec"
-      else
-        echo "$h $hrs and $m $min"
-      fi
-    else
-      if [[ "$s" -gt "0" ]] ; then
-        echo "$h $hrs and $s $sec"
-      else
-        echo "$h $hrs"
-      fi
-    fi
-  elif [[ "$m" -gt "0" ]] ; then
-    if [[ "$s" -gt "0" ]] ; then
-      echo "$m $min and $s $sec"
-    else
-      echo "$m $min"
-    fi
-  else
-    if [[ "$s" -gt "0" ]] ; then
-      echo "$s $sec"
-    else
-      echo "Well, that was too fast!"
-    fi
+    dur+=( "$d $days" )
   fi
+  if [[ "$h" -gt "0" ]] ; then
+    dur+=( "$h $hrs" )
+  fi
+  if [[ "$m" -gt "0" ]] ; then
+    dur+=( "$m $min" )
+  fi
+  if [[ "$s" -gt "0" ]] ; then
+    dur+=( "$s $sec" )
+  fi
+  ndur=$(echo ${#dur[@]})
+  case "$ndur" in
+    4) echo "${dur[0]}, ${dur[1]}, ${dur[2]} and ${dur[3]}" ;;
+    3) echo "${dur[0]}, ${dur[1]} and ${dur[2]}" ;;
+    2) echo "${dur[0]} and ${dur[1]}" ;;
+    1) echo "${dur[0]}" ;;
+    0) echo "Too fast!" ;;
+  esac
 }
 # ============================================================== #
 # Menu                                                           #
@@ -295,52 +314,17 @@ function select_editor {
   echo "======================"
   read -rp "Select the Text Editor you want to use [ 1 - 9 ]: " texteditor
   case "$texteditor" in
-    1|nano)
-      echo "nano" > "$config_dir/.editor"
-      echo "You have selected [Nano] as your default text editor."
-      ;;
-    2|vim)
-      echo "vim" > "$config_dir/.editor"
-      echo "You have selected [Vim] as your default text editor."
-      ;;
-    3|gedit)
-      echo "gedit" > "$config_dir/.editor"
-      echo "You have selected [Gedit] as your default text editor."
-      ;;
-    4|mousepad)
-      echo "mousepad" > "$config_dir/.editor"
-      echo "You have selected [Mousepad] as your default text editor."
-      ;;
-    5|leafpad)
-      echo "leafpad" > "$config_dir/.editor"
-      echo "You have selected [Leafpad] as your default text editor."
-      ;;
-    6|pluma)
-      echo "pluma" > "$config_dir/.editor"
-      echo "You have selected [Pluma] as your default text editor."
-      ;;
-    7|kate)
-      echo "kate" > "$config_dir/.editor"
-      echo "You have selected [Kate] as your default text editor."
-      ;;
-    8|xed)
-      echo "xed" > "$config_dir/.editor"
-      echo "You have selected [Xed] as your default text editor."
-      ;;
-    9|other)
-      read -rp "Type the executable name of the Text Editor you want to use: " othertextedit
-      echo "$othertextedit" > "$config_dir/.editor"
-      echo "You have selected [$othertextedit] as your default text editor."
-      ;;
-    10|exit)
-      echo "Exiting..."
-      exit
-      ;;
-    *)
-      echo "[$texteditor] is not a valid option. If you want to set your"
-      echo "own text editor, type [9] or [other] to write your own."
-      exit
-      ;;
+    1|nano) echo "nano" > "$config_dir/.editor"; echo "You have selected [Nano] as your default text editor." ;;
+    2|vim) echo "vim" > "$config_dir/.editor"; echo "You have selected [Vim] as your default text editor." ;;
+    3|gedit) echo "gedit" > "$config_dir/.editor" ; echo "You have selected [Gedit] as your default text editor." ;;
+    4|mousepad) echo "mousepad" > "$config_dir/.editor" ; echo "You have selected [Mousepad] as your default text editor." ;;
+    5|leafpad) echo "leafpad" > "$config_dir/.editor" ; echo "You have selected [Leafpad] as your default text editor." ;;
+    6|pluma) echo "pluma" > "$config_dir/.editor" ; echo "You have selected [Pluma] as your default text editor." ;;
+    7|kate) echo "kate" > "$config_dir/.editor" ; echo "You have selected [Kate] as your default text editor." ;;
+    8|xed) echo "xed" > "$config_dir/.editor" ; echo "You have selected [Xed] as your default text editor." ;;
+    9|other) read -rp "Type the executable name of the Text Editor you want to use: " othertextedit ; echo "$othertextedit" > "$config_dir/.editor" ; echo "You have selected [$othertextedit] as your default text editor." ;;
+    10|exit) echo "Exiting..." ; exit ;;
+    *) echo "[$texteditor] is not a valid option. If you want to set your" ; echo "own text editor, type [9] or [other] to write your own." ; exit ;;
   esac
 }
 
@@ -355,27 +339,176 @@ function main_menu {
   echo "======================"
   read -rp "Select an option and press Enter [ 1 - 3 ]: " main
   case "$main" in
-    1|configuration)
-      clear
-      config_menu
-      ;;
-    2|exclusions)
-      clear
-      exclusion_menu
-      ;;
-    3|exit)
-      echo "Exiting..."
-      exit
-      ;;
-    *)
-      clear
-      echo "No valid option..."
-      main_menu
-      ;;
+    1|configuration) clear ; config_menu ;;
+    2|exclusions) clear ; exclusion_menu ;;
+    3|exit) echo "Exiting..." ; exit ;;
+    *) clear ; echo "No valid option..." ; main_menu ;;
   esac
 }
 
 # Configuration menu
+function config_file {
+cat <<EOF
+# =============================================================================== #
+#                   R E S C R I P T    C O N F I G U R A T I O N                  #
+# =============================================================================== #
+# You need to set your restic password (password for the repository), the
+# directory for your repository, the backup directory (by default the backup
+# directory is your Home directory), your tag (empty by default if used) and
+# your "keep" and "excludes" policies.
+# ------------------------------------------------------------------------------- #
+# REQUIRED VALUES
+# ------------------------------------------------------------------------------- #
+# Set restic password, repository location/directory and backup directory.
+RESTIC_PASSWORD=""
+RESTIC_REPO=""
+BACKUP_DIR="$HOME"
+
+# Keep Policies (leave blank if not used)
+KEEP_LAST=""
+KEEP_HOURLY="8"
+KEEP_DAILY="7"
+KEEP_WEEKLY="4"
+KEEP_MONTHLY="12"
+KEEP_YEARLY="10"
+KEEP_WITHIN=""
+KEEP_TAG=""
+
+# AWS, B2, Azure, Google Cloud Credentials; for other not listed here you can
+# the values here (leave blank if not used).
+AWS_ID=""
+AWS_KEY=""
+AZURE_NAME=""
+AZURE_KEY=""
+B2_ID=""
+B2_KEY=""
+GOOGLE_ID=""
+GOOGLE_CREDENTIALS=""
+
+# ------------------------------------------------------------------------------- #
+# OPTIONAL VALUES
+# ------------------------------------------------------------------------------- #
+# ARCHIVE: set to "yes" to execute the "archive" command when using "rescript [repo_name]" only.
+# CLEAN: determine when it will execute forget, prune and check (i.e.: 7minutes, 7hours, 7days); by default is set to 7 days.
+# CONFIRMATION_EMAIL: set to "yes" to receive email with output when job finished successfully.
+# DESTINATION: display name of your destination in output instead of path (i.e.: Wasabi, B2, etc.).
+# EMAIL: put your email address to receive emails with output when something fails (when using cron only).
+# EXCLUDE_FILE: set "yes" to use the exclude file generated for backups (by default is set to yes; if blank it will read the exclusion file for previous versions comptability).
+# EXCLUDE_CACHE: set "yes" to use "--exclude-cache" flag for backups (by default is set to yes; if blank it will exclude cache for previous versions compatibility).
+# HOST: use a custom hostname for your snapshots.
+# KEEP_ARCHIVE: set to "yes" to keep all snapshots tagged with "archive" (by default is set to yes).
+# LOGGING: set to "yes" to save a log with output when using the automatic function (by default is set to yes).
+# ONE_FILE_SYSTEM: set to "yes" to use "--one-file-system" flag for backups.
+# SKIP_OFFICE: set to yes to temporarily exclude open (in use) "office" documents.
+# TAG: tag your snapshots.
+ARCHIVE=""
+CLEAN="7days"
+CONFIRMATION_EMAIL=""
+DESTINATION=""
+EMAIL=""
+EXCLUDE_FILE="yes"
+EXCLUDE_CACHE="yes"
+HOST=""
+KEEP_ARCHIVE="yes"
+LOGGING="yes"
+ONE_FILE_SYSTEM=""
+SKIP_OFFICE=""
+TAG=""
+EOF
+}
+
+function simple_exclusions {
+cat <<EOF
+# These are the default rescript exclusions:
+$HOME/.cache/*
+$HOME/.local/share/Trash/*
+$HOME/.rescript/lock/*
+$HOME/.Trash
+$HOME/.Private
+$HOME/.ecryptfs
+
+# Write your custom exclusions below:
+EOF
+}
+
+function long_exclusions {
+cat <<EOF
+# These are the default rescript exclusions for your home directory:
+$HOME/.cache/*
+$HOME/.local/share/Trash/*
+$HOME/.rescript/lock/*
+$HOME/.gvfs
+$HOME/.dbus
+$HOME/.local/share/gvfs-metadata
+$HOME/.Private
+$HOME/.Trash
+$HOME/.cddb
+$HOME/.aptitude
+$HOME/.adobe
+$HOME/.bash_history
+$HOME/.dropbox
+$HOME/.dropbox-dist
+$HOME/.macromedia
+$HOME/.xsession-errors
+$HOME/.recently-used
+$HOME/.recently-used.xbel
+$HOME/.local/share/recently-used*
+$HOME/.thumbnails/*
+$HOME/.Xauthority
+$HOME/.ICEauthority
+$HOME/.gksu.lock
+$HOME/.pulse
+$HOME/.pulse-cookie
+$HOME/.esd_auth
+$HOME/.ecryptfs
+$HOME/.mozilla
+$HOME/.config/google-chrome
+$HOME/.config/chromium
+$HOME/.opera
+$HOME/.npm
+$HOME/.gnupg/rnd
+$HOME/.gnupg/random_seed
+$HOME/.gnupg/.#*
+$HOME/.gnupg/*.lock
+$HOME/.gnupg/gpg-agent-info-*
+$HOME/.config/**/Cache
+$HOME/.config/**/GPUCache
+$HOME/.config/**/ShaderCache
+$HOME/snap/**/.config/**/Cache
+$HOME/snap/**/.config/**/GPUCache
+$HOME/snap/**/.config/**/ShaderCache
+$HOME/Downloads
+*.lock
+*.bak
+*.backup
+*.backup*
+*~
+
+# Write your custom exclusions below:
+EOF
+}
+
+function sys_exclusions {
+cat <<EOF
+# These are the default rescript exclusions for your system:
+/home/*
+/proc/*
+/sys/*
+/dev/*
+/run/*
+/mnt/*
+/media/*
+/etc/mtab
+/var/cache/apt/archives/*.deb
+lost+found/*
+/tmp/*
+/var/tmp/*
+/var/backups/*
+
+# Write your custom exclusions below:
+EOF
+}
+
 function config_menu {
   echo "======================"
   echo "       Options        "
@@ -388,30 +521,12 @@ function config_menu {
   echo "======================"
   read -rp "Select an option and press Enter [ 1 - 5 ]: " cfgopt
   case "$cfgopt" in
-    1|edit)
-      clear
-      edit_config_files
-      ;;
-    2|new)
-      new_config_file
-      ;;
-    3|delete)
-      clear
-      delete_config_file
-      ;;
-    4|back)
-      clear
-      main_menu
-      ;;
-    5|exit)
-      echo "Exiting..."
-      exit
-      ;;
-    *)
-      clear
-      echo "No valid selection; try again..."
-      config_menu
-      ;;
+    1|edit) clear ; edit_config_files ;;
+    2|new) new_config_file ;;
+    3|delete) clear ; delete_config_file ;;
+    4|back) clear ; main_menu ;;
+    5|exit) echo "Exiting..." ; exit ;;
+    *) clear ; echo "No valid selection; try again..." ; config_menu ;;
   esac
 }
 
@@ -426,14 +541,8 @@ function edit_config_files {
   echo "======================"
   read -rp "Write the name of the repo file to open or one of the options above [ 1 - 2 ]: " conf
   case "$conf" in
-    1|back)
-      clear
-      config_menu
-      ;;
-    2|exit)
-      echo "Exiting..."
-      exit
-      ;;
+    1|back) clear ; config_menu ;;
+    2|exit) echo "Exiting..." ; exit ;;
     *)
       if [[ -e "$config_dir/$conf.conf" ]] ; then
         "$rescript_editor" "$config_dir/$conf.conf" 2> /dev/null
@@ -452,94 +561,15 @@ function new_config_file {
   new_repo="$config_dir/.new"
   touch "$new_repo"
   trap 'rm -rf "$new_repo"' INT QUIT TERM EXIT
-  {
-  echo "# =============================================================================== #"
-  echo "#                   R E S C R I P T    C O N F I G U R A T I O N                  #"
-  echo "# =============================================================================== #"
-  echo "# You need to set your restic password (password for the repository), the"
-  echo "# directory for your repository, the backup directory (by default the backup"
-  echo "# directory is your Home directory), the destination name of your backup"
-  echo "# (local, S3, B2, Wasabi, remote host, etc.), your tag (empty by default if used)"
-  echo "# and your "keep" and "excludes" policies."
-  echo "# ------------------------------------------------------------------------------- #"
-  echo "#                              R E P O    I N F O                                 #"
-  echo "# ------------------------------------------------------------------------------- #"
-  echo "# Set restic password, repository location/directory and backup directory."
-  echo 'RESTIC_PASSWORD=""'
-  echo 'RESTIC_REPO=""'
-  echo 'BACKUP_DIR="$HOME"'
-  echo ""
-  echo "# Keep Policies (leave blank if not used)"
-  echo 'KEEP_LAST=""'
-  echo 'KEEP_HOURLY="8"'
-  echo 'KEEP_DAILY="7"'
-  echo 'KEEP_WEEKLY="4"'
-  echo 'KEEP_MONTHLY="12"'
-  echo 'KEEP_YEARLY="10"'
-  echo 'KEEP_WITHIN=""'
-  echo 'KEEP_TAG=""'
-  echo ""
-  echo "# B2 Credentials (leave blank if not used)"
-  echo 'B2_ID=""'
-  echo 'B2_KEY=""'
-  echo ""
-  echo "# AWS Credentials (leave blank if not used)"
-  echo 'AWS_ID=""'
-  echo 'AWS_KEY=""'
-  echo ""
-  echo "# Optional values; The "DESTINATION" value is just use in this script to display"
-  echo "# in the output the name of your destination (e.g.: Google Drive, Amazon, B2, Wasabi,"
-  echo "# etc.). The "TAG" value will tag your snapshots with any name/tag you want."
-  echo "# The "CLEAN" value determine when it will execute the forget, prune and check"
-  echo "# commands; this value must be set in days and by default the number 7 means"
-  echo "# it will do these tasks every seven (7) days. These values CAN be left blank"
-  echo "# if you are not planning on use them."
-  echo 'CLEAN="7"'
-  echo 'TAG=""'
-  echo 'DESTINATION=""'
-  echo 'HOST=""'
-  echo ""
-  echo "# The variable "ARCHIVE" is blank by default. If you want to archive deleted files from"
-  echo "# newest snapshots set the variable to "yes" and it will automatically save deleted"
-  echo "# files from newest snapshots in a special snapshot tagged as "archive". "ARCHIVE" variable"
-  echo "# is used only by the "automatic" function. "KEEP_ARCHIVE" variable is set to "yes""
-  echo "# by default and this will trigger a new "keep" policty to keep the tag "archive""
-  echo "# when running "cleanup" so the archive snapshot will not be removed. Set the variable"
-  echo "# to blank if not planning on using the "archive" function at all."
-  echo 'ARCHIVE=""'
-  echo 'KEEP_ARCHIVE="yes"'
-  echo ""
-  echo "# The variable "LOGGING" is "yes" by default. If you don't want logs to be saved"
-  echo "# at .rescript/logs directory just change the "yes" to "no". This will only save"
-  echo "# a log when the script is run; options and commands do not save logs."
-  echo 'LOGGING="yes"'
-  echo ""
-  echo "# "SKIP_OFFICE" is used just like the [-S|--skip-office] flag. If you want to temporarily"
-  echo "# exclude open (in use) office documents when a backup is running set the variable to "yes"."
-  echo 'SKIP_OFFICE=""'
-  echo ""
-  echo "# "EMAIL" is used to send you and email using [mail] utility if there was an error in a"
-  echo "# cron job. Put your email address or leave blank if not used."
-  echo 'EMAIL=""'
-  } > "$new_repo"
+  config_file > "$new_repo"
   chmod 700 "$new_repo"
   read -rp "Write the name for your new repository (case sensitive): " repo_name
   if [[ $repo_name ]] ; then
     mv "$new_repo" "$config_dir/$repo_name.conf"
     touch "$config_dir/$repo_name-exclusions"
     touch "$config_dir/$repo_name-datefile"
-    date -R > "$config_dir/$repo_name-datefile"
-    {
-     echo "# These are the default rescript exclusions:"
-     echo "$HOME/.cache/*"
-     echo "$HOME/.local/share/Trash/*"
-     echo "$HOME/.rescript/lock/*"
-     echo "$HOME/.Trash"
-     echo "$HOME/.Private"
-     echo "$HOME/.ecryptfs"
-     echo ""
-     echo "# Write your custom exclusions below:"
-    } > "$config_dir/$repo_name-exclusions"
+    touch "$config_dir/$repo_name-datefile"
+    simple_exclusions > "$config_dir/$repo_name-exclusions"
     date -R > "$config_dir/$repo_name-datefile"
     echo "[$repo_name] config file have been created. If this is a new repository,"
     echo "you must run [rescript $repo_name init] to initialize your new repository"
@@ -547,20 +577,9 @@ function new_config_file {
     echo "file to proceed."
     read -rp "Would you like to open [$repo_name] config file now? y/n " answer
     case $answer in
-      yes|y)
-        "$rescript_editor" "$config_dir/$repo_name.conf" 2> /dev/null
-        clear
-        config_menu
-        ;;
-      no|n)
-        echo "Remember to configure your repo file before continuing!"
-        exit
-        ;;
-      *)
-        clear
-        echo "Invalid action..."
-        config_menu
-        ;;
+      y|yes) "$rescript_editor" "$config_dir/$repo_name.conf" 2> /dev/null ; clear ; config_menu ;;
+      n|no) echo "Remember to configure your repo file before continuing!" ; exit ;;
+      *) clear ; echo "Invalid action..." ; config_menu ;;
     esac
   else
     rm -rf "$new_repo"
@@ -580,38 +599,16 @@ function delete_config_file {
   echo "======================"
   read -rp "Type the name of the repo file you wish to delete or one of the optinos above [ 1 - 2 ]: " del
   case $del in
-    1|back)
-      clear
-      config_menu
-      ;;
-    2|exit)
-      echo "Exiting..."
-      exit
-      ;;
+    1|back) clear ; config_menu ;;
+    2|exit) echo "Exiting..." ; exit ;;
     *)
       if [[ -f "$config_dir/$del.conf" ]] ; then
         read -rp "Are you sure you want to delete [$del]? y/n: " ans
         case $ans in
-          y|yes)
-            rm -rf "$config_dir/$del.conf"
-            rm -rf "$config_dir/$del-exclusions"
-            rm -rf "$config_dir/$del-datefile"
-            clear
-            echo "[$del] repository configuration have been removed."
-            delete_config_file
-            ;;
-          n|no)
-            clear
-            delete_config_file
-            ;;
-          exit)
-            echo "Exiting..."
-            exit
-            ;;
-          *)
-            echo "No valid action indicated; exiting..."
-            exit
-            ;;
+          y|yes) rm -rf "$config_dir/$del.conf" ; rm -rf "$config_dir/$del-exclusions" ; rm -rf "$config_dir/$del-datefile" ; clear ; echo "[$del] repository configuration have been removed." ; delete_config_file ;;
+          n|no) clear ; delete_config_file ;;
+          exit) echo "Exiting..." ; exit ;;
+          *) echo "No valid action indicated; exiting..." ; exit ;;
         esac
       else
         clear
@@ -634,27 +631,11 @@ function exclusion_menu {
   echo "======================"
   read -rp "Select an option and press Enter [ 1 - 4 ]: " excl_opt
   case $excl_opt in
-    1|edit)
-      clear
-      edit_exclusions
-      ;;
-    2|build)
-      clear
-      build_exclusions
-      ;;
-    3|back)
-      clear
-      main_menu
-      ;;
-    4|exit)
-      echo "Exiting..."
-      exit
-      ;;
-    *)
-      clear
-      echo "No valid action indicated..."
-      exclusion_menu
-      ;;
+    1|edit) clear ; edit_exclusions ;;
+    2|build) clear ; build_exclusions ;;
+    3|back) clear ; main_menu ;;
+    4|exit) echo "Exiting..." ; exit ;;
+    *) clear ; echo "No valid action indicated..." ; exclusion_menu ;;
   esac
 }
 
@@ -669,14 +650,8 @@ function edit_exclusions {
   echo "======================"
   read -rp "Type the name of the exclusions file you wish to open or one of the options above [ 1 - 2 ]: " excl_edit
   case "$excl_edit" in
-    1|back)
-      clear
-      exclusion_menu
-      ;;
-    2|exit)
-      echo "Exiting..."
-      exit
-      ;;
+    1|back) clear ; exclusion_menu ;;
+    2|exit) echo "Exiting..." ; exit ;;
     *)
       if [[ -e "$config_dir/$excl_edit-exclusions" ]] ; then
         "$rescript_editor" "$config_dir/$excl_edit-exclusions" 2> /dev/null
@@ -714,14 +689,8 @@ function build_exclusions {
       echo "======================"
       read -rp "Type the name of the exclusion file you want to build or one of the options above [ 1 - 2 ]: " excl_file
       case "$excl_file" in
-        1|back)
-          clear
-          build_exclusions
-          ;;
-        2|exit)
-          echo "Exiting..."
-          exit
-          ;;
+        1|back) clear ; build_exclusions ;;
+        2|exit) echo "Exiting..." ; exit ;;
         *)
           if [[ -e "$config_dir/$excl_file-exclusions" ]] ; then 
             echo "This action will override your existing [$excl_file] exclusion file."
@@ -729,60 +698,7 @@ function build_exclusions {
             case "$ans_excl" in
               y|yes)
                 if [[ -e "$config_dir/$excl_file-exclusions" ]] ; then
-              	  {
-              	  echo "# These are the default rescript exclusions for your home directory:"
-              	  echo "$HOME/.cache/*"
-              	  echo "$HOME/.local/share/Trash/*"
-              	  echo "$HOME/.rescript/lock/*"
-              	  echo "$HOME/.gvfs"
-              	  echo "$HOME/.dbus"
-              	  echo "$HOME/.local/share/gvfs-metadata"
-              	  echo "$HOME/.Private"
-              	  echo "$HOME/.Trash"
-              	  echo "$HOME/.cddb"
-              	  echo "$HOME/.aptitude"
-              	  echo "$HOME/.adobe"
-              	  echo "$HOME/.bash_history"
-              	  echo "$HOME/.dropbox"
-               	  echo "$HOME/.dropbox-dist"
-              	  echo "$HOME/.macromedia"
-              	  echo "$HOME/.xsession-errors"
-              	  echo "$HOME/.recently-used"
-              	  echo "$HOME/.recently-used.xbel"
-              	  echo "$HOME/.local/share/recently-used*"
-              	  echo "$HOME/.thumbnails/*"
-              	  echo "$HOME/.Xauthority"
-              	  echo "$HOME/.ICEauthority"
-              	  echo "$HOME/.gksu.lock"
-              	  echo "$HOME/.pulse"
-              	  echo "$HOME/.pulse-cookie"
-              	  echo "$HOME/.esd_auth"
-              	  echo "$HOME/.ecryptfs"
-              	  echo "$HOME/.mozilla"
-              	  echo "$HOME/.config/google-chrome"
-              	  echo "$HOME/.config/chromium"
-              	  echo "$HOME/.opera"
-              	  echo "$HOME/.npm"
-              	  echo "$HOME/.gnupg/rnd"
-               	  echo "$HOME/.gnupg/random_seed"
-              	  echo "$HOME/.gnupg/.#*"
-              	  echo "$HOME/.gnupg/*.lock"
-              	  echo "$HOME/.gnupg/gpg-agent-info-*"
-              	  echo "$HOME/.config/**/Cache"
-              	  echo "$HOME/.config/**/GPUCache"
-              	  echo "$HOME/.config/**/ShaderCache"
-              	  echo "$HOME/snap/**/.config/**/Cache"
-              	  echo "$HOME/snap/**/.config/**/GPUCache"
-              	  echo "$HOME/snap/**/.config/**/ShaderCache"
-              	  echo "$HOME/Downloads"
-              	  echo "*.lock"
-              	  echo "*.bak"
-              	  echo "*.backup"
-              	  echo "*.backup*"
-              	  echo "*~"
-              	  echo ""
-               	  echo "# Write your custom exclusions below:"
-              	  } > "$config_dir/$excl_file-exclusions"
+              	  long_exclusions > "$config_dir/$excl_file-exclusions"
               	  clear
               	  echo "Done building exclusion list for [$excl_file]."
               	  build_exclusions
@@ -792,16 +708,8 @@ function build_exclusions {
               	  build_exclusions
                 fi
                 ;;
-              n|no)
-                clear
-                echo "No changes made."
-                build_exclusions
-                ;;
-              *)
-                clear
-                echo "No valid option; no changes made."
-                build_exclusions
-                ;;
+              n|no) clear ; echo "No changes made." ; build_exclusions ;;
+              *) clear ; echo "No valid option; no changes made." ; build_exclusions ;;
             esac
           else
             clear
@@ -823,14 +731,8 @@ function build_exclusions {
       echo "======================"
       read -rp "Type the name of the exclusion file you want to build or one of the options above [ 1 - 2 ]: " excl_file
       case "$excl_file" in
-        1|back)
-          clear
-          build_exclusions
-          ;;
-        2|exit)
-          echo "Exiting..."
-          exit
-          ;;
+        1|back) clear ; build_exclusions ;;
+        2|exit) echo "Exiting..." ; exit ;;
         *)
           if [[ -e "$config_dir/$excl_file-exclusions" ]] ; then 
             echo "This action will override your existing [$excl_file] exclusion file."
@@ -838,24 +740,7 @@ function build_exclusions {
             case "$ans_excl" in
               y|yes)
                 if [[ -e "$config_dir/$excl_file-exclusions" ]] ; then
-              	  {
-              	  echo "# These are the default rescript exclusions for your system:"
-              	  echo "/home/*"
-               	  echo "/proc/*"
-              	  echo "/sys/*"
-              	  echo "/dev/*"
-              	  echo "/run/*"
-              	  echo "/mnt/*"
-              	  echo "/media/*"
-              	  echo "/etc/mtab"
-              	  echo "/var/cache/apt/archives/*.deb"
-              	  echo "lost+found/*"
-              	  echo "/tmp/*"
-              	  echo "/var/tmp/*"
-              	  echo "/var/backups/*"
-              	  echo ""
-              	  echo "# Write your custom exclusions below:"
-              	  } > "$config_dir/$excl_file-exclusions"
+              	  sys_exclusions > "$config_dir/$excl_file-exclusions"
               	  clear
               	  echo "Done building exclusion list for [$excl_file]."
               	  build_exclusions
@@ -865,16 +750,8 @@ function build_exclusions {
               	  build_exclusions
                 fi
                 ;;
-              n|no)
-                clear
-                echo "No changes made."
-                build_exclusions
-                ;;
-              *)
-                clear
-                echo "No valid option; no changes made."
-                build_exclusions
-                ;;
+              n|no) clear ; echo "No changes made." ; build_exclusions ;;
+              *) clear ; echo "No valid option; no changes made." ; build_exclusions ;;
             esac
           else
             clear
@@ -884,19 +761,9 @@ function build_exclusions {
           ;;
       esac
       ;;
-    3|back)
-      clear
-      exclusion_menu
-      ;;
-    4|exit)
-      echo "Exiting..."
-      exit
-      ;;
-    *)
-      clear
-      echo "No valid action indicated..."
-      build_exclusions
-      ;;
+    3|back) clear ; exclusion_menu ;;
+    4|exit) echo "Exiting..." ; exit ;;
+    *) clear ; echo "No valid action indicated..." ; build_exclusions ;;
   esac
 }
 
@@ -916,7 +783,11 @@ function install {
     1|system)
       chmod 755 "$(basename $0)"
       if [[ "$(whoami)" = "root" ]] ; then
-        cp "$(basename $0)" /usr/bin/rescript
+        if [[ "$unix_name" = "Darwin" ]] ; then
+          cp "$(basename $0)" /usr/local/bin/rescript
+        else
+          cp "$(basename $0)" /usr/bin/rescript
+        fi
         echo "Installation successful!"
         echo "Run [rescript config] to configure your repository."
         exit
@@ -964,15 +835,8 @@ function install {
         esac
       fi
       ;;
-    3|exit)
-      echo "Exiting..."
-      exit
-      ;;
-    *)
-      clear
-      echo "No valid action indicated..."
-      install
-      ;;
+    3|exit) echo "Exiting..." ; exit ;;
+    *) clear ; echo "No valid action indicated..." ; install ;;
   esac
 }
 
@@ -995,9 +859,8 @@ function update {
   trap 'rm -rf "$rescript_latest" 2> /dev/null' INT QUIT TERM EXIT
 
   if [[ "$(sed '3!d' "$(which rescript)")" = "$(sed '3!d' "$rescript_latest")" ]] ; then
-    echo "You're already running the latest version!"
-    echo "rescript $version"
-    exit
+    echo "You are already running rescript $version, which is the latest version."
+    exit 0
   else
     chmod 755 "$rescript_latest"
     read -rp "rescript version $(sed '3!d' "$rescript_latest" | sed -e 's/version=//g') is available; do you want to install it? (y/n): " updater
@@ -1005,9 +868,8 @@ function update {
       y|yes)
         if [[ $(which rescript) == /usr/bin/rescript || $(which rescript) == /bin/rescript || $(which rescript) == /usr/local/bin/rescript ]] ; then
           if [[ "$(whoami)" = "root" ]] ; then
-            cp "$rescript_latest" "$(which rescript)"
+            mv "$rescript_latest" "$(which rescript)"
             echo "Rescript have been updated to the latest version!"
-            echo "rescript $version"
           else
             echo "Rescript is located at $(which rescript)."
             echo "To update in this location you need to run [update] again as [root]:"
@@ -1015,18 +877,17 @@ function update {
             echo "  sudo rescript update"
             echo "" 
             echo "Nothing done... exiting."
-            exit
+            exit 0
           fi
         else
           chmod 700 "$rescript_latest"
           mv "$rescript_latest" "$(which rescript)"
           echo "Rescript have been updated to the latest version!"
-          echo "rescript $version"
         fi
         ;;
       *)
         echo "Nothing done... exiting."
-        exit
+        exit 0
         ;;
     esac
   fi
@@ -1055,6 +916,7 @@ Command flags:
 
 Global flags:
   -d, --debug           Debug script.
+  -e, --email           Force to send email with output.
   -h, --help            Display usage.
   -l, --log             Create log file with command output.
   -q, --quiet           Silence output.
@@ -1075,8 +937,9 @@ Usage:
 
 Command flags:
   -a, --archive         Creates new snapshot with deleted files.
+  -C, --check           Check for errors in repository.
   -c, --cleanup         Apply retention policies and prune.
-  -d, --dry-run         Do not backup anything, just print what
+  -D, --dry-run         Do not backup anything, just print what
                         would be done (this option uses [du]).
   -i, --info            Display stats for latest and all snapshots.
   -S, --skip-office     Temporarily exclude open (in-use) 'Office'
@@ -1084,6 +947,7 @@ Command flags:
 
 Global flags:
   -d, --debug           Debug script.
+  -e, --email           Force to send email with output.
   -h, --help            Display usage.
   -l, --log             Create log file with command output.
   -q, --quiet           Silence output.
@@ -1108,12 +972,16 @@ Usage:
 
 Command flags:
   -a, --archive         Creates new snapshot with deleted files.
+  -C, --check           Check for errors in repository.
   -i, --info            Display stats for latest and all snapshots.
   -n, --next            Display next scheduled; works only if
                         CLEANUP variable is set.
+      --reset           Remove "datefile"; it resets the dates for
+                        the CLEAN option in your configuration file.
 
 Global flags:
   -d, --debug           Debug script.
+  -e, --email           Force to send email with output.
   -h, --help            Display usage.
   -l, --log             Create log file with command output.
   -q, --quiet           Silence output.
@@ -1145,6 +1013,7 @@ Command flags:
 
 Global flags:
   -d, --debug           Debug script.
+  -e, --email           Force to send email with output.
   -h, --help            Display usage.
   -l, --log             Create log file with command output.
   -q, --quiet           Silence output.
@@ -1194,8 +1063,7 @@ Usage:
   rescript [repo_name] env
 
 Command flags:
-  -v, --var VARNAME     Display varname value chosen (varname must
-                        be UPPERCASE).
+  -v, --var VARNAME     Display varname value chosen.
 
 Global flags:
   -h, --help            Display usage.
@@ -1213,8 +1081,12 @@ size of latest and all snapshots in a custom format.
 Usage:
   rescript [repo_name] info [flags]
 
+Command flags:
+  -H, --host hostname   Only consider snapshots for this host.
+
 Global flags:
   -d, --debug           Debug script.
+  -e, --email           Force to send email with output.
   -h, --help            Display usage.
   -l, --log             Create log file with command output.
   -t, --time            Display output with date, time and durantion.
@@ -1253,7 +1125,8 @@ OR
 
 Command flags:
   -c, --cat logfile     Display output of selected log file.
-  -r, --remove logfile  Remove all log files.
+  -r, --remove logfile  Remove all log files (use 'all' to remove
+                        all logs related to the repository).
 
 Global flags:
   -h, --help            Display usage.
@@ -1295,6 +1168,7 @@ Usage:
 
 Global flags:
   -d, --debug           Debug script.
+  -e, --email           Force to send email with output.
   -h, --help            Display usage.
   -l, --log             Create log file with command output.
   -q, --quiet           Silence output.
@@ -1326,6 +1200,7 @@ Command flags:
 
 Global flags:
   -d, --debug           Debug script.
+  -e, --email           Force to send email with output.
   -h, --help            Display usage.
   -l, --log             Create log file with command output.
   -q, --quiet           Silence output.
@@ -1347,6 +1222,7 @@ Usage:
 
 Global flags:
   -d, --debug           Debug script.
+  -e, --email           Force to send email with output.
   -h, --help            Display usage.
   -l, --log             Create log file with command output.
   -q, --quiet           Silence output.
@@ -1478,7 +1354,7 @@ case "$1" in
         ;;
       *)  
         echo "You have not indicated a valid option..."
-        usage
+        usage | sed -ne '/Usage/,/EOF/p'
         exit 1
         ;;
     esac
@@ -1553,11 +1429,11 @@ case "$1" in
   -v|--version|version)
     usage | sed -ne '/Name/,/Version/p'
     echo ""
-    echo 'Redistribution and use in source and binary forms, with or without modification, are permitted provided that the BSD 2-Clause License conditions are met.'
+    echo -e 'Redistribution and use in source and binary forms, with or without \nmodification, are permitted provided that the BSD 2-Clause License \nconditions are met.'
     exit
     ;;
   *)
-    if [[ ! -e "$config_dir/$1.conf" ]] ; then
+    if [[ ! -e "$config_dir/$1.conf" && ! -e "$config_dir/$1.conf.gpg" ]] ; then
       echo "There is no repo or command for [$1]. Indicate a valid"
       echo "repo name or command to proceed. Use [rescript help] for usage."
       exit
@@ -1568,62 +1444,86 @@ esac
 # ============================================================== #
 # Functions                                                      #
 # ============================================================== #
-source "$config_dir/$repo.conf"
-export RESTIC_PASSWORD="$RESTIC_PASSWORD"
+source "$config_file"
 export RESTIC_REPOSITORY="$RESTIC_REPO"
 export B2_ACCOUNT_ID="$B2_ID"
 export B2_ACCOUNT_KEY="$B2_KEY"
 export AWS_ACCESS_KEY_ID="$AWS_ID"
 export AWS_SECRET_ACCESS_KEY="$AWS_KEY"
+export AZURE_ACCOUNT_NAME="$AZURE_NAME"
+export AZURE_ACCOUNT_KEY="$AZURE_KEY"
+export GOOGLE_PROJECT_ID="$GOOGLE_ID"
+export GOOGLE_APPLICATION_CREDENTIALS="$GOOGLE_CREDENTIALS"
+if [[ "$RESCRIPT_PASS" ]] ; then
+  export RESTIC_PASSWORD="$RESCRIPT_PASS"
+else
+  export RESTIC_PASSWORD="$RESTIC_PASSWORD"
+fi
 SECONDS=0
 
+case "$2" in
+  init) restic init ; exit 0 ;;
+esac
+
+case "$RESTIC_REPO" in
+  sftp*) ping_target=${RESTIC_REPO#sftp*@} ; ping_target=${ping_target%:*} ; ping -c 1 "$ping_target" > /dev/null ; ping_code="$?" ;;
+  rclone*) ping_target=${RESTIC_REPO#rclone:} ; rclone about "$ping_target" > /dev/null ; ping_code="$?" ;;
+  /*) dir "$RESTIC_REPO" 2>/dev/null 1>/dev/null ; ping_code="$?" ;;
+esac
+
+if [[ "$ping_code" -gt "0" ]] ; then
+  error_message="Cannot access to: $RESTIC_REPO \nPlease check your connection. If your repository is not \ninitializated run [rescript $repo init]."
+  report_errors
+  exit "$ping_code"
+fi
+
+if [[ -n "$DESTINATION" ]] ; then
+  dest=$DESTINATION
+else
+  dest=$RESTIC_REPO
+fi
+
+if [[ -n "$HOST" ]] ; then
+  rhost="$HOST"
+else
+  rhost=$(hostname)
+fi
+
+declare -a policies
+
 # Set variables for functions
-if [[ ! -z "$KEEP_LAST" && "$KEEP_LAST" -gt "0" ]] ; then
-  forget_last="--keep-last $KEEP_LAST"
+if [[ -n "$KEEP_LAST" && "$KEEP_LAST" -gt "0" ]] ; then
+  policies+=(--keep-last $KEEP_LAST)
 fi
-if [[ ! -z "$KEEP_HOURLY" && "$KEEP_HOURLY" -gt "0" ]] ; then
-  forget_hourly="--keep-hourly $KEEP_HOURLY"
+if [[ -n "$KEEP_HOURLY" && "$KEEP_HOURLY" -gt "0" ]] ; then
+  policies+=(--keep-hourly $KEEP_HOURLY)
 fi
-if [[ ! -z "$KEEP_DAILY" && "$KEEP_DAILY" -gt "0" ]] ; then
-  forget_daily="--keep-daily $KEEP_DAILY"
+if [[ -n "$KEEP_DAILY" && "$KEEP_DAILY" -gt "0" ]] ; then
+  policies+=(--keep-daily $KEEP_DAILY)
 fi
-if [[ ! -z "$KEEP_WEEKLY" && "$KEEP_WEEKLY" -gt "0" ]] ; then
-  forget_weekly="--keep-weekly $KEEP_WEEKLY"
+if [[ -n "$KEEP_WEEKLY" && "$KEEP_WEEKLY" -gt "0" ]] ; then
+  policies+=(--keep-weekly $KEEP_WEEKLY)
 fi
-if [[ ! -z "$KEEP_MONTHLY" && "$KEEP_MONTHLY" -gt "0" ]] ; then
-  forget_monthly="--keep-monthly $KEEP_MONTHLY"
+if [[ -n "$KEEP_MONTHLY" && "$KEEP_MONTHLY" -gt "0" ]] ; then
+  policies+=(--keep-monthly $KEEP_MONTHLY)
 fi
-if [[ ! -z "$KEEP_YEARLY" && "$KEEP_YEARLY" -gt "0" ]] ; then
-  forget_yearly="--keep-yearly $KEEP_YEARLY"
+if [[ -n "$KEEP_YEARLY" && "$KEEP_YEARLY" -gt "0" ]] ; then
+  policies+=(--keep-yearly $KEEP_YEARLY)
 fi
-if [[ ! -z "$KEEP_WITHIN" ]] ; then
-  forget_within="--keep-within $KEEP_WITHIN"
+if [[ -n "$KEEP_WITHIN" ]] ; then
+  policies+=(--keep-within $KEEP_WITHIN)
 fi
-if [[ ! -z "$KEEP_TAG" ]] ; then
-  forget_tag="--keep-tag $KEEP_TAG"
+if [[ -n "$KEEP_TAG" ]] ; then
+  policies+=(--keep-tag $KEEP_TAG)
 fi
 if [[ "$KEEP_ARCHIVE" = "yes" ]] ; then
-  keep_archive="--keep-tag archive"
+  policies+=(--keep-tag archive)
 fi
 
-policies=(
-  $forget_last
-  $forget_hourly
-  $forget_daily
-  $forget_weekly
-  $forget_monthly
-  $forget_yearly
-  $forget_within
-  $forget_tag
-  $keep_archive
-)
-
-if [[ ! -z "$HOST" ]] ; then
-  restic_host="--host $HOST"
-fi
-if [[ ! -z "$TAG" ]] ; then
-  restic_tag="--tag $TAG"
-fi
+# Archive directories
+archiver="$tmp_dir/archive"
+archiver_latest="$tmp_dir/archive_latest"
+archiver_old="$tmp_dir/archive_old"
 
 function archive {
   if [[ ! $(which rsync) ]] ; then
@@ -1639,16 +1539,10 @@ function archive {
   fi
   rescript_lock
   trap 'prev_cmd=$this_cmd; this_cmd=$BASH_COMMAND' DEBUG
-  if [[ ! -z "$host_flag" ]] ; then
+  if [[ -n "$host_flag" ]] ; then
     host_archive="$host_flag"
-    if [[ ! "$(restic snapshots --compact --host "$host_flag" | tail -1 | awk '{print $1}')" ]] ; then
-      echo "There is no host named [$host_flag] in your repository."
-      exit
-    fi
-  elif [[ ! -z "$HOST" ]] ; then
-    host_archive="$HOST"
   else
-    host_archive="$(hostname)"
+    host_archive="$rhost"
   fi
   if [[ "$cmd" = "archive" ]] ; then
     logger
@@ -1656,10 +1550,19 @@ function archive {
   fi
   debug_start
   echo "Starting archive..."
-  check_snapshots=$( restic snapshots --compact --host "$host_archive")
+  echo -ne 'Retrieving snapshots data     : [#######-------------](33%)\r'
+  check_snapshots=$(restic snapshots --compact --host "$host_archive")
+  latest_cmd=$prev_cmd exit_code="$?"
+  echo -ne 'Retrieving snapshots data     : [##############------](66%)\r'
   check_archives=$(restic snapshots --compact --host "$host_archive" --tag "archive" --path "/tmp/archive")
-  if [[ "$(echo "$check_snapshots" | tail -1 | awk '{print $1}')" -lt "2" ]] ; then
-    echo "There is only $(echo "$check_snapshots" | tail -1 | awk '{print $1}') snapshot available."
+  latest_cmd=$prev_cmd exit_code="$?"
+  echo -ne 'Retrieving snapshots data     : [####################](100%)\r'
+  echo -ne '\n'
+  if [[ ! "$(echo "$check_snapshots" | tail -1 | awk '{print $1}')" ]] ; then
+    echo "There is no host named [$host_archive] in your repository."
+    exit 1
+  elif [[ "$(echo "$check_snapshots" | tail -1 | awk '{print $1}')" -lt "2" ]] ; then
+    echo "There is only $(echo "$check_snapshots" | tail -1 | awk '{print $1}') snapshot available... unable to proceed."
     echo "Listing snapshots..."
     echo "$check_snapshots"
     debug_stop
@@ -1669,8 +1572,8 @@ function archive {
     if [[ "$cmd" = "archive" ]] ; then
       time_end
     fi
-  fi
-  if [[ "$(echo "$check_snapshots" | tail -1 | awk '{print $1}')" = "2" && "$(echo "$check_archives" | tail -1 | awk '{print $1}')" -gt "0" ]] ; then
+    exit 0
+  elif [[ "$(echo "$check_snapshots" | tail -1 | awk '{print $1}')" = "2" && "$(echo "$check_archives" | tail -1 | awk '{print $1}')" -gt "0" ]] ; then
     echo "There are no files to archive..."
     debug_stop
     if [[ "$info_flag" = "true" && "$cmd" = "archive" ]] ; then
@@ -1679,28 +1582,22 @@ function archive {
     if [[ "$cmd" = "archive" ]] ; then
       time_end
     fi
+    exit 0
   fi
-  echo -ne 'Checking for files to archive: [########                ](33%)\r'
+  echo -ne 'Checking for files to archive : [#####---------------](25%)\r'
   prevsnap=$(echo "$check_snapshots" | tail -4 | head -1 | awk '{print $1}')
-  echo -ne 'Checking for files to archive: [################        ](66%)\r'
+  echo -ne 'Checking for files to archive : [##########----------](50%)\r'
   latesnap=$(echo "$check_snapshots" | tail -3 | head -1 | awk '{print $1}')
-  case "$(uname -s)" in
-    Darwin)
-      rescript_archive="$tmp_dir/$(gtr -dc '0-9A-Z' < /dev/urandom | head -c 40)"
-      ;;
-    *)
-      rescript_archive="$tmp_dir/$(tr -dc '0-9A-Z' < /dev/urandom | head -c 40)"
-      ;;
-  esac
-  archiver="$tmp_dir/archive"
-  archiver_latest="$tmp_dir/archive_latest"
-  archiver_old="$tmp_dir/archive_old"
-  restic diff "$prevsnap" "$latesnap" | grep -e '-    /' | sed -e 's/^-    //g' > "$rescript_archive"
-  echo -ne 'Checking for files to archive : [########################](100%)\r'
+  echo -ne 'Checking for files to archive : [###############-----](75%)\r'
+  rescript_archive=$(restic diff "$prevsnap" "$latesnap" | grep -e '-    /' | sed -e 's/^-    //g')
+  latest_cmd=$prev_cmd exit_code="$?"
+  if [[ "$exit_code" -gt "0" ]] ; then
+    latest_error
+  fi
+  echo -ne 'Checking for files to archive : [####################](100%)\r'
   echo -ne '\n'
   wait
-  if [[ ! -s "$rescript_archive" ]] ; then
-    rm -rf "$rescript_archive" >> /dev/null 2>&1
+  if [[ -z "$rescript_archive" ]] ; then
     echo "There are no files to archive..."
     debug_stop
     if [[ "$info_flag" = "true" && "$cmd" = "archive" ]] ; then
@@ -1710,93 +1607,93 @@ function archive {
       time_end
     fi
   else
-    if [[ "$(grep -c "/" "$rescript_archive")" = "1" ]] ; then
-      echo "There is $(grep -c "/" "$rescript_archive") file deleted from the latest snapshot:"
+    if [[ "$(echo "$rescript_archive" | grep -c "/")" = "1" ]] ; then
+      echo "There is $(echo "$rescript_archive" | grep -c "/") file deleted from the latest snapshot:"
     else
-      echo "There are $(grep -c "/" "$rescript_archive") files deleted from the latest snapshot:"
+      echo "There are $(echo "$rescript_archive" | grep -c "/") files deleted from the latest snapshot:"
     fi
-    cat -n "$rescript_archive"
-    echo -ne 'Restoring deleted files       : [#####                   ](20%)\r'
-    eval filter="( $(sed 's/ \+/\\ /g' < "$rescript_archive" | sed 's/^/--include="/' | sed 's/$/"/') )"
+    cat -n <(echo "$rescript_archive")
+    echo -ne 'Restoring deleted files       : [####----------------](20%)\r'
+    eval "filter=( $(echo "$rescript_archive" | sed 's/^/--include="/' | sed 's/$/"/') )"
     wait
     restic restore "${filter[@]}" --verify "$prevsnap" -t "$archiver_latest" >> /dev/null 2>&1 &
-    latest_cmd=$prev_cmd cmd_error="$?"
-      if [[ "$cmd_error" -gt "0" ]] ; then
-        { rm -rf "$rescript_archive" ; rm -rf "$archiver" ; rm -rf "$archiver_latest" ; rm -rf "$archiver_old" ; }
+    latest_cmd=$prev_cmd exit_code="$?"
+      if [[ "$exit_code" -gt "0" ]] ; then
+        archive_cleanup
         latest_error
       fi
     wait
-    echo -ne 'Restoring deleted files       : [##########              ](40%)\r'
+    echo -ne 'Restoring deleted files       : [########------------](40%)\r'
     if [[ "$(echo "$check_archives" | tail -1 | awk '{print $1}')" -gt "0" ]] ; then
       restic restore --host "$host_archive" --tag "archive" --path "$tmp_dir/archive" --verify latest -t "$archiver_old" >> /dev/null 2>&1
-      latest_cmd=$prev_cmd cmd_error="$?"
-      if [[ "$cmd_error" -gt "0" ]] ; then
-        { rm -rf "$rescript_archive" ; rm -rf "$archiver" ; rm -rf "$archiver_latest" ; rm -rf "$archiver_old" ; }
+      latest_cmd=$prev_cmd exit_code="$?"
+      if [[ "$exit_code" -gt "0" ]] ; then
+        archive_cleanup
         latest_error
       fi
     fi
     wait
-    echo -ne 'Restoring deleted files       : [###############         ](60%)\r'
+    echo -ne 'Restoring deleted files       : [############--------](60%)\r'
     restic forget --host "$host_archive" --tag "archive" --path "$tmp_dir/archive" --keep-last="1" >> /dev/null 2>&1
-    latest_cmd=$prev_cmd cmd_error="$?"
-    if [[ "$cmd_error" -gt "0" ]] ; then
-      { rm -rf "$rescript_archive" ; rm -rf "$archiver" ; rm -rf "$archiver_latest" ; rm -rf "$archiver_old" ; }
+    latest_cmd=$prev_cmd exit_code="$?"
+    if [[ "$exit_code" -gt "0" ]] ; then
+      archive_cleanup
       latest_error
     fi
     wait
-    echo -ne 'Restoring deleted files       : [####################    ](80%)\r'
+    echo -ne 'Restoring deleted files       : [################----](80%)\r'
     restic forget --host "$host_archive" --tag "archive" --path "$tmp_dir/archive" latest >> /dev/null 2>&1
-    latest_cmd=$prev_cmd cmd_error="$?"
-    if [[ "$cmd_error" -gt "0" ]] ; then
-      { rm -rf "$rescript_archive" ; rm -rf "$archiver" ; rm -rf "$archiver_latest" ; rm -rf "$archiver_old" ; }
+    latest_cmd=$prev_cmd exit_code="$?"
+    if [[ "$exit_code" -gt "0" ]] ; then
+      archive_cleanup
       latest_error
     fi
     wait
-    echo -ne 'Restoring deleted files       : [########################](100%)\r'
+    echo -ne 'Restoring deleted files       : [####################](100%)\r'
     echo -ne '\n'
     if [[ -d "$archiver_old" ]] ; then
-      echo -ne 'Merging data                  : [########                ](33%)\r'
+      echo -ne 'Merging data                  : [#######-------------](33%)\r'
       rsync -a $archiver_old/tmp/archive/* $archiver >> /dev/null 2>&1
-      latest_cmd=$prev_cmd cmd_error="$?"
-      if [[ "$cmd_error" -gt "0" ]] ; then
-        { rm -rf "$rescript_archive" ; rm -rf "$archiver" ; rm -rf "$archiver_latest" ; rm -rf "$archiver_old" ; }
+      latest_cmd=$prev_cmd exit_code="$?"
+      if [[ "$exit_code" -gt "0" ]] ; then
+        archive_cleanup
         latest_error
       fi
       wait
-      echo -ne 'Merging data                  : [################        ](66%)\r'
+      echo -ne 'Merging data                  : [##############------](33%)\r'
       rsync -a $archiver_latest/* $archiver >> /dev/null 2>&1
-      latest_cmd=$prev_cmd cmd_error="$?"
-      if [[ "$cmd_error" -gt "0" ]] ; then
-        { rm -rf "$rescript_archive" ; rm -rf "$archiver" ; rm -rf "$archiver_latest" ; rm -rf "$archiver_old" ; }
+      latest_cmd=$prev_cmd exit_code="$?"
+      if [[ "$exit_code" -gt "0" ]] ; then
+        archive_cleanup
         latest_error
       fi
       wait
-      echo -ne 'Merging data                  : [########################](100%)\r'
+      echo -ne 'Merging data                  : [####################](100%)\r'
       echo -ne '\n'
     else
-      echo -ne 'Merging data                  : [############            ](50%)\r'
+      echo -ne 'Merging data                  : [##########----------](50%)\r'
       rsync -a $archiver_latest/* $archiver >> /dev/null 2>&1
-      latest_cmd=$prev_cmd cmd_error="$?"
-      if [[ "$cmd_error" -gt "0" ]] ; then
-        { rm -rf "$rescript_archive" ; rm -rf "$archiver" ; rm -rf "$archiver_latest" ; rm -rf "$archiver_old" ; }
+      latest_cmd=$prev_cmd exit_code="$?"
+      if [[ "$exit_code" -gt "0" ]] ; then
+        archive_cleanup
         latest_error
       fi
       wait
-      echo -ne 'Merging data                  : [########################](100%)\r'
+      echo -ne 'Merging data                  : [####################](100%)\r'
       echo -ne '\n'
     fi
-    echo -ne 'Archiving deleted files       : [############            ](50%)\r'
+    echo -ne 'Archiving deleted files       : [##########----------](50%)\r'
     restic backup --time "2015-$(date +%m-%d) $(date +%H:%M:%S)" --tag archive --host "$host_archive" "$archiver" >> /dev/null 2>&1
-    latest_cmd=$prev_cmd cmd_error="$?"
-    if [[ "$cmd_error" -gt "0" ]] ; then
-      { rm -rf "$rescript_archive" ; rm -rf "$archiver" ; rm -rf "$archiver_latest" ; rm -rf "$archiver_old" ; }
+    latest_cmd=$prev_cmd exit_code="$?"
+    if [[ "$exit_code" -gt "0" ]] ; then
+      archive_cleanup
       latest_error
     fi
     wait
-    echo -ne 'Archiving deleted files       : [########################](100%)\r'
+    echo -ne 'Archiving deleted files       : [####################](100%)\r'
     echo -ne '\nArchive Completed!\n'
     debug_stop
-    { rm -rf "$rescript_archive" ; rm -rf "$archiver" ; rm -rf "$archiver_latest" ; rm -rf "$archiver_old" ; }
+    archive_cleanup
     if [[ "$info_flag" = "true" && "$cmd" = "archive" ]] ; then
       statinfo
     fi
@@ -1806,14 +1703,27 @@ function archive {
   fi
 }
 
+function archive_cleanup {
+  if [[ -d "$archiver" ]] ; then
+    rm -rf "${archiver:?}"
+  fi
+  if [[ -d "$archiver_latest" ]] ; then
+    rm -rf "${archiver_latest:?}"
+  fi
+  if [[ -d "$archiver_old" ]] ; then
+    rm -rf "${archiver_old:?}"
+  fi
+}
+
 function automatic {
   rescript_lock
   case "$LOGGING" in
     y|yes)
       log_flag="true"
-      logger
       ;;
   esac
+  logger
+  time_flag="true"
   time_start
   # Backup
   case "$SKIP_OFFICE" in
@@ -1826,18 +1736,18 @@ function automatic {
   if [[ "$exclusions" -gt "0" ]] ; then
     echo -e "$yellow""There are $exclusions exclusion rules...""$endcolor"
   fi
-  printf "%$((80/1))s\n" "" | tr ' ' -
+  printf "%${cols}s\n" "" | tr ' ' -
   # Snapshot List
   echo -e "$yellow""[Snapshots List...]""$endcolor"
   snaps
-  printf "%$((80/1))s\n" "" | tr ' ' -
-  latest_cmd=$prev_cmd cmd_error="$?"
+  printf "%${cols}s\n" "" | tr ' ' -
+  latest_cmd=$prev_cmd exit_code="$?"
   latest_error
   case "$ARCHIVE" in
-    y|yes) echo -e "$yellow""[Starting archive...]""$endcolor" ; archive ; printf "%$((80/1))s\n" "" | tr ' ' - ;;
+    y|yes) echo -e "$yellow""[Starting archive...]""$endcolor" ; archive ; printf "%${cols}s\n" "" | tr ' ' - ;;
   esac
   # Check and Clean Repo Based on User's Policy
-  if [[ -f "$config_dir/$repo-datefile" || "$CLEAN" -gt "0" ]]; then
+  if [[ -f "$config_dir/$repo-datefile" || -n "$CLEAN" ]]; then
     if [[ ! -f "$config_dir/$repo-datefile" ]] ; then
       touch "$config_dir/$repo-datefile"
     fi
@@ -1845,41 +1755,41 @@ function automatic {
     if [[ "$now" -lt "$next" ]] ; then
       cleanup-next
     else 
-      if [[ ! -z "${policies[*]}" ]] ; then
+      if [[ -n "${policies[*]}" ]] ; then
         echo -e "$yellow""[Cleaning Repo...]""$endcolor"
         cleanup
-        printf "%$((80/1))s\n" "" | tr ' ' -
+        printf "%${cols}s\n" "" | tr ' ' -
         echo -e "$yellow""[Checking for Errors in Repo...]""$endcolor"
         restic check --cleanup-cache
-        latest_cmd=$prev_cmd cmd_error="$?"
+        latest_cmd=$prev_cmd exit_code="$?"
         latest_error
-        printf "%$((80/1))s\n" "" | tr ' ' -
-        if [[ "$CLEAN" -gt "0" ]] ; then
-          if [[ "$CLEAN" = "1" ]] ; then
-            d="day"
-          else
-            d="days"
-          fi
-          echo -e "$yellow""[Done Cleaning; Next Cleanup and Check Will Be Done in $CLEAN $d...]""$endcolor"
-          case "$(uname -s)" in
+        printf "%${cols}s\n" "" | tr ' ' -
+        if [[ -n "$CLEAN" ]] ; then
+          case "$unix_name" in
             Linux|GNU)
-              date -d now+"$CLEAN"days > "$config_dir/$repo-datefile"
+              date -d now+"$CLEAN" 2>/dev/null > "$config_dir/$repo-datefile"
               ;;
             *)
-              gdate -d now+"$CLEAN"days > "$config_dir/$repo-datefile"
+              gdate -d now+"$CLEAN" 2>/dev/null > "$config_dir/$repo-datefile"
               ;;
           esac
+          exit_code="$?"
+          if [[ "$exit_code" -gt "0" ]] ; then
+            echo -e "$yellow""WARNING: \nCLEAN is set to $CLEAN in your configuration file; please use the correct syntax as follows:"$endcolor" \n1. CLEAN=""$CLEAN"days"     <---setup cleanup every $CLEAN days\n2. CLEAN=""$CLEAN"hours"    <---setup cleanup every $CLEAN hours\n3. CLEAN=""$CLEAN"minutes"  <---setup cleanup every $CLEAN minutes"
+          else
+            echo -e "$yellow""[Done Cleaning; Next Cleanup and Check Will Be Done in $(echo "$CLEAN" | sed 's/[a-z]//g') $(echo "$CLEAN" | sed 's/[0-9]//g')...]""$endcolor"
+          fi
         fi
       fi
     fi
   else 
-      if [[ ! -z "${policies[*]}" ]] ; then
+      if [[ -n "${policies[*]}" ]] ; then
         echo -e "$yellow""[Cleaning Repo...]""$endcolor"
         cleanup
-        printf "%$((80/1))s\n" "" | tr ' ' -
+        printf "%${cols}s\n" "" | tr ' ' -
         echo -e "$yellow""[Checking for Errors in Repo...]""$endcolor"
         restic check --cleanup-cache
-        latest_cmd=$prev_cmd cmd_error="$?"
+        latest_cmd=$prev_cmd exit_code="$?"
         latest_error
       fi
   fi
@@ -1887,17 +1797,12 @@ function automatic {
   statinfo
   # Time and Runtime
   time_end
-  if [[ "$CLEAN" -gt "0" && -z "${policies[*]}" ]] ; then
-    if [[ "$CLEAN" = "1" ]] ; then
-      d="day"
-    else
-      d="days"
-    fi
+  if [[ -n "$CLEAN" && -z "${policies[*]}" ]] ; then
     echo "[rescript] noted that your CLEAN variable is $CLEAN, so [rescript] assumes that"
-    echo "you want to perform a 'cleanup' (forget, prune and check) every $CLEAN $d but"
+    echo "you want to perform a 'cleanup' (forget, prune and check) every $(echo "$CLEAN" | sed 's/[a-z]//g') $(echo "$CLEAN" | sed 's/[0-9]//g') but"
     echo "it can't execute it if you have not set the KEEP variables; please set your"
-    echo "desired KEEP values in order to perform the 'cleanup' every $CLEAN $d. If you"
-    echo "don't want [rescript] to 'cleanup' your repo automatically every $CLEAN $d,"
+    echo "desired KEEP values in order to perform the 'cleanup' every $(echo "$CLEAN" | sed 's/[a-z]//g') $(echo "$CLEAN" | sed 's/[0-9]//g'). If you"
+    echo "don't want [rescript] to 'cleanup' your repo automatically every $(echo "$CLEAN" | sed 's/[a-z]//g') $(echo "$CLEAN" | sed 's/[0-9]//g'),"
     echo "just leave the CLEAN variable blank in your cofiguration file and this"
     echo "message will not appear again."
     echo ""
@@ -1907,6 +1812,22 @@ function automatic {
 }
 
 function backup {
+  declare -a bu_opts
+  if [[ "$EXCLUDE_CACHE" = "yes" || "$EXCLUDE_CACHE" = "y" || -z "$EXCLUDE_CACHE" ]] ; then
+    bu_opts+=( --exclude-caches )
+  fi
+  if [[ "$EXCLUDE_FILE" = "yes" || "$EXCLUDE_FILE" = "y" || -z "$EXCLUDE_FILE" ]] ; then
+    bu_opts+=( --exclude-file="$excludes" )
+  fi
+  if [[ "$ONE_FILE_SYSTEM" = "yes" || "$ONE_FILE_SYSTEM" = "y" ]] ; then
+    bu_opts+=( --one-file-system )
+  fi
+  if [[ -n "$HOST" ]] ; then
+    bu_opts+=( --host="$HOST" )
+  fi
+  if [[ -n "$TAG" ]] ; then
+    bu_opts+=( --tag="$TAG" )
+  fi
   if [[ "$cmd" != "backup" ]] ; then
     rm -rf "$lock"
   fi
@@ -1916,25 +1837,25 @@ function backup {
     logger
     time_start
   fi
+  debug_start
   if [[ "$skip_flag" = "true" ]] ; then
-    debug_start
-    restic backup --verbose --exclude-caches --exclude-file="$excludes" $restic_tag $restic_host --exclude-file=<(find $BACKUP_DIR -iname ".~lock.*" 2> /dev/null | sed -e 's/.~lock.//g' | sed -e 's/#//g') --exclude=".~lock.*" ${rest[@]} $BACKUP_DIR
-    latest_cmd=$prev_cmd cmd_error="$?"
-    debug_stop
-    latest_error
+    restic backup --verbose ${bu_opts[@]} --exclude-file=<(find $BACKUP_DIR -iname ".~lock.*" 2> /dev/null | sed -e 's/.~lock.//g' | sed -e 's/#//g') --exclude=".~lock.*" ${rest[@]} $BACKUP_DIR
   else
-    debug_start
-    restic backup --verbose --exclude-caches --exclude-file="$excludes" $restic_tag $restic_host ${rest[@]} $BACKUP_DIR
-    latest_cmd=$prev_cmd cmd_error="$?"
-    debug_stop
-    latest_error
+    restic backup --verbose ${bu_opts[@]} ${rest[@]} $BACKUP_DIR
   fi
+  latest_cmd=$prev_cmd exit_code="$?"
+  debug_stop
+  latest_error
   if [[ "$archive_flag" = "true" ]] ; then
     archive
   fi
   if [[ "$cleanup_flag" = "true" ]] ; then
-    echo "Starting [cleanup]..."
+    echo "Starting cleanup..."
     cleanup
+  fi
+  if [[ "$check_flag" = "true" && "$cmd" = "backup" ]] ; then
+    echo "Starting check..."
+    restic check
   fi
   if [[ "$info_flag" = "true" && "$cmd" = "backup" ]] ; then
     statinfo
@@ -1950,42 +1871,40 @@ function statinfo {
     rm -rf "$lock"
   fi
   rescript_lock
-  trap 'prev_cmd=$this_cmd; this_cmd=$BASH_COMMAND' DEBUG
   if [[ "$cmd" = "info" ]] ; then
     logger
     time_start
   fi
+  if [[ -n "$host_flag" ]] ; then
+    rhost="$host_flag"
+  fi
   if [[ "$cmd" != "info" ]] ; then
-    printf "%$((80/1))s\n" "" | tr ' ' -
+    printf "%${cols}s\n" "" | tr ' ' -
   fi
-  if [[ ! -z "$HOST" ]] ; then
-    stat_host="$HOST"
-  else
-    stat_host="$(hostname)"
-  fi
+  trap 'prev_cmd=$this_cmd; this_cmd=$BASH_COMMAND' DEBUG
   debug_start
-  echo -ne 'Processing stats              : [#####                   ](20%)\r'
-  latest_host_stat="$(restic stats --host "$stat_host" latest | grep 'Total Size' | sed 's/Total Size: //g')"
-  latest_cmd=$prev_cmd cmd_error="$?"
+  echo -ne 'Processing stats              : [####----------------](20%)\r'
+  latest_host_stat=$(restic stats --host "$rhost" latest | grep 'Total Size' | sed 's/Total Size: //g')
+  latest_cmd=$prev_cmd exit_code="$?"
   latest_error
-  echo -ne 'Processing stats              : [#########               ](40%)\r'
-  host_stat="$(restic stats --mode raw-data --host "$stat_host" latest | grep 'Total Size' | sed 's/Total Size: //g')"
-  latest_cmd=$prev_cmd cmd_error="$?"
+  echo -ne 'Processing stats              : [########------------](40%)\r'
+  host_stat=$(restic stats --mode raw-data --host "$rhost" latest | grep 'Total Size' | sed 's/Total Size: //g')
+  latest_cmd=$prev_cmd exit_code="$?"
   latest_error
-  echo -ne 'Processing stats              : [###############         ](60%)\r'
-  stat_restore_size="$(restic stats | grep 'Total Size' | sed 's/Total Size: //g')"
-  latest_cmd=$prev_cmd cmd_error="$?"
+  echo -ne 'Processing stats              : [############--------](60%)\r'
+  stat_restore_size=$(restic stats | grep 'Total Size' | sed 's/Total Size: //g')
+  latest_cmd=$prev_cmd exit_code="$?"
   latest_error
-  echo -ne 'Processing stats              : [#####################   ](80%)\r'
-  stat_raw_data="$(restic stats --mode raw-data | grep 'Total Size' | sed 's/Total Size: //g')"
-  latest_cmd=$prev_cmd cmd_error="$?"
+  echo -ne 'Processing stats              : [################----](80%)\r'
+  stat_raw_data=$(restic stats --mode raw-data | grep 'Total Size' | sed 's/Total Size: //g')
+  latest_cmd=$prev_cmd exit_code="$?"
   latest_error
   debug_stop
-  echo -ne 'Processing stats              : [########################](100%)\r'
-  printf "%-25s %25s %25s\n" "Summarized Info" "Restore Size" "Deduplicated Size"
-  printf "%$((80/1))s\n" "" | tr ' ' -
-  printf "%-25s %25s %25s\n" "Latest Snapshot" "$latest_host_stat" "$host_stat"
-  printf "%-25s %25s %25s\n" "All Snapshots" "$stat_restore_size" "$stat_raw_data"
+  echo -ne 'Processing stats              : [####################](100%)\r'
+  printf "%-$((cols/4))s %$((cols/3))s %$((cols/3))s\n" "Summarized Info" "Restore Size" "Deduplicated Size"
+  printf "%${cols}s\n" "" | tr ' ' -
+  printf "%-$((cols/4))s %$((cols/3))s %$((cols/3))s\n" "Latest Snapshot" "$latest_host_stat" "$host_stat"
+  printf "%-$((cols/4))s %$((cols/3))s %$((cols/3))s\n" "All Snapshots" "$stat_restore_size" "$stat_raw_data"
   if [[ "$cmd" = "info" ]] ; then
     time_end
   fi
@@ -2001,20 +1920,18 @@ function changes {
     logger
     time_start
   fi
-  if [[ ! -z "$path_flag" ]] ; then
+  if [[ -n "$path_flag" ]] ; then
     path="--path $path_flag"
   fi
-  if [[ ! -z "$tag_flag" ]] ; then
+  if [[ -n "$tag_flag" ]] ; then
     tag="--tag $tag_flag"
   fi
-  if [[ ! -z "$host_flag" ]] ; then
+  if [[ -n "$host_flag" ]] ; then
     host="--host $host_flag"
-  elif [[ ! -z "$HOST" ]] ; then
-    host="--host $HOST"
   else
-    host="--host $(hostname)"
+    host="--host $rhost"
   fi
-  options=(
+  opts=(
     $path
     $tag
     $host
@@ -2022,15 +1939,15 @@ function changes {
   if [[ "$metadata_flag" = "true" ]] ; then
     add_meta="--metadata"
   fi
-  echo -ne 'Retrieving snapshots          : [############            ](50%)\r'
+  echo -ne 'Retrieving snapshots          : [##########----------](50%)\r'
   debug_start
-  snapshots=$(restic snapshots --compact ${options[@]})
-  latest_cmd=$prev_cmd cmd_error="$?"
+  snapshots=$(restic snapshots --compact ${opts[@]})
+  latest_cmd=$prev_cmd exit_code="$?"
   debug_stop
   latest_error
   previous_snapshot=$(echo "$snapshots" | tail -4 | head -1 | awk '{print $1}')
   latest_snapshot=$(echo "$snapshots" | tail -3 | head -1 | awk '{print $1}')
-  echo -ne 'Retrieving snapshots          : [########################](100%)\r'
+  echo -ne 'Retrieving snapshots          : [####################](100%)\r'
   echo -ne '\n'
   if [[ -z "$previous_snapshot" || -z "$latest_snapshot" ]] ; then
     echo "It seems the repository does not have snapshots to compare with; if any option was indicated, please check if the hostname, tagname or path were misspelled."
@@ -2039,7 +1956,7 @@ function changes {
   fi
   debug_start
   restic diff "$previous_snapshot" "$latest_snapshot" $add_meta
-  latest_cmd=$prev_cmd cmd_error="$?"
+  latest_cmd=$prev_cmd exit_code="$?"
   debug_stop
   latest_error
   time_end
@@ -2058,18 +1975,18 @@ function cleanup {
   if [[ "$cmd" = "cleanup" && "$archive_flag" = "true" ]] ; then
     archive
   fi
-  if [[ ! -z "${policies[*]}" ]] ; then
+  if [[ -n "${policies[*]}" ]] ; then
     debug_start
     restic forget "${policies[@]}" ${rest[@]}
-    latest_cmd=$prev_cmd cmd_error="$?"
+    latest_cmd=$prev_cmd exit_code="$?"
     debug_stop
     latest_error
     debug_start
     restic prune --cleanup-cache
-    latest_cmd=$prev_cmd cmd_error="$?"
+    latest_cmd=$prev_cmd exit_code="$?"
     debug_stop
     latest_error
-    if [[ -f "$config_dir/$repo-datefile" || "$CLEAN" -gt "0" ]] ; then
+    if [[ -f "$config_dir/$repo-datefile" || -n "$CLEAN" ]] ; then
       if [[ "$cmd" = "cleanup" ]] ; then
         cleanup-next
       fi
@@ -2079,6 +1996,10 @@ function cleanup {
     echo "If you want to use [cleanup] option you need to set the [KEEP] variables."
     echo "For more information about the Usage check out the following link:"
     echo "https://gitlab.com/sulfuror/rescript.sh/blob/master/README.md#usage"
+  fi
+  if [[ "$check_flag" = "true" && "$cmd" = "cleanup" ]] ; then
+    echo "Starting check..."
+    restic check
   fi
   if [[ "$info_flag" = "true"  && "$cmd" = "cleanup" ]] ; then
     statinfo
@@ -2151,13 +2072,15 @@ function debug_stop {
 
 function env_conf {
   if [[ "$var_flag" ]] ; then
-    if [[ ! $(    sed '/^#/ d' < "$config_dir/$repo.conf" | sed '/^\s*$/d' | grep "$var_flag") ]] ; then
-      echo "There is no var named [$var_flag]... try using UPPERCASE"
+    upper_var=$(echo "$var_flag" | tr '[:lower:]' '[:upper:]')
+    search=$(sed '/^#/ d' < "$config_dir/$repo.conf" | sed '/^\s*$/d' | grep "$upper_var")
+    if [[ -z "$search" ]] ; then
+      echo "There is no var named [$var_flag]..."
       echo ""
       env-help
       exit 1
     else
-      sed '/^#/ d' < "$config_dir/$repo.conf" | sed '/^\s*$/d' | grep "$var_flag"
+      echo "$search"
     fi
   else
     sed '/^#/ d' < "$config_dir/$repo.conf" | sed '/^\s*$/d'
@@ -2165,48 +2088,47 @@ function env_conf {
 }
 
 function logs {
-  shopt -u nocasematch
-  if [[ ! "$flags" ]] ; then
+  if [[ "$catlogs" = "false" && "$removelogs" = "false" ]] ; then
     if ls "$logs_dir/$repo"-* 1> /dev/null 2>&1 ; then
       ls $logs_dir/ | grep -e "$repo"
       echo ""
       echo "Your logs are saved at $logs_dir"
+      exit 0
     else
       echo "There are no log files to list for [$repo]."
+      exit 0
     fi
+  elif [[ "$catlogs" = "true" && "$removelogs" = "true" ]] ; then
+    echo "You cannot use '--cat' and '--remove' at the same time"
+    echo ""
+    logs-help
+    exit 1
   fi
-  if [[ "$flags" ]] ; then
-    case "$flags" in
-      -c|--cat)
-        if [[ "$logfile" ]] ; then
-          cat "$logs_dir/$logfile"
-        else
-          echo "No log file indicated..."
-          exit 1
-        fi
-        ;;
-      -h|--help)
-        logs-help
+  if [[ "$catlogs" = "true" ]] ; then
+    cat "$logs_dir/$logfile"
+  elif [[ "$removelogs" = "true" ]] ; then
+    if [[ "$logfile" = "all" ]] ; then
+      if ls "$logs_dir/$repo"-* 1> /dev/null 2>&1 ; then
+        rm -rfv "${logs_dir:?}/$repo"-*
+        echo "Log files removed for [$repo]."
         exit 0
-        ;;
-      -r|--remove)
-        if [[ "$logfile" ]] ; then
-          rm -rf "$logs_dir/$logfile"
-          echo "[$logfile] removed."
-        elif ls "$logs_dir/$repo"-* 1> /dev/null 2>&1 ; then
-          rm -rf "$logs_dir/$repo"-*
-          echo "Log files removed for [$repo]."
-        else
-          echo "There are no log files to remove for [$repo]." 
-        fi
-        ;;
-      *)
-        echo "Invalid option [$flags]..."
-        echo ""
-        logs-help
+      else
+        echo "There are no log files to remove for [$repo]."
+        exit 0
+      fi
+    else
+      if ls "$logs_dir/$logfile" 1> /dev/null 2>&1 ; then
+        rm -rfv "${logs_dir:?}/$logfile"
+        echo "[$logfile] removed."
+        exit 0
+      else
+        echo "There are is log file called [$logfile]."
         exit 1
-        ;;
-    esac
+      fi
+    fi
+  else
+    echo "Something is not right."
+    exit 1
   fi
 }
 
@@ -2218,24 +2140,36 @@ function logger {
       log="$logs_dir/$repo-$cmd-log-$(date +%Y-%m-%d-%H:%M).log"
     fi
     exec > >(tee -a "$log") 2>&1
+  else
+    exec > >(tee -a "$tmplog") 2>&1
   fi
 }
 
 function mounter {
   rescript_lock
+  rmount="$HOME/$repo-repo-$(date +%s)"
   mkdir "$rmount"
   restic mount ${rest[@]} "$rmount"
   rm -rf "$rmount"
 }
 
 function non_opt {
-  echo ""
-  $cmd-help
-  exit 1
+  case "$cmd" in
+  archive|backup|changes|checkout|cleanup|env|info|logs|mounter|restorer|snaps|unlocker)
+    echo ""
+    $cmd-help
+    exit 1
+    ;;
+  *)
+    echo ""
+    usage | sed -ne '/Usage/,/EOF/p'
+    exit 1
+    ;;
+  esac
 }
 
 function now_next {
-  case "$(uname -s)" in
+  case "$unix_name" in
     Linux|GNU)
       now=$(date +"%s")
       next=$(date -f "$config_dir/$repo-datefile" "+%s")
@@ -2256,7 +2190,7 @@ function random-check {
   trap 'prev_cmd=$this_cmd; this_cmd=$BASH_COMMAND' DEBUG
   debug_start
   restic check --read-data-subset $((RANDOM % 10 + 1))/10
-  latest_cmd=$prev_cmd cmd_error="$?"
+  latest_cmd=$prev_cmd exit_code="$?"
   debug_stop
   latest_error
   if [[ "$cmd" = "checkout" ]] ; then
@@ -2266,6 +2200,7 @@ function random-check {
 
 function rescript_lock {
   if [ -e "$lock" ]; then
+    logger
     echo "WARNING: [$repo] repo is already running..."
     echo "If you are sure $repo is not running, type"
     echo " "
@@ -2275,10 +2210,13 @@ function rescript_lock {
     echo ""
     echo "Lock file info:"
     stat "$lock_dir/$repo.lock"
-    exit
+    latest_cmd="$cmd"
+    exit_code="1"
+    latest_error
+  else
+    touch "$lock"
+    trap 'rm -rf "${lock:?}" ; rm -rf "${tmplog:?}"' INT QUIT TERM EXIT
   fi
-  touch "$lock"
-  trap 'rm -rf "$lock"' INT QUIT TERM EXIT
 }
 
 function restic_alone {
@@ -2288,9 +2226,13 @@ function restic_alone {
   time_start
   debug_start
   restic ${rest[@]}
-  latest_cmd=$prev_cmd cmd_error="$?"
+  latest_cmd=$prev_cmd exit_code="$?"
   debug_stop
   rest_cmd=$(echo "${rest[@]}" | awk '{print $1}')
+  case "$rest_cmd" in
+    --repo=*) rest_cmd=$(echo "${rest[@]}" | awk '{print $2}') ;;
+    -r*|--repo*) rest_cmd=$(echo "${rest[@]}" | awk '{print $3}') ;;
+  esac
   latest_error
   time_end
 }
@@ -2315,21 +2257,17 @@ function restorer {
     logger
     time_start
   fi
-  if [[ "$DESTINATION" ]] ; then
-    echo -e "$yellow""Restoring from:""$endcolor" "$DESTINATION..."
-  else
-    echo -e "$yellow""Restoring from:""$endcolor" "$RESTIC_REPO"
-  fi
+  echo -e "$yellow""Restoring from:""$endcolor" "$dest..."
   if [[ "$snap_id" ]] ; then
     debug_start
     restic restore $snap_id --target $restore_dir --verify
-    latest_cmd=$prev_cmd cmd_error="$?"
+    latest_cmd=$prev_cmd exit_code="$?"
     debug_stop
     latest_error
   else
     debug_start
     restic restore latest --target $restore_dir $restore_opts --verify
-    latest_cmd=$prev_cmd cmd_error="$?"
+    latest_cmd=$prev_cmd exit_code="$?"
     debug_stop
     latest_error
   fi
@@ -2351,7 +2289,7 @@ function snaps {
   fi
   debug_start
   restic snapshots --compact ${rest[@]}
-  latest_cmd=$prev_cmd cmd_error="$?"
+  latest_cmd=$prev_cmd exit_code="$?"
   debug_stop
   latest_error
   if [[ "$cmd" = "snaps" ]] ; then
@@ -2361,53 +2299,36 @@ function snaps {
 
 function time_start {
   if [[ ! "$cmd" ]] ; then
-    title="S T A R T I N G    B A C K U P"
-    printf "%$((80/1))s\n" "" | tr ' ' =
-    printf "%$(((80 + ${#title}) / 2))s\n" "$title"
-    printf "%$((80/1))s\n" "" | tr ' ' =
+    title="STARTING SCRIPT"
+  else
+    title="starting $cmd"
+  fi
+  if [[ "$time_flag" = "true" ]] ; then
+    printf "%${cols}s\n" "" | tr ' ' =
+    printf "%$(((cols + ${#title}) / 2))s\n" "$title" | tr '[:lower:]' '[:upper:]'
+    printf "%${cols}s\n" "" | tr ' ' =
     echo -e "$yellow""Date and Time:""$endcolor" "$(date +%a\ %b\ %d\ %Y\ %r)"
     echo -e "$yellow""System:""$endcolor" "$(opsys)"
-    if [[ "$HOST" ]] ; then
-      echo -e "$yellow""Hostname:""$endcolor" "$HOST"
-    else
-      echo -e "$yellow""Hostname:""$endcolor" "$(hostname)"
-    fi
-    if [[ "$DESTINATION" ]] ; then
-      echo -e "$yellow""Repository Location:""$endcolor" "$DESTINATION"
-    else
-      echo -e "$yellow""Repository Location:""$endcolor" "$RESTIC_REPO"
-    fi
+    echo -e "$yellow""Hostname:""$endcolor" "$rhost"
+    echo -e "$yellow""Repository Location:""$endcolor" "$dest"
     echo -e "$yellow""Restic Version:""$endcolor" "$(restic version | awk '{print $2}')"
-    printf "%$((80/1))s\n" "" | tr ' ' -
-  elif [[ "$cmd" && "$time_flag" = "true" ]] ; then
-    echo -e "$yellow""Starting [$cmd] for [$repo]...""$endcolor"
-    echo -e "$yellow""Date and Time:""$endcolor" "$(date +%a\ %b\ %d\ %Y\ %r)"
-    if [[ "$DESTINATION" ]] ; then
-      echo -e "$yellow""Repository Location:""$endcolor" "$DESTINATION"
-    else
-      echo -e "$yellow""Repository Location:""$endcolor" "$RESTIC_REPO"
-    fi
-    echo -e "$yellow""Restic Version:""$endcolor" "$(restic version | awk '{print $2}')"
-    printf "%$((80/1))s\n" "" | tr ' ' -
+    printf "%${cols}s\n" "" | tr ' ' -
   fi
 }
 
 function time_end {
   if [[ ! "$cmd" ]] ; then
-    title="B A C K U P    E N D E D"
-    printf "%$((80/1))s\n" "" | tr ' ' -
+    footer="SCRIPT ENDED"
+  else
+    footer="$cmd ended"
+  fi
+  if [[ "$time_flag" = "true" ]] ; then
+    printf "%${cols}s\n" "" | tr ' ' -
     echo -e "$yellow""End:""$endcolor" "$(date +%a\ %b\ %d\ %Y\ %r)"
     echo -e "$yellow""Duration:""$endcolor" "$(duration)"
-    printf "%$((80/1))s\n" "" | tr ' ' =
-    printf "%$(((80 + ${#title}) / 2))s\n" "$title"
-    printf "%$((80/1))s\n" "" | tr ' ' =
-  fi
-  if [[ "$cmd" ]] ; then
-    if [[ "$time_flag" = "true" ]] ; then
-      printf "%$((80/1))s\n" "" | tr ' ' -
-      echo -e "$yellow""End:""$endcolor" "$(date +%a\ %b\ %d\ %Y\ %r)"
-      echo -e "$yellow""Duration:""$endcolor" "$(duration)"
-    fi
+    printf "%${cols}s\n" "" | tr ' ' =
+    printf "%$(((${cols} + ${#footer}) / 2))s\n" "$footer" | tr '[:lower:]' '[:upper:]'
+    printf "%${cols}s\n" "" | tr ' ' =
   fi
 }
 
@@ -2415,7 +2336,7 @@ function unlocker {
   if [[ ! -e "$lock" ]]; then
     echo "No locks found..."
   else
-    rm -rf "$lock"
+    rm -rf "${lock:?}"
     echo "Script unlocked..."
   fi
 }
@@ -2445,10 +2366,11 @@ if [[ ! $(which restic) ]] ; then
 fi
 if [[ ! "$2" ]] ; then
   automatic
-  exit
+  job_done
+  exit 0
 fi
-case "$(uname -s)" in
-  Darwin) 
+case "$unix_name" in
+  Darwin)
     if [[ -d "/usr/local/opt/gnu-getopt/bin" ]] ; then
       getopt="/usr/local/opt/gnu-getopt/bin/getopt"
     else
@@ -2464,7 +2386,10 @@ case "$(uname -s)" in
     getopt=$(which getopt) ;;
   *) getopt=$(which getopt) ; output="/dev/stdout" ;;
 esac
+cmd="$2"
+options=( "${@:3}" )
 archive_flag="false"
+check_flag="false"
 cleanup_flag="false"
 debug_flag="false"
 info_flag="false"
@@ -2472,27 +2397,46 @@ log_flag="false"
 metadata_flag="false"
 skip_flag="false"
 time_flag="false"
+catlogs="false"
+removelogs="false"
+case "$cmd" in
+  archive) short_opts="dehH:ilqt" ; long_opts="debug,email,help,host:,info,log,quiet,time" ;;
+  backup) short_opts="acCdeDhilqtS" ; long_opts="archive,check,cleanup,debug,email,dry-run,help,info,log,quiet,skip-office,time" ;;
+  changes) short_opts="dehH:lmp:qT:t" ; long_opts="debug,email,help,host:,log,metadata,path:,quiet,tag:,time" ;;
+  checkout) short_opts="dehlqt" ; long_opts="debug,email,help,log,quiet,time" ;;
+  cleanup) short_opts="aCdehilnqt" ; long_opts="archive,check,debug,email,help,info,log,next,quiet,reset,time" ;;
+  env) short_opts="hv:" ; long_opts="help,var:" ;;
+  info) short_opts="dehH:lt" ; long_opts="debug,email,help,host:,log,time" ;;
+  logs) short_opts="c:hr:" ; long_opts="cat:,help,remove:" ;;
+  mounter) short_opts="h" ; long_opts="help" ;;
+  restorer) short_opts="delhH:p:qs:T:t" ; long_opts="debug,email,help,host:,log,path:,quiet,snapshot:,tag:,time" ;;
+  snaps) short_opts="dehlqt" ; long_opts="debug,email,help,log,quiet,time" ;;
+  unlocker) short_opts="hq" ; long_opts="help,quiet" ;;
+esac
+case "$cmd" in
+  archive|backup|changes|checkout|cleanup|env|info|logs|mounter|restorer|snaps|unlocker)
+  case "$unix_name" in
+    Darwin)
+      if [[ -d "/usr/local/opt/gnu-getopt/bin" ]] ; then
+        get_opt=$($getopt -o $short_opts -l $long_opts -n "$(basename $0)" -- ${options[@]}) || non_opt
+      else
+        get_opt=$($getopt $short_opts "${options[@]}") || non_opt
+      fi
+      ;;
+    FreeBSD|NetBSD|OpenBSD) get_opt=$($getopt $short_opts ${options[@]}) || non_opt ;;
+    *) get_opt=$($getopt -o $short_opts -l $long_opts -n "$(basename $0)" -- ${options[@]}) || non_opt ;;
+  esac
+esac
 exec 6>&1
-case "$2" in
+case "$cmd" in
   archive)
-    cmd="$2"
     shopt -u nocasematch
-    case "$(uname -s)" in
-      Darwin)
-        if [[ -d "/usr/local/opt/gnu-getopt/bin" ]] ; then
-          get_opt=$($getopt -o dhH:ilqt -l debug,help,host:,info,log,quiet,time -n "$(echo -e "$(basename $0) $cmd")" -- "${@:3}") || non_opt
-        else
-          get_opt=$($getopt dhH:ilqt "${@:3}") || non_opt
-        fi
-        ;;
-      FreeBSD|NetBSD|OpenBSD) get_opt=$($getopt dH:hilqt "${@:3}") || non_opt ;;
-      *) get_opt=$($getopt -o dhH:ilqt -l debug,help,host:,info,log,quiet,time -n "$(echo -e "$(basename $0) $cmd")" -- "${@:3}") || non_opt ;;
-    esac
     eval set -- "$get_opt"
     while true ;
     do
       case "$1" in
         -d|--debug) shift ; debug_flag="true" ;;
+        -e|--email) shift ; int="false" ; CONFIRMATION_EMAIL="y" ;;
         -h|--help ) $cmd-help ; exit 0 ;;
         -H|--host) shift ; host_flag="$1" ; shift ;;
         -i|--info) shift ; info_flag="true" ;;
@@ -2506,24 +2450,13 @@ case "$2" in
     archive > $output
     ;;
   backup)
-    cmd="$2"
     shopt -u nocasematch
-    case "$(uname -s)" in
-      Darwin)
-        if [[ -d "/usr/local/opt/gnu-getopt/bin" ]] ; then
-          get_opt=$($getopt -o acdDhilqtS -l archive,cleanup,debug,dry-run,help,info,log,quiet,skip-office,time -n "$(echo -e "$(basename $0) $cmd")" -- "${@:3}") || non_opt
-        else
-          get_opt=$($getopt acdDhilqtS "${@:3}") || non_opt
-        fi
-        ;;
-      FreeBSD|NetBSD|OpenBSD) get_opt=$($getopt acdDhilqtS "${@:3}") || non_opt ;;
-      *) get_opt=$($getopt -o acdDhilqtS -l archive,cleanup,debug,dry-run,help,info,log,quiet,skip-office,time -n "$(echo -e "$(basename $0) $cmd")" -- "${@:3}") || non_opt ;;
-    esac
     eval set -- "$get_opt"
     while true ;
     do
       case "$1" in
         -a|--archive) shift ; archive_flag="true" ;;
+        -C|--check) shift ; check_flag="true" ;;
         -c|--cleanup) shift ; cleanup_flag="true" ;;
         -d|--debug) shift ; debug_flag="true" ;;
         -D|--dry-run)
@@ -2535,12 +2468,13 @@ case "$2" in
           echo 'may vary due to restic deduplication.'
           echo ''
           du -hc $BACKUP_DIR --exclude-from="$excludes" 2> /dev/null
-          latest_cmd=$prev_cmd cmd_error="$?"
+          latest_cmd=$prev_cmd exit_code="$?"
           echo ''
           echo '"Dry-run" ended.'
           latest_error
           exit 0
           ;;
+        -e|--email) shift ; int="false" ; CONFIRMATION_EMAIL="y" ;;
         -h|--help ) $cmd-help ; exit 0 ;;
         -i|--info) shift ; info_flag="true"  ;;
         -l|--log) shift ; log_flag="true" ;;
@@ -2554,24 +2488,13 @@ case "$2" in
     backup > $output
     ;;
   changes)
-    cmd="$2"
     shopt -u nocasematch
-    case "$(uname -s)" in
-      Darwin)
-        if [[ -d "/usr/local/opt/gnu-getopt/bin" ]] ; then
-          get_opt=$($getopt -o dhH:lmp:qT:t -l debug,help,host:,log,metadata,path:,quiet,tag:,time -n "$(echo -e "$(basename $0) $cmd")" -- "${@:3}") || non_opt
-        else
-          get_opt=$($getopt dhH:lmp:qT:t "${@:3}") || non_opt
-        fi
-        ;;
-      FreeBSD|NetBSD|OpenBSD) get_opt=$($getopt dhH:lmp:qT:t "${@:3}") || non_opt ;;
-      *) get_opt=$($getopt -o dhH:lmp:qT:t -l debug,help,host:,log,metadata,path:,quiet,tag:,time -n "$(echo -e "$(basename $0) $cmd")" -- "${@:3}") || non_opt ;;
-    esac
     eval set -- "$get_opt"
     while true ;
     do
       case "$1" in
         -d|--debug) shift ; debug_flag="true" ;;
+        -e|--email) shift ; int="false" ; CONFIRMATION_EMAIL="y" ;;
         -h|--help ) $cmd-help ; exit 0 ;;
         -H|--host) shift ; host_flag="$1" ; shift ;;
         -l|--log) shift ; log_flag="true" ;;
@@ -2587,24 +2510,13 @@ case "$2" in
     changes > $output
     ;;
   checkout)
-    cmd="$2"
-    case "$(uname -s)" in
-      Darwin)
-        if [[ -d "/usr/local/opt/gnu-getopt/bin" ]] ; then
-          get_opt=$($getopt -o dhlqt -l debug,help,log,quiet,time -n "$(echo -e "$(basename $0) $cmd")" -- "${@:3}") || non_opt
-        else
-          get_opt=$($getopt dhlqt "${@:3}") || non_opt
-        fi
-        ;;
-      FreeBSD|NetBSD|OpenBSD) get_opt=$($getopt dhlqt "${@:3}") || non_opt ;;
-      *) get_opt=$($getopt -o dhlqt -l debug,help,log,quiet,time -n "$(echo -e "$(basename $0) $cmd")" -- "${@:3}") || non_opt ;;
-    esac
     eval set -- "$get_opt"
     while true ;
     do
       case "$1" in
         -d|--debug) shift ; debug_flag="true" ;;
-        -h|--help) random-check-help ; exit 0 ;;
+        -e|--email) shift ; int="false" ; CONFIRMATION_EMAIL="y" ;;
+        -h|--help) $cmd-help ; exit 0 ;;
         -l|--log) shift ; log_flag="true" ;;
         -q|--quiet) shift ; output="/dev/null" ;;
         -t|--time) shift ; time_flag="true" ;;
@@ -2615,30 +2527,20 @@ case "$2" in
     random-check > $output
     ;;
   cleanup)
-    cmd="$2"
     shopt -u nocasematch
-    case "$(uname -s)" in
-      Darwin)
-        if [[ -d "/usr/local/opt/gnu-getopt/bin" ]] ; then
-          get_opt=$($getopt -o adhilnqt -l archive,debug,help,info,log,next,quiet,time -n "$(echo -e "$(basename $0) $cmd")" -- "${@:3}") || non_opt
-        else
-          get_opt=$($getopt adhilnqt "${@:3}") || non_opt
-        fi
-        ;;
-      FreeBSD|NetBSD|OpenBSD) get_opt=$($getopt adhilnqt "${@:3}") || non_opt ;;
-      *) get_opt=$($getopt -o adhilnqt -l archive,debug,help,info,log,next,quiet,time -n "$(echo -e "$(basename $0) $cmd")" -- "${@:3}") || non_opt ;;
-    esac
     eval set -- "$get_opt"
     while true ;
     do
       case "$1" in
         -a|--archive) shift ; archive_flag="true" ;;
+        -C|--check) shift ; check_flag="true" ;;
         -d|--debug) shift ; debug_flag="true" ;;
+        -e|--email) shift ; int="false" ; CONFIRMATION_EMAIL="y" ;;
         -h|--help ) $cmd-help ; exit 0 ;;
         -i|--info) shift ; info_flag="true" ;;
         -l|--log) shift ; log_flag="true" ;;
         -n|--next)
-          if [[ -z "$CLEAN" || "$CLEAN" -lt "1" ]] ; then
+          if [[ -z "$CLEAN" ]] ; then
             echo -e "$yellow""You have not indicated any policy for the CLEAN value...""$endcolor"
             echo "The scrip will run check, forget and prune every time it runs"
             echo "unless you change the CLEAN variable at the beginning of this script."
@@ -2652,6 +2554,16 @@ case "$2" in
           fi
           ;;
         -q|--quiet) shift ; output="/dev/null" ;;
+        --reset)
+          if [[ -f "$config_dir/$repo-datefile" ]] ; then
+            echo -e "$yellow""Removing datefile for [$repo]:""$endcolor"
+            rm -v "${config_dir:?}/$repo-datefile"
+            exit 0
+          else
+            echo -e "$yellow""There is no datefile for [$repo]... nothing to do.""$endcolor"
+            exit 0
+          fi
+          ;;
         -t|--time) shift ; time_flag="true" ;;
         --) shift ; rest=( "$@" ) ; break ;;
         *) echo "Invalid option [$1]..." ; echo "" ; $cmd-help ; exit 1 ;;
@@ -2660,18 +2572,6 @@ case "$2" in
     cleanup > $output
     ;;
   env)
-    cmd="$2"
-    case "$(uname -s)" in
-      Darwin)
-        if [[ -d "/usr/local/opt/gnu-getopt/bin" ]] ; then
-          get_opt=$($getopt -o hv: -l help,var: -n "$(echo -e "$(basename $0) $cmd")" -- "${@:3}") || non_opt
-        else
-          get_opt=$($getopt hv: "${@:3}") || non_opt
-        fi
-        ;;
-      FreeBSD|NetBSD|OpenBSD) get_opt=$($getopt hv: "${@:3}") || non_opt ;;
-      *) get_opt=$($getopt -o hv: -l help,var: -n "$(echo -e "$(basename $0) $cmd")" -- "${@:3}") || non_opt ;;
-    esac
     eval set -- "$get_opt"
     while true ;
     do
@@ -2688,24 +2588,15 @@ case "$2" in
     usage
     ;;
   info)
-    cmd="$2"
-    case "$(uname -s)" in
-      Darwin)
-        if [[ -d "/usr/local/opt/gnu-getopt/bin" ]] ; then
-          get_opt=$($getopt -o dhlt -l debug,help,log,time -n "$(echo -e "$(basename $0) $cmd")" -- "${@:3}") || non_opt
-        else
-          get_opt=$($getopt dhlt "${@:3}") || non_opt
-        fi
-        ;;
-      FreeBSD|NetBSD|OpenBSD) get_opt=$($getopt dhlt "${@:3}") || non_opt ;;
-      *) get_opt=$($getopt -o dhlt -l debug,help,log,time -n "$(echo -e "$(basename $0) $cmd")" -- "${@:3}") || non_opt ;;
-    esac
+    shopt -u nocasematch
     eval set -- "$get_opt"
     while true ;
     do
       case "$1" in
         -d|--debug) shift ; debug_flag="true" ;;
+        -e|--email) shift ; int="false" ; CONFIRMATION_EMAIL="y" ;;
         -h|--help) $cmd-help ; exit 0 ;;
+        -H|--host) shift ; host_flag="$1" ; shift ;;
         -l|--log) shift ; log_flag="true" ;;
         -t|--time) shift ; time_flag="true" ;;
         --) shift ; break ;;
@@ -2715,23 +2606,20 @@ case "$2" in
     statinfo
     ;;
   logs)
-    flags="$3"
-    logfile="$4"
+    eval set -- "$get_opt"
+    while true ;
+    do
+      case "$1" in
+        -c|--cat) shift ; catlogs="true" ; logfile="$1" ; shift ;;
+        -h|--help) $cmd-help ; exit 0 ;;
+        -r|--remove) shift ; removelogs="true" ; logfile="$1" ; shift ;;
+        --) shift ; break ;;
+        *) echo "Invalid option [$1]..." ; echo ""; $cmd-help ; exit 1 ;;
+      esac
+    done
     logs
     ;;
   mounter)
-    cmd="$2"
-    case "$(uname -s)" in
-      Darwin)
-        if [[ -d "/usr/local/opt/gnu-getopt/bin" ]] ; then
-          get_opt=$($getopt -o h -l help -n "$(echo -e "$(basename $0) $cmd")" -- "${@:3}") || non_opt
-        else
-          get_opt=$($getopt h "${@:3}") || non_opt
-        fi
-        ;;
-      FreeBSD|NetBSD|OpenBSD) get_opt=$($getopt h "${@:3}") || non_opt ;;
-      *) get_opt=$($getopt -o h -l help -n "$(echo -e "$(basename $0) $cmd")" -- "${@:3}") || non_opt ;;
-    esac
     eval set -- "$get_opt"
     while true ;
     do
@@ -2744,7 +2632,6 @@ case "$2" in
     mounter
     ;;
   restorer)
-    cmd="$2"
     shopt -u nocasematch
     if [[ ! "$3" ]] ; then
       echo "You have not indicated any option..."
@@ -2757,22 +2644,12 @@ case "$2" in
       restorer-help
       exit 1
     fi
-    case "$(uname -s)" in
-      Darwin)
-        if [[ -d "/usr/local/opt/gnu-getopt/bin" ]] ; then
-          get_opt=$($getopt -o dlhH:p:qs:T:t -l debug,help,host:,log,path:,quiet,snapshot:,tag:,time -n "$(echo "$cmd")" -- "${@:3}") || non_opt
-        else
-          get_opt=$($getopt dlhH:p:qs:T:t "${@:3}") || non_opt
-        fi
-        ;;
-      FreeBSD|NetBSD|OpenBSD) get_opt=$($getopt dlhH:p:qs:T:t "${@:3}") || non_opt ;;
-      *) get_opt=$($getopt -o dlhH:p:qs:T:t -l debug,help,host:,log,path:,quiet,snapshot:,tag:,time -n "$(echo "$cmd")" -- "${@:3}") || non_opt ;;
-    esac
     eval set -- "$get_opt"
     while true ;
     do
       case "$1" in
         -d|--debug) shift ; debug_flag="true" ;;
+        -e|--email) shift ; int="false" ; CONFIRMATION_EMAIL="y" ;;
         -h|--help) $cmd-help ; exit 0 ;;
         -H|--host) shift ; host_flag="$1" ; shift ;;
         -l|--log) shift ; log_flag="true" ;;
@@ -2788,23 +2665,12 @@ case "$2" in
     restorer > $output
     ;;
   snaps)
-    cmd="$2"
-    case "$(uname -s)" in
-      Darwin)
-        if [[ -d "/usr/local/opt/gnu-getopt/bin" ]] ; then
-          get_opt=$($getopt -o dhlqt -l debug,help,log,quiet,time -n "$(echo "$cmd")" -- "${@:3}") || non_opt
-        else
-          get_opt=$($getopt dhlqt "${@:3}") || non_opt
-        fi
-        ;;
-      FreeBSD|NetBSD|OpenBSD) get_opt=$($getopt dhlqt "${@:3}") || non_opt ;;
-      *) get_opt=$($getopt -o dhlqt -l debug,help,log,quiet,time -n "$(echo "$cmd")" -- "${@:3}") || non_opt ;;
-    esac
     eval set -- "$get_opt"
     while true ;
     do
       case "$1" in
         -d|--debug) shift ; debug_flag="true" ;;
+        -e|--email) shift ; int="false" ; CONFIRMATION_EMAIL="y" ;;
         -h|--help) $cmd-help ; exit 0 ;;
         -l|--log) shift ; log_flag="true" ;;
         -q|--quiet) shift ; output="/dev/null" ;;
@@ -2816,18 +2682,6 @@ case "$2" in
     snaps > $output
     ;;
   unlocker)
-    cmd="$2"
-    case "$(uname -s)" in
-      Darwin)
-        if [[ -d "/usr/local/opt/gnu-getopt/bin" ]] ; then
-          get_opt=$($getopt -o hq -l help,quiet -n "$(echo "$cmd")" -- "${@:3}") || non_opt
-        else
-          get_opt=$($getopt hq "${@:3}") || non_opt
-        fi
-        ;;
-      FreeBSD|NetBSD|OpenBSD) get_opt=$($getopt hq "${@:3}") || non_opt ;;
-      *) get_opt=$($getopt -o hq -l help,quiet -n "$(echo "$cmd")" -- "${@:3}") || non_opt ;;
-    esac
     eval set -- "$get_opt"
     while true ;
     do
@@ -2841,45 +2695,47 @@ case "$2" in
     unlocker > $output
     ;;
   *)
-    cmd="$2"
-    rest="${@:2}"
-    case "$2" in
-      -d*|--debug|-l*|--log|-t*|--time|-q*|--quiet)
+    rest=( "${@:2}" )
+    case "$cmd" in
+      -d*|--debug|-e*|--email|-l*|--log|-t*|--time|-q*|--quiet)
         case "$(uname -s)" in
           Darwin)
             if [[ -d "/usr/local/opt/gnu-getopt/bin" ]] ; then
-              get_opt=$($getopt -o dlqt -l debug,log,quiet,time -n "$(echo -e "$(basename $0) $cmd")" -- "${@:2}") || exit 1
+              get_opt=$($getopt -o delqt -l debug,email,log,quiet,time -n "$(echo -e "$(basename $0) $cmd")" -- "${@:2}") || exit 1
             else
-              get_opt=$($getopt dlqt "${@:2}") || exit 1
+              get_opt=$($getopt delqt "${@:2}") || exit 1
             fi
             ;;
-          FreeBSD|NetBSD|OpenBSD) get_opt=$($getopt dlqt "${@:2}") || exit 1 ;;
-          *) get_opt=$($getopt -o dlqt -l debug,log,quiet,time -n "$(echo -e "$(basename $0) $cmd")" -- "${@:2}") || exit 1 ;;
+          FreeBSD|NetBSD|OpenBSD) get_opt=$($getopt delqt "${@:2}") || exit 1 ;;
+          *) get_opt=$($getopt -o delqt -l debug,email,log,quiet,time -n "$(echo -e "$(basename $0) $cmd")" -- "${@:2}") || exit 1 ;;
         esac
         eval set -- "$get_opt"
         while true ;
         do
           case "$1" in
             -d|--debug) shift ; debug_flag="true" ;;
+            -e|--email) shift ; int="false" ; CONFIRMATION_EMAIL="y" ;;
             -l|--log) shift ; log_flag="true" ; cmd="$1" ;;
             -q|--quiet) shift ; output="/dev/null" ;;
             -t|--time) shift ; time_flag="true" ; cmd="$1" ;;
-            --) shift ; rest=( "$@" ) ; cmd="$1" ; break ;;
-            *) echo "Invalid option [$1]..." ; echo "" ; usage ; exit 1 ;;
+            --) shift ; rest=( "$@" ) ; cmd="$1" ;
+              if [[ "$cmd" = "--repo="* ]] ; then
+                  cmd="$2"
+              elif [[ "$cmd" = "-r" || "$cmd" = "--repo" ]] ; then
+                  cmd="$3"
+              fi
+              break ;;
+            *) echo "Invalid option [$1]..." ; echo "" ; usage | sed -ne '/Usage/,/EOF/p' ; exit 1 ;;
           esac
         done
-        ;;
-      -*)
-        echo "Invalid option [$2]..."
-        echo ""
-        usage
-        exit 1
         ;;
     esac
     restic_alone > $output
     ;;
 esac
 
+job_done
+
 shopt -u nocasematch
 
-exit $cmd_error
+exit $exit_code
