@@ -25,7 +25,7 @@ The script was made for GNU/Linux systems but it may also work on MacOS and Free
 1. Install [brew](https://brew.sh).
 2. Install `coreutils` as follows: `brew install coreutils`.
 3. Install `gnu-sed` as follows: `brew install gnu-sed --with-default-names`.
-4. Install `gnu-getopt` as follows (optional; if you want to use long options you need this package): `brew install gnu-getopts`.
+4. Install `gnu-getopt` as follows (optional; if you want to use long options you need this package): `brew install gnu-getopt`.
 4. **NOTE**: `nano` works great as a default text editor; chosing another one with Mac
    could require a little tweaking with your script.
 5. **OPTIONAL**: to include `~/bin` or `~/.local/bin` in your `PATH`, edit or create
@@ -38,6 +38,10 @@ The script was made for GNU/Linux systems but it may also work on MacOS and Free
    called `osxfuse` via `brew`: `brew install osxfuse`. If you're using Mojave,
    you may need to type: `brew cask install osxfuse` or follow the instructions
    displayed in your terminal emulator when you typed the first command.
+7. Make a symlink to `dir` (it's part of the `coreutils` package) as follows:
+   ```
+   ~$ sudo ln -s /usr/local/bin/gdir /usr/local/bin/dir
+   ```
 
 **FreeBSD**:
 
@@ -47,6 +51,10 @@ The script was made for GNU/Linux systems but it may also work on MacOS and Free
 4. `csh` work just fine with `rescript`.
 5. Long options are not supported in `getopt` BSD systems; use short options.
 6. I tested with FreeBSD only but I'm pretty sure it may work on other BSD systems.
+7. Make a symlink to `dir` (it's part of the `coreutils` package) as follows:
+   ```
+   ~# ln -s /usr/local/bin/gdir /usr/local/bin/dir
+   ```
 
 **NOTE**: If `~/bin` doesn't exists and you decide to use `install` command,
 `rescript` will automatically decides to use `~/.local/bin`, so before using
