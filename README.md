@@ -606,7 +606,7 @@ you can do this:
 # Without rescript global flags
 rescript [repo_name] -r /your/repo/location backup /backup/directory
 # Using rescript global flags
-rescript [repo_name] --time -- -r /your/repo/location backup /backup/directory
+rescript [repo_name] -delqt -- -r /your/repo/location backup /backup/directory
 ```
 This could be useful if you want to add something quickly to your repo. Maybe you found
 an old USB and you want to include some files in your repo, well you can quickly backup
