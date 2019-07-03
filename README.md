@@ -7,12 +7,13 @@ The script was made for GNU/Linux systems but it may also work on MacOS and Free
 2. [Installation](#installation)
 3. [Usage](#usage)
 4. [Command and Options](#commands-and-options)
-5. [Adding a Cron Job](#adding-a-cron-job)
-6. [Some Things Worth to Mention](#some-things-worth-to-mention)
-7. [Workarounds](#workarounds)
-8. [Having Problems?](#having-problems)
-9. [Based on...](#based-on)
-10. [Remove rescript](#remove-rescript)
+5. [Security](#security)
+6. [Adding a Cron Job](#adding-a-cron-job)
+7. [Some Things Worth to Mention](#some-things-worth-to-mention)
+8. [Workarounds](#workarounds)
+9. [Having Problems?](#having-problems)
+10. [Based on...](#based-on)
+11. [Remove rescript](#remove-rescript)
 
 | **DISCLAIMER / USE AT YOUR OWN RISK** 
 | --------------
@@ -37,7 +38,6 @@ The script was made for GNU/Linux systems but it may also work on MacOS and Free
    called `osxfuse` via `brew`: `brew install osxfuse`. If you're using Mojave,
    you may need to type: `brew cask install osxfuse` or follow the instructions
    displayed in your terminal emulator when you typed the first command.
-7. Installing `rescript` system-wide may not work. I advise to install it for the user.
 
 **FreeBSD**:
 
@@ -45,7 +45,8 @@ The script was made for GNU/Linux systems but it may also work on MacOS and Free
 2. Set the `PATH` for your `~/bin` or `~/.local/bin`.
 3. Install `rsync` if it is not installed yet: `pkg install rsync`.
 4. `csh` work just fine with `rescript`.
-5. I tested with FreeBSD only but I'm pretty sure it may work on other BSD systems.
+5. Long options are not supported in `getopt` BSD systems; use short options.
+6. I tested with FreeBSD only but I'm pretty sure it may work on other BSD systems.
 
 **NOTE**: If `~/bin` doesn't exists and you decide to use `install` command,
 `rescript` will automatically decides to use `~/.local/bin`, so before using
@@ -217,9 +218,10 @@ _**Note**: always put the values between the quotes to avoid globbing._
 These variables are optional because the script will still work if you don't want to setup
  a "cleanup", tag or destination.
 
-* `CLEAN="7"`: Indicate the number (in days) of your cleanup policy (by default is 7 days); 
+* `CLEAN="7days"`: Indicate the number for your cleanup policy (by default is 7 days); 
    this will make sure that the script run forget, check and prune applying your policies every
-  days. You may change the number of days or leave it blank if you don't want the script to do this.
+   number of minutes, hours, days, etc. (the value must be with the same synxtax as `date` command).
+   You may change the number or leave it blank if you don't want the script to do this. Syntax: 7minutes, 7hours, 7days ...
 * `TAG=""`: Indicate the tag you want to use for your backups between the "" or just leave it blank
    if you don't want to use tags.
 * `DESTINATION=""`: Put the name of your backup destination between the "" 
@@ -249,8 +251,13 @@ These variables are optional because the script will still work if you don't wan
    This will only work if you use `rescript` with a cron job. If you just use it from your terminal, it will
    not send any emails because, well, that's not necesary since you can see what it is doing. Besides, `rescript` will
    exit and warn you if any error ocurred. You need `mailutils` installed and I would recommend to setup `ssmtp`. You can
-   follow [this tutorial](https://www.howtogeek.com/51819/how-to-setup-email-alerts-on-linux-using-gmail/) in order to do so.
-   If you don't want to receive any email, just leave this variable empty.
+   follow [this tutorial](https://www.howtogeek.com/51819/how-to-setup-email-alerts-on-linux-using-gmail/) in order to do so or
+   setup `nullmailer` using [this tutorial](https://christopherbaek.wordpress.com/2016/05/22/nullmailer-send-mail/), which is even easiest than `ssmtp`; be aware
+   that `ssmtp` seems not to work with Debian 10 (buster). If you don't want to receive any email, just leave this variable empty.
+* `CONFIRMATION_EMAIL=""`: set to "yes" to receive email with output when job finished successfully.
+* `EXCLUDE_FILE="yes"`: set "yes" to use the exclude file generated for backups (by default is set to yes; if blank it will read the exclusion file for previous versions comptability).
+* `EXCLUDE_CACHE="yes"`: set "yes" to use `--exclude-cache` flag for backups (by default is set to yes; if blank it will exclude cache for previous versions compatibility).
+* `ONE_FILE_SYSTEM=""`: set to "yes" to use `--one-file-system` flag for backups.
 
 The configuration file also have variables for B2 and AWS ID's and Keys. If not required
 just leave it blank.
@@ -308,12 +315,13 @@ Please see restic `help` and [documentation](https://restic.readthedocs.io/en/st
     ```
    Command flags:
     1. `-a, --archive`: perform archive function (see `archive` command) after `backup`.
-    2. `-c, --cleanup`: apply retention policies and prune (see `cleanup` command).
-    3. `-d, --dry-run`: this is silly but useful if you want to just quickly check what would you be backing up
+    2. `-C, --check`: check for errors in repository.
+    3. `-c, --cleanup`: apply retention policies and prune (see `cleanup` command).
+    4. `-d, --dry-run`: this is silly but useful if you want to just quickly check what would you be backing up
        and the size of it using `du`. It will automatically read your exclusion list and use it to read
        your backup directory and exclude those directories in your configuration file.
-    4. `-i, --info`: display stats for the latest and all snapshots (see `info` command).
-    5. `-S, --skip-office`: temporarily exclude open (in-use) "Office Documents" (.xlsx, .docx, .ods, .odt, etc.).
+    5. `-i, --info`: display stats for the latest and all snapshots (see `info` command).
+    6. `-S, --skip-office`: temporarily exclude open (in-use) "Office Documents" (.xlsx, .docx, .ods, .odt, etc.).
     
    Make use of restic flags/options as follows:
     ```
@@ -343,9 +351,11 @@ Please see restic `help` and [documentation](https://restic.readthedocs.io/en/st
     ```
    Command flags:
     1. `-a, --archive`: perform archive function (see `archive` command) before `cleanup`.
-    2. `-i, --info`: display stats for the latest and all snapshots (see `info` command).
-    3. `-n, --next`: this flag will display the next scheduled `cleanup` based on the `datefile`
+    2. `-C, --check`: check for errors in repository.
+    3. `-i, --info`: display stats for the latest and all snapshots (see `info` command).
+    4. `-n, --next`: this flag will display the next scheduled `cleanup` based on the `datefile`
       created by `rescript`; work only when CLEANUP variable is set.
+    5. `--reset`: remove "datefile"; it resets the dates for the CLEAN option in your configuration file.
       
    Make use of restic flags/options as follows:
     ```
@@ -360,10 +370,17 @@ Please see restic `help` and [documentation](https://restic.readthedocs.io/en/st
     rescript [repo_name] env [flags] [VARNAME]
     ```
    Command flags:
-    1. `-v, --var`: display varname value chosen (varname must be UPPERCASE).
+    1. `-v, --var`: display varname value chosen.
 
 9. **help**: display help dialog. This command does not need a `[repo_name]`.
 10. **info**: this command will display stats for latest and all snapshots in a custom format.
+
+   Usage:
+    ```
+    rescript [repo_name] info
+    ```
+   Command flags:
+    1. `-H, --hostname`: only consider snapshots for this host.
     
     Output example:
      ```
@@ -446,6 +463,7 @@ rescript [repo_name] command [flags] ...
 ```
 
 1. **`-d, --debug`**: debug WILL NOT debug restic commands; it will only set debug for the script.
+2. **`-e, --email`**: force to send email with output.
 2. **`-h, --help`**: display help for a specific command.
 3. **`-l, --log`**: if you set the "LOGGING" variable to "yes" you don't need this flag
    when you run the automatic option (`rescript [repo_name]`); this flag is intended
@@ -456,7 +474,31 @@ rescript [repo_name] command [flags] ...
 
 Make use of `rescript` global flags with `restic` commands as follows:
 ```
-rescript [repo_name] -dlqt -- [restic_command] [flags] ...
+rescript [repo_name] -delqt -- [restic_command] [flags] ...
+```
+
+**[⇦ Back to index](#index)**
+
+## Security
+By default, the configuration files are as secure as your computer/user is. `rescript` itself does not
+contain any information about your repositories. Configuration files holds that information and when
+a configuration file is created, it is created inside the user's home directory with `chmod 700` for the file,
+so if another user is navigating through the user's files, they can see the file but not the content.
+
+If you share a user in your computer or you are just paranoid, then you should create a password file for your
+repository and encrypt it. Using GPG is a great way to do this and all you need to do (after creating your encrypted password file)
+in the configuration file is edit the password variable as follows:
+```
+RESTIC_PASSWORD="$(cat <(gpg -qd /path/to/your/password_file.gpg))"
+```
+Since GPG will ask for your passphrase, this will not work with automatic jobs (such as using `cron`). You can edit
+the time for your keyring to remember your passphrase. **_DO NOT save your passphrase in plain text or to your keyring_**; that's
+bad practice and it is as secure as not using encryption at all.
+
+Another option is to not save your password in your configuration file and export `RESCRIPT_PASS`. As long as your session
+is active, this variable will work. Once the session is closed you will need to export this variable again. Use it as follows:
+```
+~$ export RESCRIPT_PASS=mytotallysecurepassword
 ```
 
 **[⇦ Back to index](#index)**
