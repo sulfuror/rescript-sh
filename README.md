@@ -3,7 +3,7 @@
 The script was made for GNU/Linux systems but it may also work on MacOS and FreeBSD.
 
 ## Index
-1. [Mac and FreeBSD](mac-and-bsd-systems)
+1. [Mac and FreeBSD](wikis/mac-and-bsd-systems)
 2. [Installation](#installation)
 3. [Usage](#usage)
 4. [Command and Options](#commands-and-options)
