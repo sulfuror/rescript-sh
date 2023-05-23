@@ -228,7 +228,7 @@ function opsys {
         os_vers="$(getprop ro.build.version.release)"
         echo -e "$os" "$os_vers"
       else
-        if [[ $(which lsb_release) ]] ; then
+        if [[ $(command -v lsb_release) ]] ; then
           lsb_release -ds
         else
           cat /etc/issue.net
