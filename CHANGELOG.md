@@ -1,3 +1,7 @@
+# May 23, 2023
+**Additions**:
+1. Change `which` command; now using `commnand -v` for compatibility.
+
 # July 2, 2019
 **Additions**:
 1. Added a new function to send email confirmation when job is done. This function will not always send you an email. There is a new option for the configuration file called `CONFIRMATION_EMAIL`. You can add it to your configuration file like this `CONFIRMATION_EMAIL="yes"` to receive an email every time a job is successfully done via cron. If you don't set this variable it will not send you an email. Also, you need to install `mailutils` and `ssmtp` (not working on Debian buster), [nullmailer](https://christopherbaek.wordpress.com/2016/05/22/nullmailer-send-mail/) or something that cand allow you to send emails outside your network via `mail` from `mailutils`. If you need a simple tool to send emails outside your network, I would go for `nullmailer`; really easy to configure.
