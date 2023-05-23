@@ -3,16 +3,16 @@
 
 ## Index
 
-1. [Mac and BSD Systems](https://gitlab.com/sulfuror/rescript.sh/wikis/mac-and-bsd-systems)
-2. [Installation](https://gitlab.com/sulfuror/rescript.sh/wikis/installation)
-3. [Usage](https://gitlab.com/sulfuror/rescript.sh/wikis/usage)
-4. [Configuration Files](https://gitlab.com/sulfuror/rescript.sh/wikis/configuration-files)
-5. [Commands and Options](https://gitlab.com/sulfuror/rescript.sh/wikis/commands-and-options)
-6. [Security](https://gitlab.com/sulfuror/rescript.sh/wikis/security)
-7. [Cron Jobs](https://gitlab.com/sulfuror/rescript.sh/wikis/cron-jobs)
-8. [Some Things Worth to Mention](https://gitlab.com/sulfuror/rescript.sh/wikis/some-things-worth-to-mention)
-9. [Workarounds](https://gitlab.com/sulfuror/rescript.sh/wikis/workarounds)
-10. [Remove rescript](https://gitlab.com/sulfuror/rescript.sh/wikis/remove-rescript)
+1. [Mac and BSD Systems](https://gitlab.com/sulfuror/rescript.sh/-/wikis/mac-and-bsd-systems)
+2. [Installation](https://gitlab.com/sulfuror/rescript.sh/-/wikis/installation)
+3. [Usage](https://gitlab.com/sulfuror/rescript.sh/-/wikis/usage)
+4. [Configuration Files](https://gitlab.com/sulfuror/rescript.sh/-/wikis/configuration-files)
+5. [Commands and Options](https://gitlab.com/sulfuror/rescript.sh/-/wikis/commands-and-options)
+6. [Security](https://gitlab.com/sulfuror/rescript.sh/-/wikis/security)
+7. [Cron Jobs](https://gitlab.com/sulfuror/rescript.sh/-/wikis/cron-jobs)
+8. [Some Things Worth to Mention](https://gitlab.com/sulfuror/rescript.sh/-/wikis/some-things-worth-to-mention)
+9. [Workarounds](https://gitlab.com/sulfuror/rescript.sh/-/wikis/workarounds)
+10. [Remove rescript](https://gitlab.com/sulfuror/rescript.sh/-/wikis/remove-rescript)
 
 | **DISCLAIMER / USE AT YOUR OWN RISK** 
 | --------------
