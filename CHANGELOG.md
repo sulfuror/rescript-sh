@@ -1,8 +1,70 @@
-# May 23, 2023
+# Rescript Changelog
+---
+## v.5.0
+---
+### June 26, 2026
+
+This is a major release marking the evolution of Rescript from a monolithic script to a modular, robust, and fully POSIX (Bash) compliant architecture. The core was redesigned to enable multi-repository orchestration and shield the tool against flag collisions with the restic binary.
+
+### 🏗️ Architecture and Core Refactoring
+*   **Modular Architecture Migration:** The old monolithic script (`rescript_v4.7`, +86KB) has been split into 8 independent logical modules inside the `src/` directory (e.g., `01_globals.sh`, `02_utils.sh`, `06_core.sh`), greatly improving maintainability. A `build.sh` script was introduced to compile everything into a single final binary.
+*   **POSIX Compliance (Zsh to Bash):** Full transition from Zsh to pure Bash. Array handling and variable expansions were rewritten to guarantee universal compatibility across modern Linux servers.
+
+### 🔥 New Features
+*   **Multi-Repository Orchestrator (`all`):** 
+    *   New execution engine that allows running commands sequentially across all configured repositories (e.g., `rescript all backup`).
+    *   Added the `--ignore-repo` / `-X` flag exclusively for the `all` command, allowing dynamic omission of environments (e.g., `rescript all backup -X omv`).
+*   **Simulation Mode (`--simulate` / `-S`):** 
+    *   New global flag that enables dry-run simulations of destructive or heavy operations (`backup` and `cleanup`), showing the exact underlying command without affecting the repository.
+*   **Background Mounting:** 
+    *   The `mounter` macro now supports the `--background` flag, generating PID files in `/tmp` to mount repos without blocking the terminal.
+    *   The `umounter` macro was refactored to read, gracefully kill background processes, and unmount cleanly.
+
+### 🛡️ Safety and Execution
+*   **Flag Shielding (Uppercase Namespace):** 
+    *   The strict `getopt` parser was removed.
+    *   **CRITICAL:** To prevent stealing native Restic flags (like `-e`, `-l`, `-q`), all Rescript global flags were migrated to an uppercase namespace: `-D` (Debug), `-E` (Email), `-L` (Log), `-Q` (Quiet), `-S` (Simulate), `-T` (Timer).
+    *   Rescript's old `--time` flag (which just displays execution time and takes no arguments) was renamed to `--timer`. This frees up the `--time` flag so that *Restic's native* `--time` flag (which *does* take timestamp arguments like `--time "2020-01-01"`) can now pass through perfectly without interference.
+*   **Array Space Protection:** Fixed multiple calls in `07_commands.sh` to expand arrays using `"${rest[@]}"` (quoted), preventing Bash from splitting composed arguments (like paths or timestamps with spaces).
+*   **Atomic Lock Management:** Strict integration of `rescript_lock` at the start of each macro, combined with a native OS `trap` to invoke `unlocker` if the user abruptly cancels with `Ctrl+C`.
+
+### 🛠️ New Commands and Macro Improvements (UX)
+*   **Completely New Commands:**
+    *   **`search`:** Finds a specific file or directory across all snapshots.
+    *   **`history`:** Shows the version history of a given file over time. Paths are displayed in their entirety, without the 80-character limit.
+    *   **`extract`:** Extracts a specific file or directory from a snapshot.
+    *   **`size`:** Calculates the true recursive size of a given path using `restic ls --recursive`.
+    *   **`upgrade`:** Upgrades the restic repository format to version 2.
+    *   **`umounter`:** Unmounts a repository that was mounted in the background.
+*   **Background Mounting:** The `mounter` command now supports a `--background` flag, allowing users to mount a repository without locking the terminal session. PID tracking is natively managed and stored in `/tmp`.
+*   **Renamed Commands:** The old `changes` command was renamed to **`diff`** to align perfectly with Restic's native nomenclature. When executed without arguments, it automatically finds and compares the two most recent snapshots. When executed with arguments (e.g., specific IDs or flags like `--metadata`), it transparently passes them to the native `restic diff` without any interference.
+*   **Enhanced AWK Tables (`info`, `search`, `history`):** Visual redesign using ANSI sequences (`\e[1m`) to highlight table headers in **bold** format.
+*   **Custom Progress Bars:** Introduced a new native Bash progress bar (`print_progress`) with in-place terminal updating (`\r`) to provide visual feedback during long-running operations like repository stat calculation and file extraction.
+*   **`--debug` (`-D`):** Integration of `debug_start` and `debug_stop` (via `set -xv`) wrapping internally around each macro for deep traceability.
+
+### 🗑️ Deprecations and Removals
+*   The **`archive`** and **`checkout`** commands have been completely removed.
+*   It is no longer necessary to use the old `-delqt -- [command]` format. Rescript and Restic global flags can now be mixed naturally.
+
+### 🐛 Community Bug Fixes & Patches
+*   **Cron Job Silent Execution (`-q`):** Fixed a bug where running `rescript [repo] -q` from a cron job (without explicitly passing a command) caused the script to fail. It now correctly falls back to the `automatic` command in total silence.
+*   **`/dev/stdout` Permission Denied:** Fixed a critical issue where redirecting output to `/dev/stdout` caused permission errors when running as `su` or inside cron environments. Output is now safely routed without violating permissions.
+*   **unRAID / Blank OS Compatibility:** Fixed OS detection logic that relied solely on `/etc/issue.net` (which is blank in unRAID and some modern distros). The script now robustly falls back to `Unknown Linux OS` instead of crashing or returning empty values.
+*   **POSIX `command -v` Migration:** Completely eliminated the use of the deprecated `which` command across the codebase in favor of the POSIX-compliant `command -v` for finding system binaries.
+*   **Native Log Rotation:** Implemented `LOG_RETENTION` variable support. Rescript will now natively prune log files older than the specified days, preventing the `.rescript/logs` folder from growing indefinitely.
+*   **Pre/Post Execution Hooks:** Added support for `PRE_CMD` and `POST_CMD` variables, allowing users to run arbitrary system commands immediately before and after the `automatic` backup process.
+
+## v.4.7
+---
+### May 23, 2023
+
 **Additions**:
 1. Change `which` command; now using `commnand -v` for compatibility.
 
-# July 2, 2019
+## v.4.6
+---
+### July 2, 2019
+
 **Additions**:
 1. Added a new function to send email confirmation when job is done. This function will not always send you an email. There is a new option for the configuration file called `CONFIRMATION_EMAIL`. You can add it to your configuration file like this `CONFIRMATION_EMAIL="yes"` to receive an email every time a job is successfully done via cron. If you don't set this variable it will not send you an email. Also, you need to install `mailutils` and `ssmtp` (not working on Debian buster), [nullmailer](https://christopherbaek.wordpress.com/2016/05/22/nullmailer-send-mail/) or something that cand allow you to send emails outside your network via `mail` from `mailutils`. If you need a simple tool to send emails outside your network, I would go for `nullmailer`; really easy to configure.
 2. Added a new global flag called `-e, --email`. This option will force the script to send the output via email (again, `mailutils` needs to be installed and configured to send emails).
@@ -41,9 +103,12 @@
 19. Minor changes in the lock function because if there was a lock created by `rescript` and you're not looking at the terminal, you were never gonna receive an message about that; now it can send an email or log the error with the output telling you that maybe there's another instance running.
 20. When you run a `restic` command (no the commands from the script) like check and use something like this: `rescript reponame -t -- --repo /path/to/repo backup ...` and there was an error, the command displayed in the error message was `[--repo] failed...`; now it's fixeded so it display the correct command.
 
-The new features to test/ping the remote server and to send emails when job is done are thanks to **_killmasta93_** (user from restic forum). I'm still looking new ways to improve the script and any suggestion is really welcome. 
+The new features to test/ping the remote server and to send emails when job is done are thanks to **_killmasta93_** (user from restic forum). I'm still looking new ways to improve the script and any suggestion is really welcome.
 
-# June 4, 2019
+## v.4.5
+---
+### June 4, 2019
+
 **Improvements, Changes, Additions and others**:
 
 1. The entire script itself is less cluttered; 1,428 additions, 1,702 removed lines and a total of 274 lines less than version 4.4.
@@ -123,8 +188,10 @@ Both methods worked just fine. Of course, if you are not using the `--log` featu
 then you probably won't have this problem since you'll need to use `>` (redirection) anyways and this is what is actually
 doing the "trick" for the command to run. If you are not having any problem at all, don't mind this note.
 
+## v.4.4
+---
+### May 10, 2019
 
-# May 10, 2019
 **Fixes**:
 
 1. Minor fixes when displaying version available to download with `update` command.
@@ -133,7 +200,10 @@ doing the "trick" for the command to run. If you are not having any problem at a
    affect GNU/Linux or FreeBSD distributions; I don't think that with Mac were any problems
    either).
 
-# April 24, 2019
+## v.4.3
+---
+### April 24, 2019
+
 **Fixes, additions and removals**:
 
 1. Fixed `version` command to display more info.
@@ -167,7 +237,9 @@ doing the "trick" for the command to run. If you are not having any problem at a
 7. Added `--help` flag as in "Global Flags"; the "design" was there initially but
    I never get to add the flag itself.
 
-# April 7, 2019
+## v.4.2
+---
+### April 7, 2019
 **Fixes and additions**:
 
 1. Fixed variables quotes, unnecessary commands and others.
@@ -197,7 +269,9 @@ doing the "trick" for the command to run. If you are not having any problem at a
 8. `archive` and `update` will now complain for dependencies (`wget, rsync`) if they're not installed.
 9. Added a little something to display Android version if used with Termux.
 
-# March 7, 2019
+## v.4.1
+---
+### March 7, 2019
 **Fixes**:
 
 1. Fixed `archive` function. Before it was working okay but it was not syncing
@@ -224,9 +298,10 @@ doing the "trick" for the command to run. If you are not having any problem at a
    rsync -a /path/to/latest/snapshot/* /tmp/archive
    ```
    After that it will create the new snapshot and that's it.
-   
 
-# March 4, 2019
+## v.4.0
+---
+### March 4, 2019
 **Changes, fixes and additions**:
 
 1. Fixed output so now it doesn't display 0 days, 0 hours, 0 minutes or 0 seconds;
@@ -267,7 +342,10 @@ doing the "trick" for the command to run. If you are not having any problem at a
    a message saying that there is no value for your option; it will also now display
    an error message for invalid flags.
 
-# February 14, 2019
+## v.3.9
+---
+### February 14, 2019
+
 **Changes, fixes and additions**:
 
 1. "usage" is now a function instead of a variable; nothing relevant for users.
@@ -297,13 +375,19 @@ doing the "trick" for the command to run. If you are not having any problem at a
    flags. It also have an `-m|--metadata` flag to display changes in metadata and this flag
    can be used with `-H, -p, -T`.
 
-# January 29, 2019
+## v.3.8
+---
+### January 29, 2019
+
 **Changes**:
 
 1. Added `update` command. This command can be used to update the script in place.
    This will work from version 3.8 onward.
 
-# January 26, 2019
+## v.3.7
+---
+### January 26, 2019
+
 **Changes**:
 
 1. Changes in the editor menu that removes a bit part of the menu code making
@@ -311,7 +395,10 @@ doing the "trick" for the command to run. If you are not having any problem at a
    when the script is istalled in `/usr/bin`. There is also a new `.deb` package
    for an easier installation that you can find in the [release page](https://gitlab.com/sulfuror/rescript.sh/releases).
 
-# January 23, 2019
+## v.3.6
+---
+### January 23, 2019
+
 **Changes and fixes**:
 
 1. Changed shebang to `env bash` for compatibility with OS's other than GNU/Linux.
@@ -359,8 +446,11 @@ doing the "trick" for the command to run. If you are not having any problem at a
     annoying error.
 12. Simplified `cleanup -n` function and now is being re-used for other functions (it doesn't
     change anything for user's usage or behavior).
-    
-# January 12, 2019
+
+## v.3.5
+---
+### January 12, 2019
+
 **Changes**:
 
 1. Now you can specify more than one location in `BACKUP_DIR` variable.
@@ -373,7 +463,10 @@ doing the "trick" for the command to run. If you are not having any problem at a
 1. Fixed error when function decides to display the number of days and hours
    when running `cleanup -n`.
 
-# January 6, 2019
+## v.3.4
+---
+### January 6, 2019
+
 **Changes**:
 
 1. Now the `--random` flag doesn't exists. The `checkout` command replaces it.
@@ -402,8 +495,10 @@ alone.
 2. Fixed "Build Exclusions" menu; it wasn't recognizing `back` or `exit` options.
 3. Fixed a couple of typos.
 
+## v.3.3
+---
+### December 19, 2018
 
-# December 19, 2018
 **Fixes**:
 
 1. Fixed code for Mac OS and FreeBSD when using the `automatic` function, `cleanup`
@@ -411,7 +506,10 @@ alone.
    trouble because of `sed` and now, if you follow the README instructions for
    Mac and FreeBSD, you're not supposed to have any trouble.
 
-# December 18, 2018
+## v.3.2
+---
+### December 18, 2018
+
 **Fixes**:
 
 1. Fixed some issues with the output with Mac OS and FreeBSD when displaying the
@@ -425,7 +523,8 @@ alone.
    command is not reading the date from the "datefile". So the "CLEAN" variable
    does not work with FreeBSD and Mac OS for now.
 
-# December 16, 2018
+## December 16, 2018
+
 **Changes and Fixes**:
 
 1. Added two functions: one determines the operating system (if it is GNU/Linux, FreeBSD or OSX)
@@ -436,7 +535,10 @@ alone.
    the system `HOSTNAME`. If the variable is used then `backup` command will use
    the hostname indicated in it (fix for issue #1).
 
-# December 12, 2018
+## v.3.1
+---
+### December 12, 2018
+
 **Changes and Fixes**:
 
 1. Added a warning when indicating a rescript invalid flag and displays help.
@@ -447,13 +549,19 @@ alone.
 4. Fixed `restorer` command so it will not misbehave when using invalid options or flags.
 5. Other improvements in code.
 
-# November 25, 2018
+## v.3.0
+---
+### November 25, 2018
+
 **Changes**
 
 Ended up redesigning the whole thing. Check the README.
 Now the script use functions, a whole new menu in `config`, new commands and flags.
 
-# November 14, 2018
+## v.2.0
+---
+### November 14, 2018
+
 **Changes and Fixes**:
 
 1. Added dialog when you run `rescript config` to choose the text editor and 
@@ -462,7 +570,10 @@ Now the script use functions, a whole new menu in `config`, new commands and fla
    `recript` instance doesn't have any log it will display a message telling you
    that there are not any log files to list or remove.
 
-# November 3, 2018
+## v.1.9
+---
+### November 3, 2018
+
 **Changes**:
 
 1. Added some commands (check the [Commands and Options](https://gitlab.com/sulfuror/rescript.sh/blob/master/README.md#commands-and-options) section in README):
@@ -477,14 +588,18 @@ Now the script use functions, a whole new menu in `config`, new commands and fla
 
 1. Fixed the "Destination" output which was displaying the backup directory instead, if leaved blank.
 
-# October 20, 2018
+## v.1.8
+---
+### October 20, 2018
 
 **Changes**:
 
 1. Added "LOGGING" variable to keep logs in your `.rescript/logs` file.
 2. Fix date format so it display AM or PM hours.
 
-# October 10, 2018
+## v.1.7
+---
+### October 10, 2018
 
 **Changes**:
 
@@ -500,7 +615,9 @@ Now the script use functions, a whole new menu in `config`, new commands and fla
 1. Typos.
 2. Reset credentials.
 
-# October 6, 2018
+## v.1.6
+---
+### October 6, 2018
 
 **Changes**:
 
@@ -514,7 +631,9 @@ except for `-r` (restore). The only restic commands that are not "available"
 2. `help`: this command will display the `rescript` help.
 3. `version`: this will display the `rescript` version you're using.
 
-# October 2, 2018
+## v.1.5
+---
+### October 2, 2018
 
 **Changes and Fixes**
 1. There are changes in v1.5 with the output; now it will display the 
@@ -538,7 +657,9 @@ repo and working with various repos, it needed some attention that
 I wasn't able to do automatically or with the script, so I added those
 options that I mostly use to make my life easier.
 
-# September 27, 2018
+## v.1.4
+---
+### September 27, 2018
 
 **Changes and Fixes**
 1. Divided the "REPO INFO" into two: the ones you MUST put and 
@@ -562,7 +683,9 @@ options that I mostly use to make my life easier.
    left to the next "cleanup" and now it will forget first, prune and check --cleanup-cache
    at the end.
 
-# September 21, 2018
+## v.1.3
+---
+### September 21, 2018
 
 **New Options and Some Fixes**
 
@@ -627,7 +750,7 @@ If you know how to make this better, please feel free to share.
 Change the name from `restic.sh` to `rescript.sh` to not be confused by the 
 actual program.
 
-# September 14, 2018
+### September 14, 2018
 
 **Commands & Options**
 
@@ -651,7 +774,7 @@ new options:
 6. `-v, -version`: this option will display the current version you're using
    of this script.
 
-# September 10, 2018
+### September 10, 2018
 
 **Arguments**:
 
@@ -666,9 +789,10 @@ You can use these arguments as follows:
 
 `./restic.sh argument`
 
-# September 2, 2018
+### September 2, 2018
+
 **Changed the way to handle check, forget and prune along with new additions:**
----
+
 1. Now the script will create a "date file". This will be used to know when it'll 
    need to prune according to your choice in the "CLEAN" variable. The default 
    is 7 which means that the script will run `check`, `forget` and `prune` 
@@ -692,14 +816,14 @@ You can use these arguments as follows:
    it's not time yet to run this commands it'll output the total amount of 
    days, hours and minutes left until the next "clean" operation.
 
-# August 27, 2018
+### August 27, 2018
 
 Added the things you'll want to change at the beginning of the script so 
 you don't have to read the whole script trying to figure out what to change or not;
 instead I'm using variables at the beginning that you'll use for your password,
 repo directory, backup directory, destination, keep and exclude policies, etc.
 
-# August 25, 2018
+### August 25, 2018
 
 Edited "Bail if restic is already running". Now the script will 
 create a little "lock" file so if the script is already running it'll know
@@ -723,12 +847,18 @@ if pidof -x restic >/dev/null; then
     exit
 fi``
 
-# August 19, 2018
-
+### August 19, 2018
 Added start date and hour of script, end date and hour of script
 and duration of all script at the end.
 
-# August 18, 2018
+### August 18, 2018
+
+Added "Bail if restic is already running" so if there's a previous
+job that is not finished it doesn't mess it up and just let it finish.
+Added start date and hour of script, end date and hour of script
+and duration of all script at the end.
+
+### August 18, 2018
 
 Added "Bail if restic is already running" so if there's a previous
 job that is not finished it doesn't mess it up and just let it finish.

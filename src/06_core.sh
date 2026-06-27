@@ -1,0 +1,226 @@
+# ============================================================== #
+# Rescript Commands                                              #
+# ============================================================== #
+if [[ ! "$1"  ]] ; then
+  echo "You need to indicate the name of your repository or a"
+  echo "command; type [rescript help] for usage."
+  exit
+fi
+
+function _check_help_or_error {
+  local cmd="$1"
+  local arg="$2"
+  if [[ "$arg" ]] ; then
+    case "$arg" in
+      -h|--help|help)
+        "$cmd-help"
+        exit 0
+        ;;
+      *)
+        echo "Invalid option [$arg]..."
+        echo ""
+        "$cmd-help"
+        exit 1
+        ;;
+    esac
+  fi
+}
+case "$1" in
+  backup|cleanup|diff|extract|search)
+    _check_help_or_error "$1" "$2"
+    echo "You have not indicated any repo for [$1]..."
+    echo ""
+    $1-help
+    exit 1
+    ;;
+  config)
+    _check_help_or_error "$1" "$2"
+    if [[ -z "$rescript_editor" ]] ; then
+      select_editor
+      echo "Please type [rescript config] again to set/edit"
+      echo "your configuration/exclusion files."
+      exit
+    fi
+    clear
+    main_menu
+    exit
+    ;;
+  editor)
+    _check_help_or_error "$1" "$2"
+    select_editor
+    exit
+    ;;
+  -h|--help|help)
+    if [[ ! "$2" ]] ; then
+      usage
+      exit  
+    fi
+    case "$2" in
+      backup|cleanup|config|diff|editor|env|extract|history|info|install|logs|mounter|restorer|search|size|snaps|umounter|unlocker|update|upgrade)
+        $2-help
+        exit 1
+        ;;
+      *)  
+        echo "You have not indicated a valid option..."
+        usage | sed -ne '/Usage/,/EOF/p'
+        exit 1
+        ;;
+    esac
+    ;;
+  install)
+    _check_help_or_error "$1" "$2"
+    clear
+    install
+    exit
+    ;;
+  history)
+    echo "You have not indicated any repo for [$1]..."
+    echo ""
+    history-help
+    exit
+    ;;
+  info)
+    echo "You have not indicated any repo for [$1]..."
+    echo ""
+    info-help
+    exit
+    ;;
+  logs)
+    echo "You have not indicated any repo for [$1]..."
+    echo ""
+    logs-help
+    exit
+    ;;
+  mounter)
+    echo "You have not indicated any repo for [$1]..."
+    echo ""
+    mounter-help
+    exit
+    ;;
+  restorer)
+    echo "You have not indicated any repo for [$1]..."
+    echo ""
+    restorer-help
+    exit
+    ;;
+  size)
+    echo "You have not indicated any repo for [$1]..."
+    echo ""
+    size-help
+    exit
+    ;;
+  snaps)
+    echo "You have not indicated any repo for [$1]..."
+    echo ""
+    snaps-help
+    exit
+    ;;
+  umounter)
+    echo "You have not indicated any repo for [$1]..."
+    echo ""
+    umounter-help
+    exit
+    ;;
+  unlocker)
+    echo "You have not indicated any repo for [$1]..."
+    echo ""
+    unlocker-help
+    exit
+    ;;
+  update)
+    _check_help_or_error "$1" "$2"
+    update
+    exit
+    ;;
+  -v|--version|version)
+    usage | sed -ne '/Name/,/Version/p'
+    echo ""
+    echo -e 'Redistribution and use in source and binary forms, with or without \nmodification, are permitted provided that the BSD 2-Clause License \nconditions are met.'
+    exit
+    ;;
+  *)
+    if [[ ! -e "$config_dir/$1.conf" && ! -e "$config_dir/$1.conf.gpg" ]] ; then
+      echo "There is no repo or command for [$1]. Indicate a valid"
+      echo "repo name or command to proceed. Use [rescript help] for usage."
+      exit
+    fi
+    ;;
+esac
+
+# ============================================================== #
+# Functions                                                      #
+# ============================================================== #
+source "$config_file"
+export RESTIC_REPOSITORY="$RESTIC_REPO"
+export B2_ACCOUNT_ID="$B2_ID"
+export B2_ACCOUNT_KEY="$B2_KEY"
+export AWS_ACCESS_KEY_ID="$AWS_ID"
+export AWS_SECRET_ACCESS_KEY="$AWS_KEY"
+export AZURE_ACCOUNT_NAME="$AZURE_NAME"
+export AZURE_ACCOUNT_KEY="$AZURE_KEY"
+export GOOGLE_PROJECT_ID="$GOOGLE_ID"
+export GOOGLE_APPLICATION_CREDENTIALS="$GOOGLE_CREDENTIALS"
+if [[ "$RESCRIPT_PASS" ]] ; then
+  export RESTIC_PASSWORD="$RESCRIPT_PASS"
+else
+  export RESTIC_PASSWORD="$RESTIC_PASSWORD"
+fi
+SECONDS=0
+
+case "$2" in
+  init) restic init ; exit 0 ;;
+esac
+
+case "$RESTIC_REPO" in
+  sftp*) ping_target=${RESTIC_REPO#sftp*@} ; ping_target=${ping_target%:*} ; ping -c 1 "$ping_target" > /dev/null ; ping_code="$?" ;;
+  rclone*) ping_target=${RESTIC_REPO#rclone:} ; rclone about "$ping_target" > /dev/null ; ping_code="$?" ;;
+  /*) dir "$RESTIC_REPO" 2>/dev/null 1>/dev/null ; ping_code="$?" ;;
+esac
+
+if [[ "$ping_code" -gt "0" ]] ; then
+  error_message="Cannot access to: $RESTIC_REPO \nPlease check your connection. If your repository is not \ninitializated run [rescript $repo init]."
+  report_errors
+  exit "$ping_code"
+fi
+
+if [[ -n "$DESTINATION" ]] ; then
+  dest=$DESTINATION
+else
+  dest=$RESTIC_REPO
+fi
+
+if [[ -n "$HOST" ]] ; then
+  rhost="$HOST"
+else
+  rhost=$(hostname)
+fi
+
+declare -a policies
+
+# Set variables for functions
+if [[ -n "$KEEP_LAST" && "$KEEP_LAST" -gt "0" ]] ; then
+  policies+=(--keep-last $KEEP_LAST)
+fi
+if [[ -n "$KEEP_HOURLY" && "$KEEP_HOURLY" -gt "0" ]] ; then
+  policies+=(--keep-hourly $KEEP_HOURLY)
+fi
+if [[ -n "$KEEP_DAILY" && "$KEEP_DAILY" -gt "0" ]] ; then
+  policies+=(--keep-daily $KEEP_DAILY)
+fi
+if [[ -n "$KEEP_WEEKLY" && "$KEEP_WEEKLY" -gt "0" ]] ; then
+  policies+=(--keep-weekly $KEEP_WEEKLY)
+fi
+if [[ -n "$KEEP_MONTHLY" && "$KEEP_MONTHLY" -gt "0" ]] ; then
+  policies+=(--keep-monthly $KEEP_MONTHLY)
+fi
+if [[ -n "$KEEP_YEARLY" && "$KEEP_YEARLY" -gt "0" ]] ; then
+  policies+=(--keep-yearly $KEEP_YEARLY)
+fi
+if [[ -n "$KEEP_WITHIN" ]] ; then
+  policies+=(--keep-within $KEEP_WITHIN)
+fi
+if [[ -n "$KEEP_TAG" ]] ; then
+  policies+=(--keep-tag $KEEP_TAG)
+fi
+
+
