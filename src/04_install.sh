@@ -9,12 +9,12 @@ function install {
   read -rp "Select an option and press Enter [ 1 - 4 ]: " installation
   case "$installation" in
     1|system)
-      chmod 755 "$(basename $0)"
+      chmod 755 "$(basename "$0")"
       if [[ "$(whoami)" = "root" ]] ; then
         if [[ "$unix_name" = "Darwin" ]] ; then
-          cp "$(basename $0)" /usr/local/bin/rescript
+          cp "$(basename "$0")" /usr/local/bin/rescript
         else
-          cp "$(basename $0)" /usr/bin/rescript
+          cp "$(basename "$0")" /usr/bin/rescript
         fi
         echo "Installation successful!"
         echo "Run [rescript config] to configure your repository."
@@ -28,14 +28,14 @@ function install {
       fi
       ;;
     2|user)
-      chmod 700 "$(basename $0)"
+      chmod 700 "$(basename "$0")"
       if [[ -d "$HOME/bin" ]] ; then
-        cp "$(basename $0)" "$HOME/bin/rescript"
+        cp "$(basename "$0")" "$HOME/bin/rescript"
         echo "Installation successful!"
         echo "Run [rescript config] to configure your repository."
         exit
       elif [[ -d "$HOME/.local/bin" ]] ; then
-        cp "$(basename $0)" "$HOME/.local/bin/rescript"
+        cp "$(basename "$0")" "$HOME/.local/bin/rescript"
         echo "Installation successful!"
         echo "Run [rescript config] to configure your repository."
         exit
@@ -45,7 +45,7 @@ function install {
         case $ans_install in
           y|yes)
             mkdir -p "$HOME/.local/bin"
-            cp "$(basename $0)" "$HOME/.local/bin/rescript"
+            cp "$(basename "$0")" "$HOME/.local/bin/rescript"
             echo "Installation successful!"
             echo "Run [rescript config] to configure your repository."
             echo ""
@@ -70,7 +70,7 @@ function install {
 
 function update {
   if [[ ! $(command -v wget) ]] ; then
-    echo "***$(basename $0) warning***"
+    echo "***$(basename "$0") warning***"
     echo "[wget] not found..."
     echo ""
     echo "[$repo] works with [wget] to download the updated script."

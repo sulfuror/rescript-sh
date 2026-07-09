@@ -8,18 +8,7 @@ function handle_interrupt {
 trap handle_interrupt INT HUP QUIT
 
 # Create a rescript directories if they are not present
-if [[ ! -d "$rescript_dir" ]]; then
-  mkdir -p "$rescript_dir"
-fi
-if [[ ! -d "$config_dir" ]]; then
-  mkdir -p "$config_dir"
-fi
-if [[ ! -d "$lock_dir" ]]; then
-  mkdir -p "$lock_dir"
-fi
-if [[ ! -d "$logs_dir" ]]; then
-  mkdir -p "$logs_dir"
-fi
+mkdir -p "$rescript_dir" "$config_dir" "$lock_dir" "$logs_dir"
 # Create "editor" file if not present
 if [[ ! -f "$config_dir/.editor" ]] ; then
   touch "$config_dir/.editor"
@@ -31,11 +20,7 @@ PATH="$HOME/bin:$HOME/.local/bin:$PATH"
 tput_columns=$(tput cols 2>/dev/null)
 
 if [[ "$tput_columns" -gt "0" ]] ; then
-  if [[ "$tput_columns" -gt "80" ]] ; then
-    cols="80"
-  else
-    cols="$(tput cols)"
-  fi
+  cols="$tput_columns"
 else
   cols="80"
 fi
@@ -48,13 +33,15 @@ fi
 
 function print_line {
   local char="${1:--}"
+  echo -ne "${c_gray}"
   printf "%${cols}s\n" "" | tr ' ' "$char"
+  echo -ne "${c_reset}"
 }
 
 function _send_email {
   local subject="$1"
   if [[ "$simulate_flag" == "true" ]]; then
-    echo "SIMULATE: Would send email to [$EMAIL] with subject: [$subject]"
+    echo -e "${c_yellow}SIMULATE: Would send email to [$EMAIL] with subject: [$subject]${c_reset}"
     return 0
   fi
   if [[ -n "$EMAIL" ]] ; then
@@ -67,16 +54,106 @@ function _send_email {
           logmessage="Output for this job:"
           catlog=$(sed -E "s/$(printf '\033')\[([0-9]{1,2}(;[0-9]{1,2})?)?[mGK]//g" "$tmplog")
         fi
+        local mail_err
+        mail_err=$(mktemp)
+        local mail_status=0
         if [[ "$time_flag" = "true" ]] ; then
-          echo -e "$logmessage\n\n$catlog" | mail -s "$subject" "$EMAIL"
+          echo -e "$logmessage\n\n$catlog" | mail -s "$subject" "$EMAIL" 2> "$mail_err"
+          mail_status=$?
         else
-          echo -e "Date: $(date +%a\ %b\ %d\ %Y\ %r)\nSystem: $(opsys)\nHostname: $rhost\nRepository Location: $dest\nRestic Version: $(restic version | awk '{print $2}')\n\n$logmessage\n$(print_line)\n$catlog\n$(print_line)\nEnd: $(date +%a\ %b\ %d\ %Y\ %r)\nDuration: $(duration)" | mail -s "$subject" "$EMAIL"
+          echo -e "Date: $(date +%a\ %b\ %d\ %Y\ %r)\nSystem: $(opsys)\nHostname: $rhost\nRepository Location: $dest\nRestic Version: $(restic version | awk '{print $2}')\n\n$logmessage\n$(print_line)\n$catlog\n$(print_line)\nEnd: $(date +%a\ %b\ %d\ %Y\ %r)\nDuration: $(duration)" | mail -s "$subject" "$EMAIL" 2> "$mail_err"
+          mail_status=$?
         fi
+        if [[ $mail_status -ne 0 ]]; then
+          echo -e "\n${c_yellow}WARNING: Rescript could not send the email. Make sure your system's mail agent (MTA) is installed and configured correctly.${c_reset}"
+        fi
+        rm -f "$mail_err"
       fi
     else
       echo "[rescript] can't send emails; install [mailutils] package to do so."
     fi
   fi
+}
+
+function print_context {
+  if [[ "$context_flag" != "true" || "$quiet_flag" == "true" || "$context_printed" == "true" ]] ; then
+    return 0
+  fi
+  context_printed="true"
+
+  local title="Rescript Execution Context"
+  local padding=$(( (cols - ${#title}) / 2 ))
+  
+  print_line "="
+  echo -ne "${c_blue}"
+  printf "%*s%s\n" "$padding" "" "$title"
+  echo -ne "${c_reset}"
+  print_line "="
+  
+  local date_time
+  date_time=$(date +"%Y-%m-%d %H:%M:%S")
+  local mode="Live"
+  if [[ "$simulate_flag" == "true" ]]; then
+    mode="Dry-Run (Simulated)"
+  fi
+  
+  local backend="Local"
+  if [[ "$RESTIC_REPO" == sftp* ]]; then backend="SFTP"
+  elif [[ "$RESTIC_REPO" == b2* ]]; then backend="Backblaze B2"
+  elif [[ "$RESTIC_REPO" == s3* ]]; then backend="S3"
+  elif [[ "$RESTIC_REPO" == azure* ]]; then backend="Azure"
+  elif [[ "$RESTIC_REPO" == gs* ]]; then backend="Google Cloud"
+  elif [[ "$RESTIC_REPO" == rclone* ]]; then backend="Rclone"
+  elif [[ "$RESTIC_REPO" == rest* ]]; then backend="REST Server"
+  fi
+
+  printf "  ${c_white}%-15s${c_reset}: ${c_cyan}%s${c_reset}\n" "Date/Time" "$date_time"
+  printf "  ${c_white}%-15s${c_reset}: ${c_cyan}%s${c_reset}\n" "System" "$(opsys)"
+  printf "  ${c_white}%-15s${c_reset}: ${c_cyan}%s${c_reset}\n" "Hostname" "$rhost"
+  printf "  ${c_white}%-15s${c_reset}: ${c_cyan}%s${c_reset}\n" "Profile" "$repo"
+  printf "  ${c_white}%-15s${c_reset}: ${c_cyan}%s${c_reset}\n" "Command" "$cmd"
+  printf "  ${c_white}%-15s${c_reset}: ${c_cyan}%s${c_reset}\n" "Mode" "$mode"
+  printf "  ${c_white}%-15s${c_reset}: ${c_cyan}%s${c_reset}\n" "Backend" "$backend"
+  printf "  ${c_white}%-15s${c_reset}: ${c_cyan}%s${c_reset}\n" "Restic Version" "$(restic version | awk '{print $2}')"
+  
+  if [[ -n "$dest" ]] ; then
+    printf "  ${c_white}%-15s${c_reset}: ${c_cyan}%s${c_reset}\n" "Destination" "$dest"
+  fi
+
+  case "$cmd" in
+    backup|automatic)
+      printf "  ${c_white}%-15s${c_reset}: ${c_cyan}%s${c_reset}\n" "Backup Source" "$BACKUP_DIR"
+      local excl_count
+      excl_count=$(grep -E -v -c '(^#|^\s*$|^\s*\t*#)' "$excludes" 2>/dev/null || echo 0)
+      if [[ "$excl_count" -gt 0 ]] ; then
+        printf "  ${c_white}%-15s${c_reset}: ${c_cyan}%s${c_reset}\n" "Exclusions" "$excl_count rules applied"
+      fi
+      local hooks=""
+      if [[ -n "$PRE_CMD" && -n "$POST_CMD" ]]; then hooks="Pre & Post Hooks Configured"
+      elif [[ -n "$PRE_CMD" ]]; then hooks="Pre-Hook Configured"
+      elif [[ -n "$POST_CMD" ]]; then hooks="Post-Hook Configured"
+      fi
+      if [[ -n "$hooks" ]]; then
+        printf "  ${c_white}%-15s${c_reset}: ${c_cyan}%s${c_reset}\n" "Hooks" "$hooks"
+      fi
+      if [[ -n "$CLEAN" ]] ; then
+        printf "  ${c_white}%-15s${c_reset}: ${c_cyan}%s${c_reset}\n" "Auto-Clean" "Every $CLEAN"
+      fi
+      ;;
+    cleanup)
+      printf "  ${c_white}%-15s${c_reset}: ${c_cyan}%s${c_reset}\n" "Policies" "${policies[*]}"
+      ;;
+    restorer)
+      if [[ -n "$snap_id" ]] ; then
+        printf "  ${c_white}%-15s${c_reset}: ${c_cyan}%s${c_reset}\n" "Snapshot ID" "$snap_id"
+      else
+        printf "  ${c_white}%-15s${c_reset}: ${c_cyan}%s${c_reset}\n" "Snapshot ID" "latest"
+      fi
+      printf "  ${c_white}%-15s${c_reset}: ${c_cyan}%s${c_reset}\n" "Target Dir" "$restore_dir"
+      ;;
+  esac
+  print_line "="
+  echo ""
 }
 
 function job_done {
@@ -94,14 +171,20 @@ function report_errors {
   fi
   if [[ -n "$error_message" ]] ; then
     if [[ "$ping_code" -gt "0" ]] ; then
-      echo -e "$error_message"
+      echo -e "${c_red}$error_message${c_reset}"
     else
       echo ""
-      echo -e "WARNING!"
-      echo -e "$error_message"
+      echo -e "${c_red}${c_white}WARNING!${c_reset}"
+      echo -e "${c_red}$error_message${c_reset}"
     fi
     _send_email "rescript: [$repo] $cmd failed!"
   fi
+}
+
+function check_restic_error {
+  exit_code="$1"
+  latest_cmd="$prev_cmd"
+  latest_error
 }
 
 function latest_error {
@@ -118,7 +201,7 @@ function latest_error {
     fi
     report_errors
     time_end
-    exit "$exit_code"
+    exit "${exit_code:-$?}"
   fi
 }
 
@@ -189,7 +272,7 @@ function duration {
   if [[ "$s" -gt "0" ]] ; then
     dur+=( "$s $sec" )
   fi
-  ndur=$(echo ${#dur[@]})
+  ndur=${#dur[@]}
   case "$ndur" in
     4) echo "${dur[0]}, ${dur[1]}, ${dur[2]} and ${dur[3]}" ;;
     3) echo "${dur[0]}, ${dur[1]} and ${dur[2]}" ;;

@@ -1,5 +1,54 @@
 # Rescript Changelog
+
+## v5.1
 ---
+### July 9, 2026
+
+#### 🚀 New Features & Enhancements
+*   **Targeted Snapshots (`size` and `extract`):** Both commands now natively support passing a specific `snapshot_id`. If omitted, they intelligently auto-detect the `latest` snapshot or the most recent snapshot containing the queried file.
+*   **Custom Progress Bars:** Added clean, animated ASCII progress bars to the `size` (parsing Restic's calculation progress) and `extract` (simulated progress during dump) commands to improve user feedback during long-running operations.
+*   **Intelligent History Tracking:** Redesigned the `history` command to track the *actual evolution* of a file across snapshots. It intelligently filters out repetitive snapshots and only lists versions where the file's size or modification date actually changed.
+*   **Robust Mounter:** Added a polished foreground mode to the `mounter` command with a clean UI, graceful shutdown via Ctrl-C, and safer FUSE unmounting.
+
+#### 💅 Aesthetics and UI
+*   **Orchestration and Clean Output:** Refined the `all` command orchestrator to reduce visual noise by conditionally suppressing headers during metadata or automatic runs.
+*   **Simulation Visibility:** Enhanced `SIMULATE` dry-run warnings by applying standard semantic coloring across all hooks, ensuring safe-mode execution is highly visible.
+*   **Unified Tables (`search`, `history`, `snaps`, `logs`, `env`):**
+    *   Replaced default Restic ASCII borders with dynamic edge-to-edge `====` dividers.
+    *   Standardized the `env` command output to use left-aligned, tabular formatting.
+    *   Added standard grey borders to `snaps` for visual cohesion.
+*   **Enhanced List Readability:**
+    *   Added a progressive `No.` (numbering) column to the `history` and `search` tables.
+    *   Refactored `search` columns to present a much more compact, aligned, and professional layout, removing the redundant `Tag` column to maximize terminal space.
+*   **Semantic Colorization:** Implemented a standardized semantic color system (`c_white`, `c_cyan`, `c_green`, `c_red`), replacing scattered legacy colors for a unified, modern aesthetic.
+*   **Consistent Context Banners:** Standardized contextual banners (`logs`, `all`, `umounter`) across the application for identical formatting.
+*   **Time Formatting Integration:** Integrated a native `duration` utility to present clean, readable runtime strings (e.g., `Duration: 8 seconds`) instead of raw timing outputs.
+
+#### 🐛 Bug Fixes and Documentation
+*   **Stability Enhancements:** Fixed asynchronous logging display issues to prevent terminal prompt clipping, and improved FUSE teardown stability in the `mounter` command.
+*   **Flag Collision and Help Parsing:** Resolved a flag collision with `--simulate` (changed `--skip-office` to `-O`). Ensured global help flags (`-h`/`--help`) are correctly handled by orchestrator commands without triggering unintended executions.
+*   **MTA Failures:** Improved `_send_email` to gracefully catch and suppress `stderr` when a Mail Transfer Agent is not configured, printing a clean warning instead of crashing verbosely.
+*   **Documentation Cleansing:** Rewrote command descriptions in `README.md` to accurately reflect v5.1 functionalities (e.g., wildcard tips for `history`). Removed deprecated flags (`-a`, `-d`), the obsolete `--next` flag, and the `rsync` dependency.
+*   **Help Texts Update:** Fixed internal help texts to print the new uppercase namespaces (e.g., `-T, --timer`) and corrected grammar and spelling throughout the documentation.
+
+#### 🛠️ Internal Refactoring
+*   **Decoupling `next` Logic:** Extracted the auto-cleanup calculation logic. The `Next cleanup and check...` string is no longer redundantly printed at the end of manual operations. It is properly scoped to execute during the `automatic` orchestrator run or via the standalone `next` command.
+*   **Orchestration Decoupling:** Migrated execution timing, lock management, and logging wrappers from individual commands in `src/07_commands.sh` into a centralized `execute_with_metrics` dispatcher in `src/08_main.sh`, drastically reducing code duplication.
+*   **Smart Lock Management:** Refactored `rescript_lock` into a state-aware singleton (`rescript_lock_created`), successfully removing all scattered `rm -rf "$lock"` teardown hacks and preventing lock-stealing race conditions during chained command pipelines.
+*   **Pipeline Consolidation:** Moved chained command sequences (like triggering `cleanup`, `check`, and `statinfo` after a `backup`) strictly into the main engine router, ensuring modular command purity.
+*   **Centralized Error Handling:** Centralized the `restic` error checking routine in `src/02_utils.sh` to standardize exit code validation and reduce repetition.
+*   **Helper Functions:** Abstracted the highly duplicated cleanup policy evaluation block in the `automatic` command into a clean internal `_run_auto_cleanup` helper. Extracted repetitive simulation (`dry-run`) validation into a cleaner helper function, and consolidated directory creation logic for POSIX compliance.
+
+#### 🛡️ Security & QA
+*   **Universal Test Framework:** Built a bulletproof, automated testing framework (`tests/run_all.sh`) that evaluates ~95% of core mechanics, orchestrator behaviors, and edge cases. It executes in a 100% sandboxed environment (`/tmp`), automatically overriding `$HOME` to guarantee zero risk to local user configurations.
+*   **Continuous POSIX Compliance:** Integrated `shellcheck` into the test suite to automatically validate syntax standards and prevent structural regressions.
+*   **Configuration File Permissions:** Changed the creation of new repository configuration files (`.conf`) to use `chmod 600` instead of `700`. This hardening measure prevents potential privilege escalation by ensuring config files are strictly non-world-writable, protecting `PRE_CMD` and `POST_CMD` execution.
+*   **Security Documentation:** Added an explicit warning in the `README.md` regarding the security implications of world-writable configuration files.
+
+---
+
+*End of changelog for version 5.1*
+
 ## v.5.0
 ---
 ### June 26, 2026
@@ -53,6 +102,9 @@ This is a major release marking the evolution of Rescript from a monolithic scri
 *   **POSIX `command -v` Migration:** Completely eliminated the use of the deprecated `which` command across the codebase in favor of the POSIX-compliant `command -v` for finding system binaries.
 *   **Native Log Rotation:** Implemented `LOG_RETENTION` variable support. Rescript will now natively prune log files older than the specified days, preventing the `.rescript/logs` folder from growing indefinitely.
 *   **Pre/Post Execution Hooks:** Added support for `PRE_CMD` and `POST_CMD` variables, allowing users to run arbitrary system commands immediately before and after the `automatic` backup process.
+---
+
+*End of changelog for version 5.0*
 
 ## v.4.7
 ---

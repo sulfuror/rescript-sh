@@ -2,13 +2,9 @@ if [[ ! $(command -v restic) ]] ; then
   echo "This script is made to work with [restic]. Please, install"
   echo "[restic] package to proceed. If you have [restic] binary"
   echo "saved in some custom directory, move it to '/usr/bin' or"
-  echo "to your PATH so this script can recognize it. If you need"
-  echo "to install [restic] and you are using Debian or some Debian"
-  echo "based distribution like Ubuntu, you can add the [rescript]"
-  echo "PPA with the following commands:"
+  echo "to your PATH so this script can recognize it. You can usually"
+  echo "install it via your system's package manager, for example:"
   echo ""
-  echo "  sudo add-apt-repository ppa:sulfuror/restic-tools"
-  echo "  sudo apt update"
   echo "  sudo apt install restic"
   echo ""
   echo "You can also download the standalone binary in the [restic]"
@@ -29,11 +25,27 @@ function _parse_standard_flags {
     -D|--debug) debug_flag="true" ; return 0 ;;
     -E|--email) int="false" ; CONFIRMATION_EMAIL="y" ; return 0 ;;
     -L|--log) log_flag="true" ; return 0 ;;
+    -M|--metadata) context_flag="true" ; return 0 ;;
     -Q|--quiet) quiet_flag="true" ; return 0 ;;
     -S|--simulate) simulate_flag="true" ; return 0 ;;
     -T|--timer) time_flag="true" ; return 0 ;;
     *) return 1 ;;
   esac
+}
+
+function parse_generic_args {
+  local help_func="$1"
+  shift
+  while [[ $# -gt 0 ]] ; do
+    if _parse_standard_flags "$1" ; then shift ; continue ; fi
+    case "$1" in
+      -h|--help) "$help_func" ; exit 0 ;;
+      --) shift ; rest+=( "$@" ) ; break ;;
+      -*) rest+=( "$1" ) ;;
+      *) rest+=( "$1" ) ;;
+    esac
+    shift
+  done
 }
 
 function run_quietly {
@@ -42,6 +54,13 @@ function run_quietly {
   else
     "$@"
   fi
+}
+
+function execute_with_metrics {
+  logger
+  time_start
+  "$@"
+  time_end
 }
 
 check_flag="false"
@@ -63,6 +82,7 @@ case "$cmd" in
     while [[ $# -gt 0 ]] ; do
       if _parse_standard_flags "$1" ; then shift ; continue ; fi
       case "$1" in
+        -h|--help|help) usage ; exit 0 ;;
         *) echo "Invalid option [$1]..." ; echo "" ; exit 1 ;;
       esac
       shift
@@ -75,18 +95,38 @@ case "$cmd" in
       if _parse_standard_flags "$1" ; then shift ; continue ; fi
       case "$1" in
         -C|--check) check_flag="true" ;;
-        -c|--cleanup) cleanup_flag="true" ;;
+        -U|--cleanup) cleanup_flag="true" ;;
 
         -h|--help ) backup-help ; exit 0 ;;
-        -i|--info) info_flag="true"  ;;
-        -S|--skip-office) skip_flag="true" ;;
+        -I|--info) info_flag="true"  ;;
+        -O|--skip-office) skip_flag="true" ;;
         --) shift ; rest+=( "$@" ) ; break ;;
         -*) rest+=( "$1" ) ;;
         *) rest+=( "$1" ) ;;
       esac
       shift
     done
+    logger
+    time_start
+    if [[ "$cleanup_flag" = "true" || "$check_flag" = "true" || "$info_flag" = "true" ]] ; then
+      echo -e "${c_cyan}Taking a Snapshot...${c_reset}"
+    fi
     run_quietly backup
+    if [[ "$cleanup_flag" = "true" ]] ; then
+      print_line
+      echo -e "${c_cyan}Starting cleanup...${c_reset}"
+      run_quietly cleanup
+    fi
+    if [[ "$check_flag" = "true" ]] ; then
+      print_line
+      echo -e "${c_cyan}Starting check...${c_reset}"
+      run_quietly restic check --cleanup-cache
+    fi
+    if [[ "$info_flag" = "true" ]] ; then
+      print_line
+      run_quietly statinfo
+    fi
+    time_end
     ;;
   cleanup)
     shopt -u nocasematch
@@ -95,28 +135,15 @@ case "$cmd" in
       case "$1" in
         -C|--check) check_flag="true" ;;
         -h|--help ) cleanup-help ; exit 0 ;;
-        -i|--info) info_flag="true" ;;
-        -n|--next)
-          if [[ -z "$CLEAN" ]] ; then
-            echo -e "$yellow""You have not indicated any policy for the CLEAN value...""$endcolor"
-            echo "The scrip will run check, forget and prune every time it runs"
-            echo "unless you change the CLEAN variable at the beginning of this script."
-            echo "The number indicated in the CLEAN variable must be in days."
-            echo "For more information about the usage check out the following link:"
-            echo "https://gitlab.com/sulfuror/rescript.sh/blob/master/README.md#usage"
-            exit
-          else
-            cleanup-next
-            exit
-          fi
-          ;;
+        -I|--info) info_flag="true" ;;
+
         --reset)
           if [[ -f "$config_dir/$repo-datefile" ]] ; then
-            echo -e "$yellow""Removing datefile for [$repo]:""$endcolor"
+            echo "Removing datefile for [$repo]:"
             rm -v "${config_dir:?}/$repo-datefile"
             exit 0
           else
-            echo -e "$yellow""There is no datefile for [$repo]... nothing to do.""$endcolor"
+            echo "There is no datefile for [$repo]... nothing to do."
             exit 0
           fi
           ;;
@@ -126,52 +153,63 @@ case "$cmd" in
       esac
       shift
     done
+    logger
+    time_start
+    if [[ "$check_flag" = "true" || "$info_flag" = "true" ]] ; then
+      echo -e "${c_cyan}Starting cleanup...${c_reset}"
+    fi
     run_quietly cleanup
+    if [[ "$check_flag" = "true" ]] ; then
+      print_line
+      echo -e "${c_cyan}Starting check...${c_reset}"
+      run_quietly restic check --cleanup-cache
+    fi
+    if [[ "$info_flag" = "true" ]] ; then
+      print_line
+      run_quietly statinfo
+    fi
+    time_end
     ;;
   diff)
     shopt -u nocasematch
-    while [[ $# -gt 0 ]] ; do
-      if _parse_standard_flags "$1" ; then shift ; continue ; fi
-      case "$1" in
-        -h|--help) diff-help ; exit 0 ;;
-        --) shift ; rest+=( "$@" ) ; break ;;
-        -*) rest+=( "$1" ) ;;
-        *) rest+=( "$1" ) ;;
-      esac
-      shift
-    done
-    run_quietly differ
+    parse_generic_args "diff-help" "$@"
+    execute_with_metrics run_quietly differ
     ;;
   env)
     while [[ $# -gt 0 ]] ; do
       if _parse_standard_flags "$1" ; then shift ; continue ; fi
       case "$1" in
         -h|--help) env-help ; exit 0 ;;
-        -v) var_flag="$2" ; shift ;;
+        -V) var_flag="$2" ; shift ;;
         --var=*) var_flag="${1#*=}" ;;
         --var) var_flag="$2" ; shift ;;
-        *) rest+=( "$1" ) ;;
+        -*) rest+=( "$1" ) ;;
       esac
       shift
     done
-    env_conf
+    execute_with_metrics env_conf
     ;;
   -h|--help|help)
     usage
     ;;
+  next)
+    shopt -u nocasematch
+    parse_generic_args "next-help" "$@"
+    if [[ -z "$CLEAN" ]] ; then
+      echo "You have not indicated any policy for the CLEAN value..."
+      echo "The script will run check, forget and prune every time it runs"
+      echo "unless you change the CLEAN variable at the beginning of this script."
+      echo "The number indicated in the CLEAN variable must be in days."
+      echo "For more information about the usage check out the following link:"
+      echo "https://gitlab.com/sulfuror/rescript.sh/blob/master/README.md#usage"
+    else
+      cleanup-next
+    fi
+    ;;
   extract)
     shopt -u nocasematch
-    while [[ $# -gt 0 ]] ; do
-      if _parse_standard_flags "$1" ; then shift ; continue ; fi
-      case "$1" in
-        -h|--help) extract-help ; exit 0 ;;
-        --) shift ; rest+=( "$@" ) ; break ;;
-        -*) rest+=( "$1" ) ;;
-        *) rest+=( "$1" ) ;;
-      esac
-      shift
-    done
-    run_quietly extract
+    parse_generic_args "extract-help" "$@"
+    execute_with_metrics run_quietly extract
     ;;
   info)
     shopt -u nocasematch
@@ -182,11 +220,12 @@ case "$cmd" in
         -H) host_flag="$2" ; shift ;;
         --host=*) host_flag="${1#*=}" ;;
         --host) host_flag="$2" ; shift ;;
+        -*) rest+=( "$1" ) ;;
         *) rest+=( "$1" ) ;;
       esac
       shift
     done
-    statinfo
+    execute_with_metrics statinfo
     ;;
   size)
     shopt -u nocasematch
@@ -197,51 +236,39 @@ case "$cmd" in
         -H) host_flag="$2" ; shift ;;
         --host=*) host_flag="${1#*=}" ;;
         --host) host_flag="$2" ; shift ;;
-        *) rest+=( "$1" ) ;;
-      esac
-      shift
-    done
-    run_quietly size
-    ;;
-  logs)
-    while [[ $# -gt 0 ]] ; do
-      if _parse_standard_flags "$1" ; then shift ; continue ; fi
-      case "$1" in
-        -c) catlogs="true" ; logfile="$2" ; shift ;;
-        --cat=*) catlogs="true" ; logfile="${1#*=}" ;;
-        --cat) catlogs="true" ; logfile="$2" ; shift ;;
-        -h|--help) logs-help ; exit 0 ;;
-        -r) removelogs="true" ; logfile="$2" ; shift ;;
-        --remove=*) removelogs="true" ; logfile="${1#*=}" ;;
-        --remove) removelogs="true" ; logfile="$2" ; shift ;;
-        *) rest+=( "$1" ) ;;
-      esac
-      shift
-    done
-    logs
-    ;;
-  mounter|umounter)
-    while [[ $# -gt 0 ]] ; do
-      if _parse_standard_flags "$1" ; then shift ; continue ; fi
-      case "$1" in
-        -h|--help) "$cmd-help" ; exit 0 ;;
-        --) shift ; rest+=( "$@" ) ; break ;;
         -*) rest+=( "$1" ) ;;
         *) rest+=( "$1" ) ;;
       esac
       shift
     done
-    "$cmd"
+    execute_with_metrics run_quietly size
+    ;;
+  logs)
+    while [[ $# -gt 0 ]] ; do
+      if _parse_standard_flags "$1" ; then shift ; continue ; fi
+      case "$1" in
+        -W) catlogs="true" ; logfile="$2" ; shift ;;
+        --view=*) catlogs="true" ; logfile="${1#*=}" ;;
+        --view) catlogs="true" ; logfile="$2" ; shift ;;
+        -h|--help) logs-help ; exit 0 ;;
+        -R) removelogs="true" ; logfile="$2" ; shift ;;
+        --remove=*) removelogs="true" ; logfile="${1#*=}" ;;
+        --remove) removelogs="true" ; logfile="$2" ; shift ;;
+        -*) rest+=( "$1" ) ;;
+        *) rest+=( "$1" ) ;;
+      esac
+      shift
+    done
+    execute_with_metrics logs
+    ;;
+  mounter|umounter)
+    parse_generic_args "$cmd-help" "$@"
+    execute_with_metrics "$cmd"
     ;;
   restorer)
     shopt -u nocasematch
     if [[ ! "$1" ]] ; then
       echo "You have not indicated any option..."
-      echo ""
-      restorer-help
-      exit 1
-    elif [[ "$1" != -* ]] ; then
-      echo "[$1] is not a valid option..."
       echo ""
       restorer-help
       exit 1
@@ -253,69 +280,52 @@ case "$cmd" in
         -H) host_flag="$2" ; shift ;;
         --host=*) host_flag="${1#*=}" ;;
         --host) host_flag="$2" ; shift ;;
-        -p) path_flag="$2" ; shift ;;
+        -P) path_flag="$2" ; shift ;;
         --path=*) path_flag="${1#*=}" ;;
         --path) path_flag="$2" ; shift ;;
-        -s) snap_flag="$2" ; shift ;;
+        -Z) snap_flag="$2" ; shift ;;
         --snapshot=*) snap_flag="${1#*=}" ;;
         --snapshot) snap_flag="$2" ; shift ;;
         -T) tag_flag="$2" ; shift ;;
         --tag=*) tag_flag="${1#*=}" ;;
         --tag) tag_flag="$2" ; shift ;;
-        *) rest+=( "$1" ) ;;
+        -*) 
+          echo "[$1] is not a valid option..."
+          echo ""
+          restorer-help
+          exit 1 
+          ;;
+        *) 
+          if [[ -z "$snap_flag" ]] ; then
+            snap_flag="$1"
+          else
+            echo "[$1] is not a valid option..."
+            echo ""
+            restorer-help
+            exit 1
+          fi
+          ;;
       esac
       shift
     done
-    run_quietly restorer
+    execute_with_metrics run_quietly restorer
     ;;
   search|history)
     shopt -u nocasematch
-    while [[ $# -gt 0 ]] ; do
-      if _parse_standard_flags "$1" ; then shift ; continue ; fi
-      case "$1" in
-        -h|--help) "$cmd-help" ; exit 0 ;;
-        --) shift ; rest+=( "$@" ) ; break ;;
-        -*) rest+=( "$1" ) ;;
-        *) rest+=( "$1" ) ;;
-      esac
-      shift
-    done
-    run_quietly "$cmd"
+    parse_generic_args "$cmd-help" "$@"
+    execute_with_metrics run_quietly "$cmd"
     ;;
   snaps)
-    while [[ $# -gt 0 ]] ; do
-      if _parse_standard_flags "$1" ; then shift ; continue ; fi
-      case "$1" in
-        -h|--help) snaps-help ; exit 0 ;;
-        --) shift ; rest+=( "$@" ) ; break ;;
-        -*) rest+=( "$1" ) ;;
-        *) rest+=( "$1" ) ;;
-      esac
-      shift
-    done
-    run_quietly snaps
+    parse_generic_args "snaps-help" "$@"
+    execute_with_metrics run_quietly snaps
     ;;
   unlocker)
-    while [[ $# -gt 0 ]] ; do
-      if _parse_standard_flags "$1" ; then shift ; continue ; fi
-      case "$1" in
-        -h|--help) unlocker-help ; exit 0 ;;
-        *) rest+=( "$1" ) ;;
-      esac
-      shift
-    done
-    run_quietly unlocker
+    parse_generic_args "unlocker-help" "$@"
+    execute_with_metrics run_quietly unlocker
     ;;
   upgrade)
-    while [[ $# -gt 0 ]] ; do
-      if _parse_standard_flags "$1" ; then shift ; continue ; fi
-      case "$1" in
-        -h|--help) upgrade-help ; exit 0 ;;
-        *) rest+=( "$1" ) ;;
-      esac
-      shift
-    done
-    run_quietly upgrade_repo
+    parse_generic_args "upgrade-help" "$@"
+    execute_with_metrics run_quietly upgrade_repo
     ;;
   *)
     rest=("$cmd")
@@ -336,4 +346,7 @@ job_done
 
 shopt -u nocasematch
 
-exit $exit_code
+# Allow async logging processes (like tee) to finish flushing before returning to shell
+sleep 0.1
+
+exit "${exit_code:-$?}"

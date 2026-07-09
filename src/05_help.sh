@@ -15,19 +15,19 @@ Usage:
 Command flags:
 
   -C, --check           Check for errors in repository.
-  -c, --cleanup         Apply retention policies and prune.
-  -i, --info            Display stats for latest and all snapshots.
-  -S, --skip-office     Temporarily exclude open (in-use) 'Office'
+  -U, --cleanup         Apply retention policies and prune.
+  -I, --info            Display stats for latest and all snapshots.
+  -O, --skip-office     Temporarily exclude open (in-use) 'Office'
                         documents (.xlsx, .docx, .ods, odt, etc.).
 
 Global flags:
-  -d, --debug           Debug script.
-  -e, --email           Force to send email with output.
+  -D, --debug           Debug script.
+  -E, --email           Force to send email with output.
   -h, --help            Display usage.
-  -l, --log             Create log file with command output.
-  -q, --quiet           Silence output.
-  -s, --simulate        Simulate execution (dry-run).
-  -t, --time            Display output with date, time and durantion.
+  -L, --log             Create log file with command output.
+  -Q, --quiet           Silence output.
+  -S, --simulate        Simulate execution (dry-run).
+  -T, --timer           Display output with date, time and duration.
 
 Make use of restic flags/options as follows:
   rescript [repo_name] backup [flags] -- [restic_flags/options] ...
@@ -49,24 +49,39 @@ Usage:
 Command flags:
 
   -C, --check           Check for errors in repository.
-  -i, --info            Display stats for latest and all snapshots.
-  -n, --next            Display next scheduled; works only if
-                        CLEANUP variable is set.
+  -I, --info            Display stats for latest and all snapshots.
       --reset           Remove "datefile"; it resets the dates for
                         the CLEAN option in your configuration file.
 
 Global flags:
-  -d, --debug           Debug script.
-  -e, --email           Force to send email with output.
+  -D, --debug           Debug script.
+  -E, --email           Force to send email with output.
   -h, --help            Display usage.
-  -l, --log             Create log file with command output.
-  -q, --quiet           Silence output.
-  -s, --simulate        Simulate execution (dry-run).
-  -t, --time            Display output with date, time and durantion.
+  -L, --log             Create log file with command output.
+  -Q, --quiet           Silence output.
+  -S, --simulate        Simulate execution (dry-run).
+  -T, --timer           Display output with date, time and duration.
 
 Make use of restic flags/options as follows:
   rescript [repo_name] cleanup [flags] -- [restic_flags/options] ...
 
+EOF
+}
+
+function next-help {
+cat <<EOF
+[next] displays the next scheduled automatic cleanup time.
+
+This command will read the CLEAN variable in your configuration
+file and tell you when the next cleanup and check is scheduled
+to occur.
+
+Usage:
+  rescript [repo_name] next [flags]
+
+Global flags:
+  -h, --help            Display usage.
+  -T, --timer           Display output with date, time and duration.
 EOF
 }
 
@@ -97,13 +112,13 @@ Usage:
   rescript [repo_name] diff [snapshot1] [snapshot2]
 
 Global flags:
-  -d, --debug           Debug script.
-  -e, --email           Force to send email with output.
+  -D, --debug           Debug script.
+  -E, --email           Force to send email with output.
   -h, --help            Display usage.
-  -l, --log             Create log file with command output.
-  -q, --quiet           Silence output.
-  -s, --simulate        Simulate execution (dry-run).
-  -t, --time            Display output with date, time and durantion.
+  -L, --log             Create log file with command output.
+  -Q, --quiet           Silence output.
+  -S, --simulate        Simulate execution (dry-run).
+  -T, --timer           Display output with date, time and duration.
 
 Make use of restic flags/options as follows:
   rescript [repo_name] diff [flags] -- [restic_flags/options] ...
@@ -137,7 +152,7 @@ Usage:
   rescript [repo_name] env
 
 Command flags:
-  -v, --var VARNAME     Display varname value chosen.
+  -V, --var VARNAME     Display varname value chosen.
 
 Global flags:
   -h, --help            Display usage.
@@ -156,16 +171,16 @@ Usage:
   rescript [repo_name] extract [snapshot_id] <file_path>
 
 Global flags:
-  -d, --debug           Debug script.
-  -e, --email           Force to send email with output.
+  -D, --debug           Debug script.
+  -E, --email           Force to send email with output.
   -h, --help            Display usage.
-  -l, --log             Create log file with command output.
-  -q, --quiet           Silence output.
-  -s, --simulate        Simulate execution (dry-run).
-  -t, --time            Display output with date, time and durantion.
+  -L, --log             Create log file with command output.
+  -Q, --quiet           Silence output.
+  -S, --simulate        Simulate execution (dry-run).
+  -T, --timer           Display output with date, time and duration.
 
 Make use of restic flags/options as follows:
-  rescript [repo_name] extract [flags] -- [restic_flags/options] ...
+  rescript [repo_name] extract [snapshot_id] <file_path> -- [restic_flags/options] ...
 
 EOF
 }
@@ -184,12 +199,13 @@ Command flags:
   -H, --host hostname   Only consider snapshots for this host.
 
 Global flags:
-  -d, --debug           Debug script.
-  -e, --email           Force to send email with output.
+  -D, --debug           Debug script.
+  -E, --email           Force to send email with output.
   -h, --help            Display usage.
-  -l, --log             Create log file with command output.
-  -s, --simulate        Simulate execution (dry-run).
-  -t, --time            Display output with date, time and durantion.
+  -L, --log             Create log file with command output.
+  -Q, --quiet           Silence output.
+  -S, --simulate        Simulate execution (dry-run).
+  -T, --timer           Display output with date, time and duration.
 
 EOF
 } 
@@ -224,8 +240,8 @@ OR
   rescript [repo_name] logs [flag] [logfile]
 
 Command flags:
-  -c, --cat logfile     Display output of selected log file.
-  -r, --remove logfile  Remove all log files (use 'all' to remove
+  -W, --view logfile    Display output of selected log file.
+  -R, --remove logfile  Remove all log files (use 'all' to remove
                         all logs related to the repository).
 
 Global flags:
@@ -250,13 +266,13 @@ Command flags:
   --background          Mount the repository in the background.
 
 Global flags:
-  -d, --debug           Debug script.
-  -e, --email           Force to send email with output.
+  -D, --debug           Debug script.
+  -E, --email           Force to send email with output.
   -h, --help            Display usage.
-  -l, --log             Create log file with command output.
-  -q, --quiet           Silence output.
-  -s, --simulate        Simulate execution (dry-run).
-  -t, --time            Display output with date, time and durantion.
+  -L, --log             Create log file with command output.
+  -Q, --quiet           Silence output.
+  -S, --simulate        Simulate execution (dry-run).
+  -T, --timer           Display output with date, time and duration.
 
 Make use of restic flags/options as follows:
   rescript [repo_name] mounter [--background] -- [restic_flags/options] ...
@@ -281,20 +297,20 @@ Usage:
 Command flags:
   -H, --host hostname   Only consider snapshots for this host
                         when snapshot-ID is [latest].
-  -p, --path path       Only consider snapshots which include
+  -P, --path path       Only consider snapshots which include
                         this [absolute] path for snapshot-ID [latest].
-  -s, --snapshot ID     Indicate snapshot-ID to restore.
+  -Z, --snapshot ID     Indicate snapshot-ID to restore.
   -T, --tag tagname     Only consider snapshots which include this
                         taglist for snapshot-ID [latest].
 
 Global flags:
-  -d, --debug           Debug script.
-  -e, --email           Force to send email with output.
+  -D, --debug           Debug script.
+  -E, --email           Force to send email with output.
   -h, --help            Display usage.
-  -l, --log             Create log file with command output.
-  -q, --quiet           Silence output.
-  -s, --simulate        Simulate execution (dry-run).
-  -t, --time            Display output with date, time and durantion.
+  -L, --log             Create log file with command output.
+  -Q, --quiet           Silence output.
+  -S, --simulate        Simulate execution (dry-run).
+  -T, --timer           Display output with date, time and duration.
 
 EOF
 }
@@ -311,13 +327,13 @@ Command flags:
   -i, --ignore-case     Ignore case for pattern (e.g., *report* vs *Report*).
 
 Global flags:
-  -d, --debug           Debug script.
-  -e, --email           Force to send email with output.
+  -D, --debug           Debug script.
+  -E, --email           Force to send email with output.
   -h, --help            Display usage.
-  -l, --log             Create log file with command output.
-  -q, --quiet           Silence output.
-  -s, --simulate        Simulate execution (dry-run).
-  -t, --time            Display output with date, time and durantion.
+  -L, --log             Create log file with command output.
+  -Q, --quiet           Silence output.
+  -S, --simulate        Simulate execution (dry-run).
+  -T, --timer           Display output with date, time and duration.
 
 Make use of restic flags/options as follows:
   rescript [repo_name] search [flags] -- [restic_flags/options] ...
@@ -337,13 +353,13 @@ Usage:
   rescript [repo_name] snaps [flags] [options]
 
 Global flags:
-  -d, --debug           Debug script.
-  -e, --email           Force to send email with output.
+  -D, --debug           Debug script.
+  -E, --email           Force to send email with output.
   -h, --help            Display usage.
-  -l, --log             Create log file with command output.
-  -q, --quiet           Silence output.
-  -s, --simulate        Simulate execution (dry-run).
-  -t, --time            Display output with date, time and durantion.
+  -L, --log             Create log file with command output.
+  -Q, --quiet           Silence output.
+  -S, --simulate        Simulate execution (dry-run).
+  -T, --timer           Display output with date, time and duration.
 
 Make use of restic flags/options as follows:
   rescript [repo_name] snaps [flags] -- [restic_flags/options] ...
@@ -365,8 +381,13 @@ Usage:
   rescript [repo_name] unlocker
 
 Global flags:
+  -D, --debug           Debug script.
+  -E, --email           Force to send email with output.
   -h, --help            Display usage.
-  -q, --quiet           Silence output.
+  -L, --log             Create log file with command output.
+  -Q, --quiet           Silence output.
+  -S, --simulate        Simulate execution (dry-run).
+  -T, --timer           Display output with date, time and duration.
 
 EOF
 }
@@ -398,13 +419,13 @@ Usage:
   rescript [repo_name] upgrade [flags]
 
 Global flags:
-  -d, --debug           Debug script.
-  -e, --email           Force to send email with output.
+  -D, --debug           Debug script.
+  -E, --email           Force to send email with output.
   -h, --help            Display usage.
-  -l, --log             Create log file with command output.
-  -q, --quiet           Silence output.
-  -s, --simulate        Simulate execution (dry-run).
-  -t, --time            Display output with date, time and durantion.
+  -L, --log             Create log file with command output.
+  -Q, --quiet           Silence output.
+  -S, --simulate        Simulate execution (dry-run).
+  -T, --timer           Display output with date, time and duration.
 
 EOF
 }
@@ -412,17 +433,26 @@ EOF
 function size-help {
 cat <<EOF
 [size] calculates the total size of a specific directory within
-the latest snapshot, parsing restic ls output.
+a snapshot, parsing restic ls output. If no snapshot is specified,
+it defaults to 'latest'.
 
 Usage:
-  rescript [repo_name] size <path>
+  rescript [repo_name] size [snapshot_id] <path> [flags]
+
+Command flags:
+  -H, --host hostname   Only consider snapshots for this host (only applies to 'latest').
 
 Global flags:
+  -D, --debug           Debug script.
+  -E, --email           Force to send email with output.
   -h, --help            Display usage.
-  -s, --simulate        Simulate execution (dry-run).
+  -L, --log             Create log file with command output.
+  -Q, --quiet           Silence output.
+  -S, --simulate        Simulate execution (dry-run).
+  -T, --timer           Display output with date, time and duration.
 
 Make use of restic flags/options as follows:
-  rescript [repo_name] size <path> -- [restic_flags/options] ...
+  rescript [repo_name] size [snapshot_id] <path> -- [restic_flags/options] ...
 
 EOF
 }
@@ -430,8 +460,9 @@ EOF
 function history-help {
 cat <<EOF
 [history] searches for a specific file across all snapshots
-and displays a chronological table with Snapshot ID, Date,
-and the file's Size over time.
+and displays a chronological table showing only the snapshots
+where the file was modified or introduced as a new version
+(based on changes in its Size or Modification Date).
 
 Usage:
   rescript [repo_name] history <pattern>
@@ -440,8 +471,13 @@ Command flags:
   -i, --ignore-case     Ignore case for pattern.
 
 Global flags:
+  -D, --debug           Debug script.
+  -E, --email           Force to send email with output.
   -h, --help            Display usage.
-  -s, --simulate        Simulate execution (dry-run).
+  -L, --log             Create log file with command output.
+  -Q, --quiet           Silence output.
+  -S, --simulate        Simulate execution (dry-run).
+  -T, --timer           Display output with date, time and duration.
 
 Make use of restic flags/options as follows:
   rescript [repo_name] history [flags] -- [restic_flags/options] ...
