@@ -30,7 +30,7 @@ case "$1" in
     _check_help_or_error "$1" "$2"
     echo "You have not indicated any repo for [$1]..."
     echo ""
-    $1-help
+    "$1"-help
     exit 1
     ;;
   config)
@@ -56,8 +56,8 @@ case "$1" in
       exit  
     fi
     case "$2" in
-      backup|cleanup|config|diff|editor|env|extract|history|info|install|logs|mounter|restorer|search|size|snaps|umounter|unlocker|update|upgrade)
-        $2-help
+      backup|cleanup|config|diff|editor|env|extract|history|info|install|logs|mounter|next|restorer|search|size|snaps|umounter|unlocker|update|upgrade)
+        "$2"-help
         exit 1
         ;;
       *)  
@@ -165,6 +165,7 @@ if [[ "$RESCRIPT_PASS" ]] ; then
 else
   export RESTIC_PASSWORD="$RESTIC_PASSWORD"
 fi
+export RESTIC_COMPRESSION="${RESTIC_COMPRESSION:-auto}"
 SECONDS=0
 
 case "$2" in
@@ -199,28 +200,28 @@ declare -a policies
 
 # Set variables for functions
 if [[ -n "$KEEP_LAST" && "$KEEP_LAST" -gt "0" ]] ; then
-  policies+=(--keep-last $KEEP_LAST)
+  policies+=(--keep-last "$KEEP_LAST")
 fi
 if [[ -n "$KEEP_HOURLY" && "$KEEP_HOURLY" -gt "0" ]] ; then
-  policies+=(--keep-hourly $KEEP_HOURLY)
+  policies+=(--keep-hourly "$KEEP_HOURLY")
 fi
 if [[ -n "$KEEP_DAILY" && "$KEEP_DAILY" -gt "0" ]] ; then
-  policies+=(--keep-daily $KEEP_DAILY)
+  policies+=(--keep-daily "$KEEP_DAILY")
 fi
 if [[ -n "$KEEP_WEEKLY" && "$KEEP_WEEKLY" -gt "0" ]] ; then
-  policies+=(--keep-weekly $KEEP_WEEKLY)
+  policies+=(--keep-weekly "$KEEP_WEEKLY")
 fi
 if [[ -n "$KEEP_MONTHLY" && "$KEEP_MONTHLY" -gt "0" ]] ; then
-  policies+=(--keep-monthly $KEEP_MONTHLY)
+  policies+=(--keep-monthly "$KEEP_MONTHLY")
 fi
 if [[ -n "$KEEP_YEARLY" && "$KEEP_YEARLY" -gt "0" ]] ; then
-  policies+=(--keep-yearly $KEEP_YEARLY)
+  policies+=(--keep-yearly "$KEEP_YEARLY")
 fi
 if [[ -n "$KEEP_WITHIN" ]] ; then
-  policies+=(--keep-within $KEEP_WITHIN)
+  policies+=(--keep-within "$KEEP_WITHIN")
 fi
 if [[ -n "$KEEP_TAG" ]] ; then
-  policies+=(--keep-tag $KEEP_TAG)
+  policies+=(--keep-tag "$KEEP_TAG")
 fi
 
 

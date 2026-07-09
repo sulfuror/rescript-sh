@@ -178,7 +178,7 @@ function _list_files {
   echo " [1] Back to Main Menu"
   echo " [2] Exit             "
   echo "----------------------"
-  ls "$config_dir" | grep -e "$pattern" | sed -e "s/$sedpat//"
+  find "$config_dir" -maxdepth 1 -type f -exec basename {} \; | grep -e "$pattern" | sed -e "s/$sedpat//"
   echo "======================"
 }
 
@@ -228,7 +228,7 @@ function new_config_file {
   touch "$new_repo"
   trap 'rm -rf "$new_repo"' INT QUIT TERM EXIT
   config_file > "$new_repo"
-  chmod 700 "$new_repo"
+  chmod 600 "$new_repo"
   read -rp "Write the name for your new repository (case sensitive): " repo_name
   if [[ $repo_name ]] ; then
     mv "$new_repo" "$config_dir/$repo_name.conf"

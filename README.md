@@ -103,8 +103,6 @@ assigning an easy name to remember for each repository.
 ## Usage:
 ---
 
-[![asciicast](https://asciinema.org/a/224460.svg)](https://asciinema.org/a/224460)
-
 You can use this script using an **_automatic_** function that will run `backup`,
 `snapshots`, `forget`, `prune`, `check` and `stats` using your configuration
 file. If your "LOGGING" variable is "yes" it will also create a log file with
@@ -162,8 +160,8 @@ after configuring `rescript` or else it will fail to do anything.
 ### Configuration files
 
 When you use `config` command to create a repository configuration file, `rescript` will create a template
-of the configuration file for you. It will also set the permissions for those configuration files to `700`, which
-means that only the user who created that configuration file will have the permission over the file; no other
+of the configuration file for you. It will also set the permissions for those configuration files to `600`, which
+means that only the user who created that configuration file will have the permission over the file (read/write); no other
 user will be able to open and read that configuration file.
 
 ### Things you need to change in your configuration file
@@ -247,13 +245,13 @@ you can open and edit it as you wish. This is all done via `rescript config`.
 
 ## Commands and Options
 ---
-There are three commands that will not work as restic usually work, and those are the following commands:
+There are three commands that will not work as restic usually works, which are the following:
 
 1. **backup**: This command will run a backup according to the variables set before.
 2. **help**: This command will display `rescript` help.
 3. **version**: This command will display the current version of `rescript` you're using.
  
-As far as I've tested, all other restic commands will run as using restic alone. For help
+As far as I've tested, all other restic commands will run exactly as they do using restic alone. For help
 with restic commands type:
 
 ```
@@ -264,13 +262,13 @@ Please see restic `help` and [documentation](https://restic.readthedocs.io/en/st
 
 ### Rescript Commands
 
-1. **all**: This is a powerful orchestrator command. It will execute the given command sequentially across *all* your configured repositories.
+1. **all**: This is a powerful orchestrator command. It will execute the given command sequentially across *all* your configured repositories. It natively processes help flags (`-h`/`--help`) and features consistently formatted terminal headers.
    Usage:
     ```
     rescript all [command] [flags] ...
     ```
    Command flags:
-    1. `-X, --ignore-repo`: skips a specific repository during the run. e.g. `rescript all backup -X omv`
+    1. `-X, --ignore-repo`: skips a specific repository during the run. e.g. `rescript all backup -X repo_name`
 
 2. **backup**: take a snapshot using the values set in your configuration file.
    Usage:
@@ -279,9 +277,9 @@ Please see restic `help` and [documentation](https://restic.readthedocs.io/en/st
     ```
    Command flags:
     1. `-C, --check`: check for errors in repository.
-    2. `-c, --cleanup`: apply retention policies and prune (see `cleanup` command).
-    3. `-i, --info`: display stats for the latest and all snapshots.
-    4. `-S, --skip-office`: temporarily exclude open "Office Documents".
+    2. `-U, --cleanup`: apply retention policies and prune (see `cleanup` command).
+    3. `-I, --info`: display stats for the latest and all snapshots.
+    4. `-O, --skip-office`: temporarily exclude open "Office Documents".
     
 3. **cleanup**: this will perform `forget` according to the policies in your configuration file and `prune`.
    Usage:
@@ -290,9 +288,8 @@ Please see restic `help` and [documentation](https://restic.readthedocs.io/en/st
     ```
    Command flags:
     1. `-C, --check`: check for errors in repository.
-    2. `-i, --info`: display stats for the latest and all snapshots.
-    3. `-n, --next`: display the next scheduled `cleanup` based on the `datefile`.
-    4. `--reset`: remove "datefile"; it resets the dates for the CLEAN option.
+    2. `-I, --info`: display stats for the latest and all snapshots.
+    3. `--reset`: remove "datefile"; it resets the dates for the CLEAN option.
 
 4. **diff**: this command replaces the deprecated `changes`. It automatically compares the two most recent snapshots. If you pass specific restic arguments, it will transparently act as a wrapper for `restic diff`.
    Usage:
@@ -306,22 +303,33 @@ Please see restic `help` and [documentation](https://restic.readthedocs.io/en/st
     rescript [repo_name] env [flags] [VARNAME]
     ```
 
-6. **extract**: extract a single file or directory from a specific snapshot into your local machine. Features a custom progress bar.
+6. **extract**: extract a single file or directory from a specific snapshot into your local machine. Features a custom progress bar and color-coded validation for success/failure. If no snapshot ID is provided, it auto-detects the latest snapshot containing that file.
    Usage:
     ```
-    rescript [repo_name] extract [snapshot-ID] [path/in/snapshot] [local/destination]
+    rescript [repo_name] extract [snapshot-ID] <file_path>
     ```
 
-7. **history**: display a detailed history (timeline) of a specific file or folder across all snapshots.
+7. **history**: display a detailed history (timeline) of a specific file or folder across all snapshots. This command tracks the *actual evolution* of the file by comparing sizes and modification dates, skipping identical consecutive snapshots.
+
+   > [!TIP]
+   > **Pro-Tip:** You can use the `**` wildcard to recursively search through any number of nested subdirectories. This is extremely useful to find a file deeply buried inside a specific path without knowing its exact depth. Example:
+   > ```bash
+   > rescript [repo_name] history "/path/to/folder/**/file.txt"
+   > ```
+   
    Usage:
     ```
-    rescript [repo_name] history [path]
+    rescript [repo_name] history <pattern>
     ```
 
 8. **info**: this command will display stats for latest and all snapshots in a custom formatted table.
 
-9. **logs**: this command needs an option. Could be used to display logs saved, display output in logs and remove logs.
-
+9. **logs**: this command needs an option. It can be used to display saved logs, display output in logs, and remove logs. It automatically lists logs in a custom layout providing the total file count and location path.
+    Usage:
+     ```
+     rescript [repo_name] logs [--view=|-W ] [log-name]
+     rescript [repo_name] logs [--remove=|-R ] [log-name]
+     ```
 10. **mounter**: this option will mount your repository in your `/home`.
     Usage:
      ```
@@ -329,35 +337,41 @@ Please see restic `help` and [documentation](https://restic.readthedocs.io/en/st
      ```
     The new `--background` flag allows you to mount the repository without locking your terminal session. A PID file is created in `/tmp`.
 
-11. **restorer**: restore the snapshot you want to restore. It will automatically create a new folder in your home directory called `restore-snapshotID-randomnumber`.
+11. **next**: displays the next scheduled automatic cleanup time. This command will read the CLEAN variable in your configuration file and tell you when the next cleanup and check is scheduled to occur.
     Usage:
      ```
-     rescript [repo_name] restorer [flags] [host|path|snapshot ID|tag]
+     rescript [repo_name] next [flags]
      ```
 
-12. **search**: quickly search for a specific file or directory across all your snapshots.
+12. **restorer**: restore the snapshot you want to restore. It will automatically create a new folder in your home directory called `restore-snapshotID-randomnumber`.
+    Usage:
+     ```
+     rescript [repo_name] restorer [-H|--host=host] [-P|--path=path] [-Z|--snapshot=snapshot ID] [-T|--tag=tag]
+     ```
+
+13. **search**: quickly search for a specific file or directory across all your snapshots.
     Usage:
      ```
      rescript [repo_name] search [query]
      ```
 
-13. **size**: calculate the exact size of a specific snapshot ID. Features a custom progress bar.
+14. **size**: calculate the exact size of a specific snapshot ID or path. Features a custom progress bar. If no snapshot is specified, it defaults to 'latest'.
     Usage:
      ```
-     rescript [repo_name] size [snapshot-ID]
+     rescript [repo_name] size [snapshot-ID] <path>
      ```
 
-14. **snaps**: this command is nothing more than `snapshots --compact` wrapped up. You may use it with any restic flags.
+15. **snaps**: this command is simply `snapshots --compact` wrapped up in a custom Rescript-styled table. You may use it with any restic flags.
 
-15. **umounter**: elegantly kill any background mounter processes and unmount the repository safely.
+16. **umounter**: elegantly kill any background mounter processes and unmount the repository safely.
     Usage:
      ```
      rescript [repo_name] umounter
      ```
 
-16. **unlocker**: this command WILL NOT unlock your restic repository. It deletes the temporary `.lock` file created by the script if it got stuck due to a forceful exit.
+17. **unlocker**: this command WILL NOT unlock your restic repository. It deletes the temporary `.lock` file created by the script if it got stuck due to a forceful exit.
 
-17. **upgrade**: easily upgrade your restic repository to the newer v2 repository format.
+18. **upgrade**: easily upgrade your restic repository to the newer v2 repository format.
 
 ### Rescript Global Flags
 
@@ -369,7 +383,7 @@ rescript [repo_name] [command] [flags]
 ```
 
 1. **`-D, --debug`**: Enable trace debugging (`set -xv`) for the script.
-2. **`-E, --email`**: force to send email with output.
+2. **`-E, --email`**: force sending an email with output.
 3. **`-h, --help`**: display help for a specific command.
 4. **`-L, --log`**: Create a logfile for this specific manual run.
 5. **`-Q, --quiet`**: silence output. If you use `--log` it will still log the output.
@@ -385,10 +399,13 @@ rescript [repo_name] [restic_command] -L -Q [restic_flags] ...
 
 ## Security
 ---
-By default, the configuration files are as secure as your computer/user is. `rescript` itself does not
-contain any information about your repositories. Configuration files holds that information and when
-a configuration file is created, it is created inside the user's home directory with `chmod 700` for the file,
+By default, the configuration files are as secure as your computer/user. `rescript` itself does not
+contain any information about your repositories. Configuration files hold that information and when
+a configuration file is created, it is created inside the user's home directory with `chmod 600` for the file,
 so if another user is navigating through the user's files, they can see the file but not the content.
+
+> [!WARNING]
+> Because `PRE_CMD` and `POST_CMD` are executed via `eval`, it is critical that configuration files are never world-writable (i.e. permissions should be `600`). If a malicious user can write to the `.conf` file, they can inject arbitrary commands that will run with your privileges (e.g. as `root` if running from cron).
 
 If you share a user in your computer or you are just paranoid, then you should create a password file for your
 repository and encrypt it. Using GPG is a great way to do this and all you need to do (after creating your encrypted password file)
@@ -411,7 +428,7 @@ is active, this variable will work. Once the session is closed you will need to 
 ## Adding a Cron Job
 ---
 You can use a cron job to run backups automatically. You'll need to open your 
-terminal emulator and edit your crontab file writing `crontab -e` and `enter`.
+terminal emulator and edit your crontab file by typing `crontab -e` and pressing `Enter`.
 After that you need to add a new cronjob like `10 */2 * * * /PATH/TO/YOUR/rescript [repo_name]`.
 This cron job will execute every two hours at the 10th minute. If you want to change it for every four hours;
 for example, at the 0 minute just write `0 */4 * * * /PATH/TO/YOUR/rescript [repo_name]`.
@@ -436,12 +453,12 @@ and the `repo_name-exclusions`. If you have multiple repositories, this subdirec
 will contain those three files for every repository.
 
 `lock` directory will always be empty except when `rescript` is running. `rescript`
-creates a temporarily file called `repo_name.lock` every time it runs and the file
-should be removed at the end of every operation. This "lock" prevents another
-processes to run if `rescript` is already running and is not finished yet. For example:
+creates a temporary file called `repo_name.lock` every time it runs and the file
+should be removed at the end of every operation. This "lock" prevents other
+processes from running if `rescript` is already running and is not finished yet. For example:
 you set scheduled jobs but you forgot and tried to make a `prune`. If the scheduled
 job is not finished it will display a message telling you that `rescript` is already
-running so you'll have to wait until `rescript` finish to do what you want to do.
+running, so you'll have to wait until `rescript` finishes to do what you want to do.
 This way `rescript` prevents possible problems with your repository.
 
 `logs` directory is used to save `rescript` logs.
@@ -450,9 +467,9 @@ This way `rescript` prevents possible problems with your repository.
 
 The `datefile` is created by the script in the first run. This file will be placed 
 inside `.rescript/config` and it will be called `repo_name-datefile`. 
-_**Why is it there?**_ I liked the way my script was but I really didn't wanted to do
+_**Why is it there?**_ I liked the way my script was, but I really didn't want to do
 the `check`, `forget` and `prune` commands every day or even in every run of the script.
-So, I find a way to play with the dates to make this happen and it was creating a 
+So, I found a way to play with the dates to make this happen, which involved creating a 
 file where the script could read and write dates. The `datefile` will only contain
 one date and that is 7 days from the moment you run the script for the first time
 (this 7 days is by default but you can change it in the "CLEAN" value).

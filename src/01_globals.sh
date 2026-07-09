@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ============================================================== #
-version="5.0"
+version="5.1"
 function usage {
 cat <<EOF
 Name        : rescript
@@ -49,10 +49,12 @@ Commands:
   info                  Display stats for latest and all snapshots.
   logs                  List, view or remove your log files.
   mounter               Mount a restic repo.
+  next                  Display next scheduled automatic cleanup time.
   restorer              Restore a restic snapshot.
   search                Find a file or directory across snapshots.
   size                  Calculate recursive size of a given path.
   snaps                 List snapshots in your repository (compact mode).
+  umounter              Unmount a previously mounted restic repository.
   unlocker              Remove lock created by rescript.
   upgrade               Upgrade restic repository to the latest format.
 
@@ -61,6 +63,7 @@ Global flags:
   -E, --email           Force to send email with output.
   -h, --help            Display usage.
   -L, --log             Create log file with command output.
+  -M, --metadata        Display execution context metadata.
   -Q, --quiet           Silence output.
   -S, --simulate        Run destructive operations in dry-run mode.
   -T, --timer           Display output with date, time and duration.
@@ -71,33 +74,24 @@ Commands usage:
 EOF
 }
 # ============================================================== #
-yellow="\033[33m"
-endcolor="\033[0m"
+c_blue="\033[1;34m"
+c_cyan="\033[1;36m"
+c_green="\033[1;32m"
+c_yellow="\033[0;33m"
+c_gray="\033[1;30m"
+c_white="\033[1;37m"
+c_red="\033[0;31m"
+c_reset="\033[0m"
 if [[ "$1" == "all" ]]; then
-  if [[ "$2" == "help" || "$2" == "--help" || "$2" == "-h" ]]; then
-    echo "Usage: rescript all [command] [flags] ..."
-    echo ""
-    echo "The 'all' keyword executes a command across ALL configured"
-    echo "repositories sequentially."
-    echo ""
-    echo "Flags specific to 'all':"
-    echo "  -X, --ignore-repo <repo>    Exclude a repository. Can be used multiple times."
-    echo ""
-    echo "Examples:"
-    echo "  rescript all backup -q"
-    echo "  rescript all cleanup --simulate --ignore-repo [repo_name]"
-    exit 0
-  fi
-
   shift 1
-  excludes=()
+  excluded_repos=()
   forward_args=()
   
   while [[ $# -gt 0 ]]; do
     case "$1" in
       --ignore-repo|-X)
         if [[ -n "$2" && "$2" != -* ]]; then
-          excludes+=("$2")
+          excluded_repos+=("$2")
           shift 2
         else
           echo "Error: --ignore-repo requires a repository name."
@@ -105,7 +99,7 @@ if [[ "$1" == "all" ]]; then
         fi
         ;;
       --ignore-repo=*)
-        excludes+=("${1#*=}")
+        excluded_repos+=("${1#*=}")
         shift 1
         ;;
       *)
@@ -114,6 +108,32 @@ if [[ "$1" == "all" ]]; then
         ;;
     esac
   done
+
+  has_help=false
+  for arg in "${forward_args[@]}"; do
+    if [[ "$arg" == "-h" || "$arg" == "--help" || "$arg" == "help" ]]; then
+      has_help=true
+      break
+    fi
+  done
+
+  if [[ "$has_help" == "true" ]]; then
+
+    if [[ ${#forward_args[@]} -eq 1 ]]; then
+      echo "Usage: rescript all [command] [flags] ..."
+      echo ""
+      echo "The 'all' keyword executes a command across ALL configured"
+      echo "repositories sequentially."
+      echo ""
+      echo "Flags specific to 'all':"
+      echo "  -X, --ignore-repo <repo>    Exclude a repository. Can be used multiple times."
+      echo ""
+      echo "Examples:"
+      echo "  rescript all backup -q"
+      echo "  rescript all cleanup --simulate --ignore-repo [repo_name]"
+      exit 0
+    fi
+  fi
   
   config_dir="$HOME/.rescript/config"
   if [[ ! -d "$config_dir" ]]; then
@@ -127,7 +147,7 @@ if [[ "$1" == "all" ]]; then
     repo_name=$(basename "$conf" .conf)
     
     excluded=false
-    for ex in "${excludes[@]}"; do
+    for ex in "${excluded_repos[@]}"; do
       if [[ "$ex" == "$repo_name" ]]; then
         excluded=true
         break
@@ -144,11 +164,36 @@ if [[ "$1" == "all" ]]; then
     exit 0
   fi
   
+  has_metadata=false
+  is_automatic=false
+  for arg in "${forward_args[@]}"; do
+    if [[ "$arg" == "-M" || "$arg" == "--metadata" ]]; then
+      has_metadata=true
+    fi
+    if [[ "$arg" == "automatic" ]]; then
+      is_automatic=true
+    fi
+  done
+  
+  if [[ ${#forward_args[@]} -eq 0 ]]; then
+    is_automatic=true
+  fi
+
+  cols=$(tput cols 2>/dev/null || echo 80)
   for r_name in "${repos[@]}"; do
-    echo "================================================================================"
-    printf "\e[1mRunning on repository: [%s]\e[0m\n" "$r_name"
-    echo "================================================================================"
+    if [[ "$has_metadata" == "false" && "$is_automatic" == "false" ]]; then
+      if [[ "$has_help" == "false" ]]; then
+        printf "%b" "${c_gray}"
+        for ((i=0; i<cols; i++)); do printf "="; done; echo -e "${c_reset}"
+        printf "${c_white}Running on repository:${c_reset} ${c_cyan}%s${c_reset}\n" "$r_name"
+        printf "%b" "${c_gray}"
+        for ((i=0; i<cols; i++)); do printf "="; done; echo -e "${c_reset}"
+      fi
+    fi
     "$0" "$r_name" "${forward_args[@]}" || true
+    if [[ "$has_help" == "true" ]]; then
+      exit 0
+    fi
     echo ""
   done
   
