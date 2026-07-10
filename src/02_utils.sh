@@ -287,9 +287,9 @@ function duration {
 # Select Editor Menu
 function select_editor {
   clear
-  echo "======================"
+  echo "$ui_line_eq"
   echo "  Select Text Editor  "
-  echo "======================"
+  echo "$ui_line_eq"
   echo " [1] Nano             "
   echo " [2] Vim              "
   echo " [3] Gedit            "
@@ -300,7 +300,7 @@ function select_editor {
   echo " [8] Xed              "  
   echo " [9] Other            "
   echo " [10] Exit            "
-  echo "======================"
+  echo "$ui_line_eq"
   read -rp "Select the Text Editor you want to use [ 1 - 9 ]: " texteditor
   case "$texteditor" in
     1|nano) echo "nano" > "$config_dir/.editor"; echo "You have selected [Nano] as your default text editor." ;;
@@ -319,13 +319,13 @@ function select_editor {
 
 # Main menu
 function main_menu {
-  echo "======================"
+  echo "$ui_line_eq"
   echo "        Menu          "
-  echo "======================"
+  echo "$ui_line_eq"
   echo " [1] Configuration    "
   echo " [2] Exclusions       "
   echo " [3] Exit             "
-  echo "======================"
+  echo "$ui_line_eq"
   read -rp "Select an option and press Enter [ 1 - 3 ]: " main
   case "$main" in
     1|configuration) clear ; config_menu ;;

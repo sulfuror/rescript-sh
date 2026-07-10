@@ -1,11 +1,11 @@
 function install {
-  echo "======================"
+  echo "$ui_line_eq"
   echo "     Installation     "
-  echo "======================"
+  echo "$ui_line_eq"
   echo " [1] System-wide      "
   echo " [2] For this user    "
   echo " [3] Exit             "
-  echo "======================"
+  echo "$ui_line_eq"
   read -rp "Select an option and press Enter [ 1 - 4 ]: " installation
   case "$installation" in
     1|system)

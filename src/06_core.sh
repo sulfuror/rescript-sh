@@ -1,6 +1,120 @@
 # ============================================================== #
 # Rescript Commands                                              #
 # ============================================================== #
+if [[ "$1" == "all" ]]; then
+  shift 1
+  excluded_repos=()
+  forward_args=()
+  
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --ignore-repo|-X)
+        if [[ -n "$2" && "$2" != -* ]]; then
+          excluded_repos+=("$2")
+          shift 2
+        else
+          echo "Error: --ignore-repo requires a repository name."
+          exit 1
+        fi
+        ;;
+      --ignore-repo=*)
+        excluded_repos+=("${1#*=}")
+        shift 1
+        ;;
+      *)
+        forward_args+=("$1")
+        shift 1
+        ;;
+    esac
+  done
+
+  has_help=false
+  for arg in "${forward_args[@]}"; do
+    if [[ "$arg" == "-h" || "$arg" == "--help" || "$arg" == "help" ]]; then
+      has_help=true
+      break
+    fi
+  done
+
+  if [[ "$has_help" == "true" ]]; then
+    if [[ ${#forward_args[@]} -eq 1 ]]; then
+      echo "Usage: rescript all [command] [flags] ..."
+      echo ""
+      echo "The 'all' keyword executes a command across ALL configured"
+      echo "repositories sequentially."
+      echo ""
+      echo "Flags specific to 'all':"
+      echo "  -X, --ignore-repo <repo>    Exclude a repository. Can be used multiple times."
+      echo ""
+      echo "Examples:"
+      echo "  rescript all backup -q"
+      echo "  rescript all cleanup --simulate --ignore-repo [repo_name]"
+      exit 0
+    fi
+  fi
+  
+  config_dir="$HOME/.rescript/config"
+  if [[ ! -d "$config_dir" ]]; then
+    echo "No repositories configured."
+    exit 1
+  fi
+  
+  repos=()
+  for conf in "$config_dir"/*.conf; do
+    [ -e "$conf" ] || continue
+    repo_name=$(basename "$conf" .conf)
+    
+    excluded=false
+    for ex in "${excluded_repos[@]}"; do
+      if [[ "$ex" == "$repo_name" ]]; then
+        excluded=true
+        break
+      fi
+    done
+    
+    if [[ "$excluded" == "false" ]]; then
+      repos+=("$repo_name")
+    fi
+  done
+  
+  if [[ ${#repos[@]} -eq 0 ]]; then
+    echo "No repositories found or all were excluded."
+    exit 0
+  fi
+  
+  has_metadata=false
+  is_automatic=false
+  for arg in "${forward_args[@]}"; do
+    if [[ "$arg" == "-M" || "$arg" == "--metadata" ]]; then
+      has_metadata=true
+    fi
+    if [[ "$arg" == "automatic" ]]; then
+      is_automatic=true
+    fi
+  done
+  
+  if [[ ${#forward_args[@]} -eq 0 ]]; then
+    is_automatic=true
+  fi
+
+  for r_name in "${repos[@]}"; do
+    if [[ "$has_metadata" == "false" && "$is_automatic" == "false" ]]; then
+      if [[ "$has_help" == "false" ]]; then
+        print_line "="
+        printf "${c_white}Running on repository:${c_reset} ${c_cyan}%s${c_reset}\n" "$r_name"
+        print_line "="
+      fi
+    fi
+    "$0" "$r_name" "${forward_args[@]}" || true
+    if [[ "$has_help" == "true" ]]; then
+      exit 0
+    fi
+    echo ""
+  done
+  
+  exit 0
+fi
+
 if [[ ! "$1"  ]] ; then
   echo "You need to indicate the name of your repository or a"
   echo "command; type [rescript help] for usage."

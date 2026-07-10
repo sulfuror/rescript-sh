@@ -172,26 +172,26 @@ function _list_files {
   local title="$1"
   local pattern="$2"
   local sedpat="$3"
-  echo "======================"
+  echo "$ui_line_eq"
   printf " %-20s \n" "$title"
-  echo "======================"
+  echo "$ui_line_eq"
   echo " [1] Back to Main Menu"
   echo " [2] Exit             "
-  echo "----------------------"
+  echo "$ui_line_dash"
   find "$config_dir" -maxdepth 1 -type f -exec basename {} \; | grep -e "$pattern" | sed -e "s/$sedpat//"
-  echo "======================"
+  echo "$ui_line_eq"
 }
 
 function config_menu {
-  echo "======================"
+  echo "$ui_line_eq"
   echo "       Options        "
-  echo "======================"
+  echo "$ui_line_eq"
   echo " [1] Edit Existing    "
   echo " [2] New Repository   "
   echo " [3] Delete Config    "
   echo " [4] Back to Main Menu"
   echo " [5] Exit             "
-  echo "======================"
+  echo "$ui_line_eq"
   read -rp "Select an option and press Enter [ 1 - 5 ]: " cfgopt
   case "$cfgopt" in
     1|edit) clear ; edit_config_files ;;
@@ -280,14 +280,14 @@ function delete_config_file {
 
 # Exclusions menu
 function exclusion_menu {
-  echo "======================"
+  echo "$ui_line_eq"
   echo "  Exclusions Options  "
-  echo "======================"
+  echo "$ui_line_eq"
   echo " [1] Edit Existing    "
   echo " [2] Build Exclusions "
   echo " [3] Back to Main Menu"
   echo " [4] Exit             "
-  echo "======================"
+  echo "$ui_line_eq"
   read -rp "Select an option and press Enter [ 1 - 4 ]: " excl_opt
   case $excl_opt in
     1|edit) clear ; edit_exclusions ;;
@@ -350,14 +350,14 @@ function _build_exclusions_action {
 }
 
 function build_exclusions {
-  echo "======================"
+  echo "$ui_line_eq"
   echo "    Build Options     "
-  echo "======================"
+  echo "$ui_line_eq"
   echo " [1] For Home Dir     "
   echo " [2] For System Dir   "
   echo " [3] Back             "
   echo " [4] Exit             "
-  echo "======================"
+  echo "$ui_line_eq"
   read -rp "Select an option and press Enter [ 1 - 4 ]: " excl_bld
   case "$excl_bld" in
     1|home) _build_exclusions_action "long_exclusions" ;;
