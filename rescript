@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ============================================================== #
-version="5.1"
+version="5.2"
 function usage {
 cat <<EOF
 Name        : rescript
