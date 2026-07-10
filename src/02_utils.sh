@@ -38,8 +38,8 @@ function print_line {
   echo -ne "${c_reset}"
 }
 
-function _send_email {
-  local subject="$1"
+function send_email {
+  local subject="${1:-}"
   if [[ "$simulate_flag" == "true" ]]; then
     echo -e "${c_yellow}SIMULATE: Would send email to [$EMAIL] with subject: [$subject]${c_reset}"
     return 0
@@ -76,7 +76,7 @@ function _send_email {
 }
 
 function print_context {
-  if [[ "$context_flag" != "true" || "$quiet_flag" == "true" || "$context_printed" == "true" ]] ; then
+  if [[ "${context_flag:-}" != "true" || "$quiet_flag" == "true" || "$context_printed" == "true" ]] ; then
     return 0
   fi
   context_printed="true"
@@ -136,8 +136,8 @@ function print_context {
       if [[ -n "$hooks" ]]; then
         printf "  ${c_white}%-15s${c_reset}: ${c_cyan}%s${c_reset}\n" "Hooks" "$hooks"
       fi
-      if [[ -n "$CLEAN" ]] ; then
-        printf "  ${c_white}%-15s${c_reset}: ${c_cyan}%s${c_reset}\n" "Auto-Clean" "Every $CLEAN"
+      if [[ -n "${CLEAN:-}" ]] ; then
+        printf "  ${c_white}%-15s${c_reset}: ${c_cyan}%s${c_reset}\n" "Auto-Clean" "Every ${CLEAN:-}"
       fi
       ;;
     cleanup)
@@ -160,7 +160,7 @@ function job_done {
   if [[ -z "$cmd" ]] ; then
     cmd="backup"
   fi
-  if [[ "$CONFIRMATION_EMAIL" = "y" || "$CONFIRMATION_EMAIL" = "yes" ]] ; then
+  if [[ "${CONFIRMATION_EMAIL:-}" = "y" || "${CONFIRMATION_EMAIL:-}" = "yes" ]] ; then
     _send_email "rescript: [$repo] $cmd finished successfully!"
   fi
 }
@@ -182,8 +182,8 @@ function report_errors {
 }
 
 function check_restic_error {
-  exit_code="$1"
-  latest_cmd="$prev_cmd"
+  exit_code="${1:-0}"
+  latest_cmd="${prev_cmd:-}"
   latest_error
 }
 
@@ -338,8 +338,8 @@ function main_menu {
 # Configuration menu
 
 function print_progress {
-  local label="$1"
-  local percent="$2"
+  local label="${1:-}"
+  local percent="${2:-}"
   local length=20
   local fill=$(( (percent * length) / 100 ))
   local empty=$(( length - fill ))
@@ -354,4 +354,77 @@ function print_progress {
   fi
   
   printf "](%s%%)\r" "$percent"
+}
+
+function logger {
+  if [[ "$log_flag" = "true" ]] ; then
+    if [[ ! "$cmd" ]] ; then
+      log="$logs_dir/$repo-log-$(date +%Y-%m-%d-%H:%M).log"
+    else
+      log="$logs_dir/$repo-$cmd-log-$(date +%Y-%m-%d-%H:%M).log"
+    fi
+    exec > >(tee -a "$log") 2>&1
+    if [[ -n "$LOG_RETENTION" && "$LOG_RETENTION" -gt 0 ]] 2>/dev/null ; then
+      find "$logs_dir" -name "$repo-*.log" -type f -mtime +"$LOG_RETENTION" -exec rm -f {} +
+    fi
+  else
+    exec > >(tee -a "$tmplog") 2>&1
+  fi
+}
+
+function time_start {
+  if [[ "$time_flag" = "true" ]] ; then
+    SECONDS=0
+  fi
+}
+
+function time_end {
+  if [[ "$time_flag" = "true" ]] ; then
+    print_line
+    echo -e "${c_white}Duration:${c_reset} ${c_green}$(duration)${c_reset}"
+  fi
+}
+
+function rescript_lock {
+  if [[ "${rescript_lock_created:-}" == "true" ]]; then return 0; fi
+  if [ -e "$lock" ]; then
+    echo "WARNING: [$repo] repo is already running..."
+    echo "If you are sure $repo is not running, type"
+    echo " "
+    echo "  rescript $repo unlocker"
+    echo " "
+    echo "This will remove the lock for [$repo] repository."
+    echo ""
+    echo "Lock file info:"
+    stat "$lock_dir/$repo.lock"
+    latest_cmd="$cmd"
+    exit_code="1"
+    latest_error
+  else
+    touch "$lock"
+    trap 'rm -rf "${lock:?}" ; rm -rf "${tmplog:?}"' INT QUIT TERM EXIT
+    rescript_lock_created="true"
+  fi
+}
+
+function debug_start {
+  if [[ "$debug_flag" = "true" ]] ; then
+    set -xv
+  fi
+}
+
+function debug_stop {
+  if [[ "$debug_flag" = "true" ]] ; then
+    set +xv
+  fi
+}
+
+function set_sim_flag {
+  local cmd_name="${1:-}"
+  local default_flag="${2:-}"
+  sim_flag="$default_flag"
+  if [[ "$simulate_flag" == "true" ]]; then
+    echo -e "${c_yellow}SIMULATE: $cmd_name running in dry-run mode.${c_reset}"
+    sim_flag="--dry-run"
+  fi
 }

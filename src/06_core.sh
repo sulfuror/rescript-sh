@@ -1,16 +1,16 @@
 # ============================================================== #
 # Rescript Commands                                              #
 # ============================================================== #
-if [[ "$1" == "all" ]]; then
+if [[ "${1:-}" == "all" ]]; then
   shift 1
   excluded_repos=()
   forward_args=()
   
   while [[ $# -gt 0 ]]; do
-    case "$1" in
+    case "${1:-}" in
       --ignore-repo|-X)
-        if [[ -n "$2" && "$2" != -* ]]; then
-          excluded_repos+=("$2")
+        if [[ -n "${2:-}" && "${2:-}" != -* ]]; then
+          excluded_repos+=("${2:-}")
           shift 2
         else
           echo "Error: --ignore-repo requires a repository name."
@@ -22,7 +22,7 @@ if [[ "$1" == "all" ]]; then
         shift 1
         ;;
       *)
-        forward_args+=("$1")
+        forward_args+=("${1:-}")
         shift 1
         ;;
     esac
@@ -115,15 +115,15 @@ if [[ "$1" == "all" ]]; then
   exit 0
 fi
 
-if [[ ! "$1"  ]] ; then
+if [[ ! "${1:-}"  ]] ; then
   echo "You need to indicate the name of your repository or a"
   echo "command; type [rescript help] for usage."
   exit
 fi
 
 function _check_help_or_error {
-  local cmd="$1"
-  local arg="$2"
+  local cmd="${1:-}"
+  local arg="${2:-}"
   if [[ "$arg" ]] ; then
     case "$arg" in
       -h|--help|help)
@@ -139,16 +139,16 @@ function _check_help_or_error {
     esac
   fi
 }
-case "$1" in
+case "${1:-}" in
   backup|cleanup|diff|extract|search)
-    _check_help_or_error "$1" "$2"
+    _check_help_or_error "${1:-}" "${2:-}"
     echo "You have not indicated any repo for [$1]..."
     echo ""
-    "$1"-help
+    "${1:-}"-help
     exit 1
     ;;
   config)
-    _check_help_or_error "$1" "$2"
+    _check_help_or_error "${1:-}" "${2:-}"
     if [[ -z "$rescript_editor" ]] ; then
       select_editor
       echo "Please type [rescript config] again to set/edit"
@@ -160,18 +160,18 @@ case "$1" in
     exit
     ;;
   editor)
-    _check_help_or_error "$1" "$2"
+    _check_help_or_error "${1:-}" "${2:-}"
     select_editor
     exit
     ;;
   -h|--help|help)
-    if [[ ! "$2" ]] ; then
+    if [[ ! "${2:-}" ]] ; then
       usage
       exit  
     fi
-    case "$2" in
+    case "${2:-}" in
       backup|cleanup|config|diff|editor|env|extract|history|info|install|logs|mounter|next|restorer|search|size|snaps|umounter|unlocker|update|upgrade)
-        "$2"-help
+        "${2:-}"-help
         exit 1
         ;;
       *)  
@@ -182,7 +182,7 @@ case "$1" in
     esac
     ;;
   install)
-    _check_help_or_error "$1" "$2"
+    _check_help_or_error "${1:-}" "${2:-}"
     clear
     install
     exit
@@ -242,7 +242,7 @@ case "$1" in
     exit
     ;;
   update)
-    _check_help_or_error "$1" "$2"
+    _check_help_or_error "${1:-}" "${2:-}"
     update
     exit
     ;;
@@ -265,31 +265,47 @@ esac
 # Functions                                                      #
 # ============================================================== #
 source "$config_file"
+# Defaulting unset variables from config for strict mode
+export HOST="${HOST:-}"
+export CLEAN="${CLEAN:-}"
+export PRE_CMD="${PRE_CMD:-}"
+export POST_CMD="${POST_CMD:-}"
+export EXCLUDE_CACHE="${EXCLUDE_CACHE:-}"
+export EXCLUDE_FILE="${EXCLUDE_FILE:-}"
+export ONE_FILE_SYSTEM="${ONE_FILE_SYSTEM:-}"
+export TAG="${TAG:-}"
+export LOG_RETENTION="${LOG_RETENTION:-}"
+export SKIP_OFFICE="${SKIP_OFFICE:-}"
+export SHOW_SNAPS="${SHOW_SNAPS:-}"
+export SHOW_STATS="${SHOW_STATS:-}"
+export CONFIRMATION_EMAIL="${CONFIRMATION_EMAIL:-}"
+export DESTINATION="${DESTINATION:-}"
+
 export RESTIC_REPOSITORY="$RESTIC_REPO"
-export B2_ACCOUNT_ID="$B2_ID"
-export B2_ACCOUNT_KEY="$B2_KEY"
-export AWS_ACCESS_KEY_ID="$AWS_ID"
-export AWS_SECRET_ACCESS_KEY="$AWS_KEY"
-export AZURE_ACCOUNT_NAME="$AZURE_NAME"
-export AZURE_ACCOUNT_KEY="$AZURE_KEY"
-export GOOGLE_PROJECT_ID="$GOOGLE_ID"
-export GOOGLE_APPLICATION_CREDENTIALS="$GOOGLE_CREDENTIALS"
-if [[ "$RESCRIPT_PASS" ]] ; then
+export B2_ACCOUNT_ID="${B2_ID:-}"
+export B2_ACCOUNT_KEY="${B2_KEY:-}"
+export AWS_ACCESS_KEY_ID="${AWS_ID:-}"
+export AWS_SECRET_ACCESS_KEY="${AWS_KEY:-}"
+export AZURE_ACCOUNT_NAME="${AZURE_NAME:-}"
+export AZURE_ACCOUNT_KEY="${AZURE_KEY:-}"
+export GOOGLE_PROJECT_ID="${GOOGLE_ID:-}"
+export GOOGLE_APPLICATION_CREDENTIALS="${GOOGLE_CREDENTIALS:-}"
+if [[ -n "${RESCRIPT_PASS:-}" ]] ; then
   export RESTIC_PASSWORD="$RESCRIPT_PASS"
 else
-  export RESTIC_PASSWORD="$RESTIC_PASSWORD"
+  export RESTIC_PASSWORD="${RESTIC_PASSWORD:-}"
 fi
 export RESTIC_COMPRESSION="${RESTIC_COMPRESSION:-auto}"
 SECONDS=0
 
-case "$2" in
+case "${2:-}" in
   init) restic init ; exit 0 ;;
 esac
 
 case "$RESTIC_REPO" in
-  sftp*) ping_target=${RESTIC_REPO#sftp*@} ; ping_target=${ping_target%:*} ; ping -c 1 "$ping_target" > /dev/null ; ping_code="$?" ;;
-  rclone*) ping_target=${RESTIC_REPO#rclone:} ; rclone about "$ping_target" > /dev/null ; ping_code="$?" ;;
-  /*) dir "$RESTIC_REPO" 2>/dev/null 1>/dev/null ; ping_code="$?" ;;
+  sftp*) ping_target=${RESTIC_REPO#sftp*@} ; ping_target=${ping_target%:*} ; ping -c 1 "$ping_target" > /dev/null || true ; ping_code="$?" ;;
+  rclone*) ping_target=${RESTIC_REPO#rclone:} ; rclone about "$ping_target" > /dev/null || true ; ping_code="$?" ;;
+  /*) dir "$RESTIC_REPO" 2>/dev/null 1>/dev/null || true ; ping_code="$?" ;;
 esac
 
 if [[ "$ping_code" -gt "0" ]] ; then
@@ -298,13 +314,13 @@ if [[ "$ping_code" -gt "0" ]] ; then
   exit "$ping_code"
 fi
 
-if [[ -n "$DESTINATION" ]] ; then
+if [[ -n "${DESTINATION:-}" ]] ; then
   dest=$DESTINATION
 else
   dest=$RESTIC_REPO
 fi
 
-if [[ -n "$HOST" ]] ; then
+if [[ -n "${HOST:-}" ]] ; then
   rhost="$HOST"
 else
   rhost=$(hostname)
@@ -313,28 +329,28 @@ fi
 declare -a policies
 
 # Set variables for functions
-if [[ -n "$KEEP_LAST" && "$KEEP_LAST" -gt "0" ]] ; then
+if [[ -n "${KEEP_LAST:-}" && "$KEEP_LAST" -gt "0" ]] 2>/dev/null ; then
   policies+=(--keep-last "$KEEP_LAST")
 fi
-if [[ -n "$KEEP_HOURLY" && "$KEEP_HOURLY" -gt "0" ]] ; then
+if [[ -n "${KEEP_HOURLY:-}" && "$KEEP_HOURLY" -gt "0" ]] 2>/dev/null ; then
   policies+=(--keep-hourly "$KEEP_HOURLY")
 fi
-if [[ -n "$KEEP_DAILY" && "$KEEP_DAILY" -gt "0" ]] ; then
+if [[ -n "${KEEP_DAILY:-}" && "$KEEP_DAILY" -gt "0" ]] 2>/dev/null ; then
   policies+=(--keep-daily "$KEEP_DAILY")
 fi
-if [[ -n "$KEEP_WEEKLY" && "$KEEP_WEEKLY" -gt "0" ]] ; then
+if [[ -n "${KEEP_WEEKLY:-}" && "$KEEP_WEEKLY" -gt "0" ]] 2>/dev/null ; then
   policies+=(--keep-weekly "$KEEP_WEEKLY")
 fi
-if [[ -n "$KEEP_MONTHLY" && "$KEEP_MONTHLY" -gt "0" ]] ; then
+if [[ -n "${KEEP_MONTHLY:-}" && "$KEEP_MONTHLY" -gt "0" ]] 2>/dev/null ; then
   policies+=(--keep-monthly "$KEEP_MONTHLY")
 fi
-if [[ -n "$KEEP_YEARLY" && "$KEEP_YEARLY" -gt "0" ]] ; then
+if [[ -n "${KEEP_YEARLY:-}" && "$KEEP_YEARLY" -gt "0" ]] 2>/dev/null ; then
   policies+=(--keep-yearly "$KEEP_YEARLY")
 fi
-if [[ -n "$KEEP_WITHIN" ]] ; then
+if [[ -n "${KEEP_WITHIN:-}" ]] ; then
   policies+=(--keep-within "$KEEP_WITHIN")
 fi
-if [[ -n "$KEEP_TAG" ]] ; then
+if [[ -n "${KEEP_TAG:-}" ]] ; then
   policies+=(--keep-tag "$KEEP_TAG")
 fi
 

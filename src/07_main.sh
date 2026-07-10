@@ -11,11 +11,11 @@ if [[ ! $(command -v restic) ]] ; then
   echo "release page: https://github.com/restic/restic/releases"
   exit
 fi
-if [[ ! "$2" || "$2" == -* ]] ; then
+if [[ ! "${2:-}" || "${2:-}" == -* ]] ; then
   cmd="automatic"
   shift 1
 else
-  cmd="$2"
+  cmd="${2:-}"
   shift 2
 fi
 
@@ -195,7 +195,7 @@ case "$cmd" in
   next)
     shopt -u nocasematch
     parse_generic_args "next-help" "$@"
-    if [[ -z "$CLEAN" ]] ; then
+    if [[ -z "${CLEAN:-}" ]] ; then
       echo "You have not indicated any policy for the CLEAN value..."
       echo "The script will run check, forget and prune every time it runs"
       echo "unless you change the CLEAN variable at the beginning of this script."

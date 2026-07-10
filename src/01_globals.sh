@@ -1,5 +1,24 @@
 #!/usr/bin/env bash
 # ============================================================== #
+set -euo pipefail
+# Initialize internal variables to prevent unbound variable errors
+context_flag=""
+rescript_lock_created=""
+var_flag=""
+log_flag=""
+time_flag=""
+simulate_flag=""
+debug_flag=""
+skip_flag=""
+prev_cmd=""
+host_flag=""
+error_message=""
+ping_code=""
+rest_cmd=""
+cmd=""
+exit_code=""
+latest_cmd=""
+context_printed=""
 version="5.2"
 function usage {
 cat <<EOF

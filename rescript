@@ -1,5 +1,24 @@
 #!/usr/bin/env bash
 # ============================================================== #
+set -euo pipefail
+# Initialize internal variables to prevent unbound variable errors
+context_flag=""
+rescript_lock_created=""
+var_flag=""
+log_flag=""
+time_flag=""
+simulate_flag=""
+debug_flag=""
+skip_flag=""
+prev_cmd=""
+host_flag=""
+error_message=""
+ping_code=""
+rest_cmd=""
+cmd=""
+exit_code=""
+latest_cmd=""
+context_printed=""
 version="5.2"
 function usage {
 cat <<EOF
@@ -147,8 +166,8 @@ function print_line {
   echo -ne "${c_reset}"
 }
 
-function _send_email {
-  local subject="$1"
+function send_email {
+  local subject="${1:-}"
   if [[ "$simulate_flag" == "true" ]]; then
     echo -e "${c_yellow}SIMULATE: Would send email to [$EMAIL] with subject: [$subject]${c_reset}"
     return 0
@@ -185,7 +204,7 @@ function _send_email {
 }
 
 function print_context {
-  if [[ "$context_flag" != "true" || "$quiet_flag" == "true" || "$context_printed" == "true" ]] ; then
+  if [[ "${context_flag:-}" != "true" || "$quiet_flag" == "true" || "$context_printed" == "true" ]] ; then
     return 0
   fi
   context_printed="true"
@@ -245,8 +264,8 @@ function print_context {
       if [[ -n "$hooks" ]]; then
         printf "  ${c_white}%-15s${c_reset}: ${c_cyan}%s${c_reset}\n" "Hooks" "$hooks"
       fi
-      if [[ -n "$CLEAN" ]] ; then
-        printf "  ${c_white}%-15s${c_reset}: ${c_cyan}%s${c_reset}\n" "Auto-Clean" "Every $CLEAN"
+      if [[ -n "${CLEAN:-}" ]] ; then
+        printf "  ${c_white}%-15s${c_reset}: ${c_cyan}%s${c_reset}\n" "Auto-Clean" "Every ${CLEAN:-}"
       fi
       ;;
     cleanup)
@@ -269,7 +288,7 @@ function job_done {
   if [[ -z "$cmd" ]] ; then
     cmd="backup"
   fi
-  if [[ "$CONFIRMATION_EMAIL" = "y" || "$CONFIRMATION_EMAIL" = "yes" ]] ; then
+  if [[ "${CONFIRMATION_EMAIL:-}" = "y" || "${CONFIRMATION_EMAIL:-}" = "yes" ]] ; then
     _send_email "rescript: [$repo] $cmd finished successfully!"
   fi
 }
@@ -291,8 +310,8 @@ function report_errors {
 }
 
 function check_restic_error {
-  exit_code="$1"
-  latest_cmd="$prev_cmd"
+  exit_code="${1:-0}"
+  latest_cmd="${prev_cmd:-}"
   latest_error
 }
 
@@ -447,8 +466,8 @@ function main_menu {
 # Configuration menu
 
 function print_progress {
-  local label="$1"
-  local percent="$2"
+  local label="${1:-}"
+  local percent="${2:-}"
   local length=20
   local fill=$(( (percent * length) / 100 ))
   local empty=$(( length - fill ))
@@ -463,6 +482,79 @@ function print_progress {
   fi
   
   printf "](%s%%)\r" "$percent"
+}
+
+function logger {
+  if [[ "$log_flag" = "true" ]] ; then
+    if [[ ! "$cmd" ]] ; then
+      log="$logs_dir/$repo-log-$(date +%Y-%m-%d-%H:%M).log"
+    else
+      log="$logs_dir/$repo-$cmd-log-$(date +%Y-%m-%d-%H:%M).log"
+    fi
+    exec > >(tee -a "$log") 2>&1
+    if [[ -n "$LOG_RETENTION" && "$LOG_RETENTION" -gt 0 ]] 2>/dev/null ; then
+      find "$logs_dir" -name "$repo-*.log" -type f -mtime +"$LOG_RETENTION" -exec rm -f {} +
+    fi
+  else
+    exec > >(tee -a "$tmplog") 2>&1
+  fi
+}
+
+function time_start {
+  if [[ "$time_flag" = "true" ]] ; then
+    SECONDS=0
+  fi
+}
+
+function time_end {
+  if [[ "$time_flag" = "true" ]] ; then
+    print_line
+    echo -e "${c_white}Duration:${c_reset} ${c_green}$(duration)${c_reset}"
+  fi
+}
+
+function rescript_lock {
+  if [[ "${rescript_lock_created:-}" == "true" ]]; then return 0; fi
+  if [ -e "$lock" ]; then
+    echo "WARNING: [$repo] repo is already running..."
+    echo "If you are sure $repo is not running, type"
+    echo " "
+    echo "  rescript $repo unlocker"
+    echo " "
+    echo "This will remove the lock for [$repo] repository."
+    echo ""
+    echo "Lock file info:"
+    stat "$lock_dir/$repo.lock"
+    latest_cmd="$cmd"
+    exit_code="1"
+    latest_error
+  else
+    touch "$lock"
+    trap 'rm -rf "${lock:?}" ; rm -rf "${tmplog:?}"' INT QUIT TERM EXIT
+    rescript_lock_created="true"
+  fi
+}
+
+function debug_start {
+  if [[ "$debug_flag" = "true" ]] ; then
+    set -xv
+  fi
+}
+
+function debug_stop {
+  if [[ "$debug_flag" = "true" ]] ; then
+    set +xv
+  fi
+}
+
+function set_sim_flag {
+  local cmd_name="${1:-}"
+  local default_flag="${2:-}"
+  sim_flag="$default_flag"
+  if [[ "$simulate_flag" == "true" ]]; then
+    echo -e "${c_yellow}SIMULATE: $cmd_name running in dry-run mode.${c_reset}"
+    sim_flag="--dry-run"
+  fi
 }
 function config_file {
 cat <<EOF
@@ -1464,16 +1556,16 @@ EOF
 # ============================================================== #
 # Rescript Commands                                              #
 # ============================================================== #
-if [[ "$1" == "all" ]]; then
+if [[ "${1:-}" == "all" ]]; then
   shift 1
   excluded_repos=()
   forward_args=()
   
   while [[ $# -gt 0 ]]; do
-    case "$1" in
+    case "${1:-}" in
       --ignore-repo|-X)
-        if [[ -n "$2" && "$2" != -* ]]; then
-          excluded_repos+=("$2")
+        if [[ -n "${2:-}" && "${2:-}" != -* ]]; then
+          excluded_repos+=("${2:-}")
           shift 2
         else
           echo "Error: --ignore-repo requires a repository name."
@@ -1485,7 +1577,7 @@ if [[ "$1" == "all" ]]; then
         shift 1
         ;;
       *)
-        forward_args+=("$1")
+        forward_args+=("${1:-}")
         shift 1
         ;;
     esac
@@ -1578,15 +1670,15 @@ if [[ "$1" == "all" ]]; then
   exit 0
 fi
 
-if [[ ! "$1"  ]] ; then
+if [[ ! "${1:-}"  ]] ; then
   echo "You need to indicate the name of your repository or a"
   echo "command; type [rescript help] for usage."
   exit
 fi
 
 function _check_help_or_error {
-  local cmd="$1"
-  local arg="$2"
+  local cmd="${1:-}"
+  local arg="${2:-}"
   if [[ "$arg" ]] ; then
     case "$arg" in
       -h|--help|help)
@@ -1602,16 +1694,16 @@ function _check_help_or_error {
     esac
   fi
 }
-case "$1" in
+case "${1:-}" in
   backup|cleanup|diff|extract|search)
-    _check_help_or_error "$1" "$2"
+    _check_help_or_error "${1:-}" "${2:-}"
     echo "You have not indicated any repo for [$1]..."
     echo ""
-    "$1"-help
+    "${1:-}"-help
     exit 1
     ;;
   config)
-    _check_help_or_error "$1" "$2"
+    _check_help_or_error "${1:-}" "${2:-}"
     if [[ -z "$rescript_editor" ]] ; then
       select_editor
       echo "Please type [rescript config] again to set/edit"
@@ -1623,18 +1715,18 @@ case "$1" in
     exit
     ;;
   editor)
-    _check_help_or_error "$1" "$2"
+    _check_help_or_error "${1:-}" "${2:-}"
     select_editor
     exit
     ;;
   -h|--help|help)
-    if [[ ! "$2" ]] ; then
+    if [[ ! "${2:-}" ]] ; then
       usage
       exit  
     fi
-    case "$2" in
+    case "${2:-}" in
       backup|cleanup|config|diff|editor|env|extract|history|info|install|logs|mounter|next|restorer|search|size|snaps|umounter|unlocker|update|upgrade)
-        "$2"-help
+        "${2:-}"-help
         exit 1
         ;;
       *)  
@@ -1645,7 +1737,7 @@ case "$1" in
     esac
     ;;
   install)
-    _check_help_or_error "$1" "$2"
+    _check_help_or_error "${1:-}" "${2:-}"
     clear
     install
     exit
@@ -1705,7 +1797,7 @@ case "$1" in
     exit
     ;;
   update)
-    _check_help_or_error "$1" "$2"
+    _check_help_or_error "${1:-}" "${2:-}"
     update
     exit
     ;;
@@ -1728,31 +1820,47 @@ esac
 # Functions                                                      #
 # ============================================================== #
 source "$config_file"
+# Defaulting unset variables from config for strict mode
+export HOST="${HOST:-}"
+export CLEAN="${CLEAN:-}"
+export PRE_CMD="${PRE_CMD:-}"
+export POST_CMD="${POST_CMD:-}"
+export EXCLUDE_CACHE="${EXCLUDE_CACHE:-}"
+export EXCLUDE_FILE="${EXCLUDE_FILE:-}"
+export ONE_FILE_SYSTEM="${ONE_FILE_SYSTEM:-}"
+export TAG="${TAG:-}"
+export LOG_RETENTION="${LOG_RETENTION:-}"
+export SKIP_OFFICE="${SKIP_OFFICE:-}"
+export SHOW_SNAPS="${SHOW_SNAPS:-}"
+export SHOW_STATS="${SHOW_STATS:-}"
+export CONFIRMATION_EMAIL="${CONFIRMATION_EMAIL:-}"
+export DESTINATION="${DESTINATION:-}"
+
 export RESTIC_REPOSITORY="$RESTIC_REPO"
-export B2_ACCOUNT_ID="$B2_ID"
-export B2_ACCOUNT_KEY="$B2_KEY"
-export AWS_ACCESS_KEY_ID="$AWS_ID"
-export AWS_SECRET_ACCESS_KEY="$AWS_KEY"
-export AZURE_ACCOUNT_NAME="$AZURE_NAME"
-export AZURE_ACCOUNT_KEY="$AZURE_KEY"
-export GOOGLE_PROJECT_ID="$GOOGLE_ID"
-export GOOGLE_APPLICATION_CREDENTIALS="$GOOGLE_CREDENTIALS"
-if [[ "$RESCRIPT_PASS" ]] ; then
+export B2_ACCOUNT_ID="${B2_ID:-}"
+export B2_ACCOUNT_KEY="${B2_KEY:-}"
+export AWS_ACCESS_KEY_ID="${AWS_ID:-}"
+export AWS_SECRET_ACCESS_KEY="${AWS_KEY:-}"
+export AZURE_ACCOUNT_NAME="${AZURE_NAME:-}"
+export AZURE_ACCOUNT_KEY="${AZURE_KEY:-}"
+export GOOGLE_PROJECT_ID="${GOOGLE_ID:-}"
+export GOOGLE_APPLICATION_CREDENTIALS="${GOOGLE_CREDENTIALS:-}"
+if [[ -n "${RESCRIPT_PASS:-}" ]] ; then
   export RESTIC_PASSWORD="$RESCRIPT_PASS"
 else
-  export RESTIC_PASSWORD="$RESTIC_PASSWORD"
+  export RESTIC_PASSWORD="${RESTIC_PASSWORD:-}"
 fi
 export RESTIC_COMPRESSION="${RESTIC_COMPRESSION:-auto}"
 SECONDS=0
 
-case "$2" in
+case "${2:-}" in
   init) restic init ; exit 0 ;;
 esac
 
 case "$RESTIC_REPO" in
-  sftp*) ping_target=${RESTIC_REPO#sftp*@} ; ping_target=${ping_target%:*} ; ping -c 1 "$ping_target" > /dev/null ; ping_code="$?" ;;
-  rclone*) ping_target=${RESTIC_REPO#rclone:} ; rclone about "$ping_target" > /dev/null ; ping_code="$?" ;;
-  /*) dir "$RESTIC_REPO" 2>/dev/null 1>/dev/null ; ping_code="$?" ;;
+  sftp*) ping_target=${RESTIC_REPO#sftp*@} ; ping_target=${ping_target%:*} ; ping -c 1 "$ping_target" > /dev/null || true ; ping_code="$?" ;;
+  rclone*) ping_target=${RESTIC_REPO#rclone:} ; rclone about "$ping_target" > /dev/null || true ; ping_code="$?" ;;
+  /*) dir "$RESTIC_REPO" 2>/dev/null 1>/dev/null || true ; ping_code="$?" ;;
 esac
 
 if [[ "$ping_code" -gt "0" ]] ; then
@@ -1761,13 +1869,13 @@ if [[ "$ping_code" -gt "0" ]] ; then
   exit "$ping_code"
 fi
 
-if [[ -n "$DESTINATION" ]] ; then
+if [[ -n "${DESTINATION:-}" ]] ; then
   dest=$DESTINATION
 else
   dest=$RESTIC_REPO
 fi
 
-if [[ -n "$HOST" ]] ; then
+if [[ -n "${HOST:-}" ]] ; then
   rhost="$HOST"
 else
   rhost=$(hostname)
@@ -1776,28 +1884,28 @@ fi
 declare -a policies
 
 # Set variables for functions
-if [[ -n "$KEEP_LAST" && "$KEEP_LAST" -gt "0" ]] ; then
+if [[ -n "${KEEP_LAST:-}" && "$KEEP_LAST" -gt "0" ]] 2>/dev/null ; then
   policies+=(--keep-last "$KEEP_LAST")
 fi
-if [[ -n "$KEEP_HOURLY" && "$KEEP_HOURLY" -gt "0" ]] ; then
+if [[ -n "${KEEP_HOURLY:-}" && "$KEEP_HOURLY" -gt "0" ]] 2>/dev/null ; then
   policies+=(--keep-hourly "$KEEP_HOURLY")
 fi
-if [[ -n "$KEEP_DAILY" && "$KEEP_DAILY" -gt "0" ]] ; then
+if [[ -n "${KEEP_DAILY:-}" && "$KEEP_DAILY" -gt "0" ]] 2>/dev/null ; then
   policies+=(--keep-daily "$KEEP_DAILY")
 fi
-if [[ -n "$KEEP_WEEKLY" && "$KEEP_WEEKLY" -gt "0" ]] ; then
+if [[ -n "${KEEP_WEEKLY:-}" && "$KEEP_WEEKLY" -gt "0" ]] 2>/dev/null ; then
   policies+=(--keep-weekly "$KEEP_WEEKLY")
 fi
-if [[ -n "$KEEP_MONTHLY" && "$KEEP_MONTHLY" -gt "0" ]] ; then
+if [[ -n "${KEEP_MONTHLY:-}" && "$KEEP_MONTHLY" -gt "0" ]] 2>/dev/null ; then
   policies+=(--keep-monthly "$KEEP_MONTHLY")
 fi
-if [[ -n "$KEEP_YEARLY" && "$KEEP_YEARLY" -gt "0" ]] ; then
+if [[ -n "${KEEP_YEARLY:-}" && "$KEEP_YEARLY" -gt "0" ]] 2>/dev/null ; then
   policies+=(--keep-yearly "$KEEP_YEARLY")
 fi
-if [[ -n "$KEEP_WITHIN" ]] ; then
+if [[ -n "${KEEP_WITHIN:-}" ]] ; then
   policies+=(--keep-within "$KEEP_WITHIN")
 fi
-if [[ -n "$KEEP_TAG" ]] ; then
+if [[ -n "${KEEP_TAG:-}" ]] ; then
   policies+=(--keep-tag "$KEEP_TAG")
 fi
 
@@ -1861,7 +1969,7 @@ function automatic {
       ;;
   esac
   # Check and Clean Repo Based on User's Policy
-  if [[ -f "$config_dir/$repo-datefile" || -n "$CLEAN" ]]; then
+  if [[ -f "$config_dir/$repo-datefile" || -n "${CLEAN:-}" ]]; then
     if [[ ! -f "$config_dir/$repo-datefile" ]] ; then
       touch "$config_dir/$repo-datefile"
     fi
@@ -1871,20 +1979,20 @@ function automatic {
       cleanup-next
     else 
         _run_auto_cleanup
-        if [[ -n "$CLEAN" ]] ; then
+        if [[ -n "${CLEAN:-}" ]] ; then
           clean_num="${CLEAN//[A-Za-z]/}"
           clean_unit="${CLEAN//[0-9]/}"
           case "$unix_name" in
             Linux|GNU)
-              date -d "now+$CLEAN" +%s 2>/dev/null > "$config_dir/$repo-datefile"
+              date -d "now+${CLEAN:-}" +%s 2>/dev/null > "$config_dir/$repo-datefile"
               ;;
             *)
-              gdate -d "now+$CLEAN" +%s 2>/dev/null > "$config_dir/$repo-datefile"
+              gdate -d "now+${CLEAN:-}" +%s 2>/dev/null > "$config_dir/$repo-datefile"
               ;;
           esac
           exit_code="$?"
           if [[ "$exit_code" -gt "0" ]] ; then
-            echo -e "WARNING: \nCLEAN is set to $CLEAN in your configuration file; please use the correct syntax as follows: \n1. CLEAN=\"${CLEAN}days\"     <---setup cleanup every $CLEAN days\n2. CLEAN=\"${CLEAN}hours\"    <---setup cleanup every $CLEAN hours\n3. CLEAN=\"${CLEAN}minutes\"  <---setup cleanup every $CLEAN minutes"
+            echo -e "WARNING: \nCLEAN is set to ${CLEAN:-} in your configuration file; please use the correct syntax as follows: \n1. CLEAN=\"${CLEAN}days\"     <---setup cleanup every ${CLEAN:-} days\n2. CLEAN=\"${CLEAN}hours\"    <---setup cleanup every ${CLEAN:-} hours\n3. CLEAN=\"${CLEAN}minutes\"  <---setup cleanup every ${CLEAN:-} minutes"
           else
             echo -e "${c_green}Done Cleaning; Next Cleanup and Check Will Be Done in $clean_num $clean_unit...${c_reset}"
           fi
@@ -1910,10 +2018,10 @@ function automatic {
       eval "$POST_CMD"
     fi
   fi
-  if [[ -n "$CLEAN" && -z "${policies[*]}" ]] ; then
+  if [[ -n "${CLEAN:-}" && -z "${policies[*]}" ]] ; then
     clean_num="${CLEAN//[A-Za-z]/}"
     clean_unit="${CLEAN//[0-9]/}"
-    echo "[rescript] noted that your CLEAN variable is $CLEAN, so [rescript] assumes that"
+    echo "[rescript] noted that your CLEAN variable is ${CLEAN:-}, so [rescript] assumes that"
     echo "you want to perform a 'cleanup' (forget, prune and check) every $clean_num $clean_unit but"
     echo "it can't execute it if you have not set the KEEP variables; please set your"
     echo "desired KEEP values in order to perform the 'cleanup' every $clean_num $clean_unit. If you"
@@ -1926,33 +2034,23 @@ function automatic {
   fi
 }
 
-function set_sim_flag {
-  local cmd_name="$1"
-  local default_flag="$2"
-  sim_flag="$default_flag"
-  if [[ "$simulate_flag" == "true" ]]; then
-    echo -e "${c_yellow}SIMULATE: $cmd_name running in dry-run mode.${c_reset}"
-    sim_flag="--dry-run"
-  fi
-}
-
 function backup {
   print_context
   declare -a bu_opts
-  if [[ "$EXCLUDE_CACHE" = "yes" || "$EXCLUDE_CACHE" = "y" || -z "$EXCLUDE_CACHE" ]] ; then
+  if [[ "${EXCLUDE_CACHE:-}" = "yes" || "${EXCLUDE_CACHE:-}" = "y" || -z "${EXCLUDE_CACHE:-}" ]] ; then
     bu_opts+=( --exclude-caches )
   fi
-  if [[ "$EXCLUDE_FILE" = "yes" || "$EXCLUDE_FILE" = "y" || -z "$EXCLUDE_FILE" ]] ; then
+  if [[ "${EXCLUDE_FILE:-}" = "yes" || "${EXCLUDE_FILE:-}" = "y" || -z "${EXCLUDE_FILE:-}" ]] ; then
     bu_opts+=( --exclude-file="$excludes" )
   fi
-  if [[ "$ONE_FILE_SYSTEM" = "yes" || "$ONE_FILE_SYSTEM" = "y" ]] ; then
+  if [[ "${ONE_FILE_SYSTEM:-}" = "yes" || "${ONE_FILE_SYSTEM:-}" = "y" ]] ; then
     bu_opts+=( --one-file-system )
   fi
   if [[ -n "$HOST" ]] ; then
     bu_opts+=( --host="$HOST" )
   fi
-  if [[ -n "$TAG" ]] ; then
-    bu_opts+=( --tag="$TAG" )
+  if [[ -n "${TAG:-}" ]] ; then
+    bu_opts+=( --tag="${TAG:-}" )
   fi
   if [[ -n "$RESTIC_COMPRESSION" ]] ; then
     bu_opts+=( --compression="$RESTIC_COMPRESSION" )
@@ -1974,101 +2072,6 @@ function backup {
 
 
 
-
-function statinfo {
-  latest_host_stat=$(restic stats --host "$rhost" latest | grep 'Total Size' | sed 's/Total Size: //g' | sed 's/^[ \t]*//')
-  check_restic_error $?
-  print_progress "Calculating repo stats" 25
-  
-  host_stat=$(restic stats --mode raw-data --host "$rhost" latest | grep 'Total Size' | sed 's/Total Size: //g' | sed 's/^[ \t]*//')
-  check_restic_error $?
-  print_progress "Calculating repo stats" 50
-  
-  stat_restore_size=$(restic stats | grep 'Total Size' | sed 's/Total Size: //g' | sed 's/^[ \t]*//')
-  check_restic_error $?
-  print_progress "Calculating repo stats" 75
-  
-  stat_raw_data=$(restic stats --mode raw-data | grep 'Total Size' | sed 's/Total Size: //g' | sed 's/^[ \t]*//')
-  check_restic_error $?
-  print_progress "Calculating repo stats" 100
-  
-  echo -ne '\n'
-  debug_stop
-  
-  echo ""
-  print_line "="
-  printf "${c_white}%-20s | %-18s | %-20s${c_reset}\n" "Summarized Info" "Restore Size" "Deduplicated Size"
-  print_line "="
-  printf "%-20s | %-18s | %-20s\n" "Latest Snapshot" "$latest_host_stat" "$host_stat"
-  printf "%-20s | %-18s | %-20s\n" "All Snapshots" "$stat_restore_size" "$stat_raw_data"
-}
-
-function size {
-  rescript_lock
-  local target_host="$rhost"
-  if [[ -n "$host_flag" ]] ; then
-    target_host="$host_flag"
-  fi
-  
-  local snapshot_id="latest"
-  if [[ "${rest[0]}" == "latest" || "${rest[0]}" =~ ^[a-f0-9]{8}$ || "${rest[0]}" =~ ^[a-f0-9]{64}$ ]] ; then
-    snapshot_id="${rest[0]}"
-    rest=("${rest[@]:1}")
-  fi
-  
-  if [[ ${#rest[@]} -eq 0 ]] ; then
-    echo "You must provide a path inside the repository."
-    exit 1
-  fi
-  
-  print_progress "Calculating total size" 50
-  debug_start
-
-  local total_size
-  total_size=$(restic ls -l --recursive --host "$target_host" "$snapshot_id" "${rest[@]}" 2>/dev/null | awk '
-    /^[-dcbp](r|-)[w|-](x|-)(r|-)[w|-](x|-)(r|-)[w|-](x|-)/ { sum += $4 }
-    END {
-      if (sum >= 1024^3) printf "%.2f GB\n", sum / (1024^3)
-      else if (sum >= 1024^2) printf "%.2f MB\n", sum / (1024^2)
-      else if (sum >= 1024) printf "%.2f KB\n", sum / 1024
-      else printf "%d B\n", sum
-    }
-  ')
-  debug_stop
-  print_progress "Calculating total size" 100
-  echo -ne '\n'
-  
-  if [[ -z "$total_size" || "$total_size" == "0 B" ]] ; then
-    echo -e "${c_red}Path not found or empty.${c_reset}"
-  else
-    echo -e "\n${c_white}Total size for [${rest[*]}] in snapshot ${snapshot_id}:${c_reset} ${c_green}${total_size}${c_reset}"
-  fi
-}
-
-function cleanup {
-  print_context
-  rescript_lock
-
-  set_sim_flag "Cleanup"
-
-  if [[ -n "${policies[*]}" ]] ; then
-    debug_start
-    # shellcheck disable=SC2086
-    restic forget $sim_flag "${policies[@]}" "${rest[@]}"
-    check_restic_error $?
-    debug_stop
-    debug_start
-    # shellcheck disable=SC2086
-    restic prune $sim_flag --cleanup-cache
-    check_restic_error $?
-    debug_stop
-  else
-    echo "You have not indicated any policy value..."
-    echo "If you want to use [cleanup] option you need to set the [KEEP] variables."
-    echo "For more information about the Usage check out the following link:"
-    echo "https://gitlab.com/sulfuror/rescript.sh/blob/master/README.md#usage"
-  fi
-}
 
 function cleanup-next {
   if [[ ! -f "$config_dir/$repo-datefile" ]] ; then
@@ -2113,15 +2116,42 @@ function cleanup-next {
   fi
 }
 
-function debug_start {
-  if [[ "$debug_flag" = "true" ]] ; then
-    set -xv
+function cleanup {
+  print_context
+  rescript_lock
+
+  set_sim_flag "Cleanup"
+
+  if [[ -n "${policies[*]}" ]] ; then
+    debug_start
+    # shellcheck disable=SC2086
+    restic forget $sim_flag "${policies[@]}" "${rest[@]}"
+    check_restic_error $?
+    debug_stop
+    debug_start
+    # shellcheck disable=SC2086
+    restic prune $sim_flag --cleanup-cache
+    check_restic_error $?
+    debug_stop
+  else
+    echo "You have not indicated any policy value..."
+    echo "If you want to use [cleanup] option you need to set the [KEEP] variables."
+    echo "For more information about the Usage check out the following link:"
+    echo "https://gitlab.com/sulfuror/rescript.sh/blob/master/README.md#usage"
   fi
 }
 
-function debug_stop {
-  if [[ "$debug_flag" = "true" ]] ; then
-    set +xv
+function differ {
+  rescript_lock
+  if [[ ${#rest[@]} -eq 0 ]] ; then
+    mapfile -t snaps < <(restic snapshots -q | grep -E "^[a-z0-9]{8} " | tail -n 2 | awk '{print $1}')
+    if [[ ${#snaps[@]} -lt 2 ]] ; then
+      echo "You need at least 2 snapshots to perform a diff."
+      exit 1
+    fi
+    restic diff "${snaps[0]}" "${snaps[1]}"
+  else
+    restic diff "${rest[@]}"
   fi
 }
 
@@ -2129,8 +2159,8 @@ function env_conf {
   local title
   local padding
 
-  if [[ "$var_flag" ]] ; then
-    upper_var=$(echo "$var_flag" | tr '[:lower:]' '[:upper:]')
+  if [[ "${var_flag:-}" ]] ; then
+    upper_var=$(echo "${var_flag:-}" | tr '[:lower:]' '[:upper:]')
     search=$(sed '/^#/ d' < "$config_dir/$repo.conf" | sed '/^\s*$/d' | grep "$upper_var")
     if [[ -z "$search" ]] ; then
       echo "There is no var named [$var_flag]..."
@@ -2160,193 +2190,6 @@ function env_conf {
       sub(/^[^=]*=/, "", $0)
       printf "  %s%-25s%s : %s%s%s\n", cw, key, cr, cc, $0, cr
     }'
-  fi
-}
-
-function logs {
-  if [[ "$catlogs" = "false" && "$removelogs" = "false" ]] ; then
-    if ls "$logs_dir/$repo"-* 1> /dev/null 2>&1 ; then
-      local log_count
-      log_count=$(find "$logs_dir" -maxdepth 1 -type f -name "*$repo*" | wc -l)
-      print_line "="
-      echo -e "${c_white}Log Files for Context:${c_reset} ${c_cyan}$repo${c_reset}"
-      print_line "="
-      find "$logs_dir" -maxdepth 1 -type f -name "*$repo*" -exec basename {} \;
-      print_line "-"
-      echo -e "${c_cyan}Total log files: $log_count${c_reset}"
-      echo -e "${c_blue}Your logs are saved at $logs_dir${c_reset}"
-      exit 0
-    else
-      echo "There are no log files to list for [$repo]."
-      exit 0
-    fi
-  elif [[ "$catlogs" = "true" && "$removelogs" = "true" ]] ; then
-    echo "You cannot use '--cat' and '--remove' at the same time"
-    echo ""
-    logs-help
-    exit 1
-  fi
-  if [[ "$catlogs" = "true" ]] ; then
-    cat "$logs_dir/$logfile"
-  elif [[ "$removelogs" = "true" ]] ; then
-    if [[ "$logfile" = "all" ]] ; then
-      if ls "$logs_dir/$repo"-* 1> /dev/null 2>&1 ; then
-        rm -rfv "${logs_dir:?}/$repo"-*
-        echo -e "${c_green}Log files removed for [$repo].${c_reset}"
-        exit 0
-      else
-        echo "There are no log files to remove for [$repo]."
-        exit 0
-      fi
-    else
-      if ls "$logs_dir/$logfile" 1> /dev/null 2>&1 ; then
-        rm -rfv "${logs_dir:?}/$logfile"
-        echo "[$logfile] removed."
-        exit 0
-      else
-        echo "There are is log file called [$logfile]."
-        exit 1
-      fi
-    fi
-  else
-    echo "Something is not right."
-    exit 1
-  fi
-}
-function logger {
-  if [[ "$log_flag" = "true" ]] ; then
-    if [[ ! "$cmd" ]] ; then
-      log="$logs_dir/$repo-log-$(date +%Y-%m-%d-%H:%M).log"
-    else
-      log="$logs_dir/$repo-$cmd-log-$(date +%Y-%m-%d-%H:%M).log"
-    fi
-    exec > >(tee -a "$log") 2>&1
-    if [[ -n "$LOG_RETENTION" && "$LOG_RETENTION" -gt 0 ]] 2>/dev/null ; then
-      find "$logs_dir" -name "$repo-*.log" -type f -mtime +"$LOG_RETENTION" -exec rm -f {} +
-    fi
-  else
-    exec > >(tee -a "$tmplog") 2>&1
-  fi
-}
-
-function search {
-  rescript_lock
-  debug_start
-  if [[ ${#rest[@]} -eq 0 ]] ; then
-    echo "You must provide a search pattern."
-    exit 1
-  fi
-  
-  print_line "="
-  printf "${c_white}%-4s | %-10s | %-21s | %-15s | %s${c_reset}\n" "No" "Snapshot" "Date" "Host" "Path"
-  print_line "="
-  
-  local snaps_output
-  snaps_output=$(restic snapshots -q)
-  
-  restic find "${rest[@]}" | awk -v snaps="$snaps_output" '
-  BEGIN {
-    n = split(snaps, lines, "\n")
-    for (i=1; i<=n; i++) {
-       if (lines[i] ~ /^[0-9a-fA-F]{8} /) {
-          split(lines[i], f, " ")
-          id = f[1]
-          date[id] = f[2] " " f[3]
-          host[id] = f[4]
-       }
-    }
-  }
-  {
-    gsub(/\x1b\[[0-9;]*[a-zA-Z]/, "")
-    gsub(/\r/, "")
-  }
-  /Found matching entries in snapshot/ {
-      for(i=1; i<=NF; i++) {
-          if ($i == "snapshot") {
-              snap = $(i+1)
-              break
-          }
-      }
-      next
-  }
-  /^$/ { next }
-  {
-      count++
-      printf "%-4d | %-10s | %-21s | %-15s | %s\n", count, snap, date[snap], host[snap], $0
-  }'
-  debug_stop
-}
-
-function history {
-  rescript_lock
-  debug_start
-  if [[ ${#rest[@]} -eq 0 ]] ; then
-    echo "You must provide a pattern or file path to search history for."
-    exit 1
-  fi
-  
-  local col_no=5
-  local col_snap=10
-  local col_date=21
-  local col_size=12
-  local col_path=$(( cols - col_no - col_snap - col_date - col_size - 7 ))
-  
-  print_line "="
-  printf "${c_white}%-4s | %-10s | %-21s | %-12s | %s${c_reset}\n" "No" "Snapshot" "Date" "Size" "Path"
-  print_line "="
-  
-  restic find -l "${rest[@]}" 2>/dev/null | awk -v path_len="$col_path" '
-  {
-    gsub(/\x1b\[[0-9;]*[a-zA-Z]/, "")
-    gsub(/\r/, "")
-  }
-  /Found matching entries in snapshot/ {
-      for(i=1; i<=NF; i++) {
-          if ($i == "snapshot") {
-              snap = substr($(i+1), 1, 8)
-              break
-          }
-      }
-      next
-  }
-  /^[-dcbp](r|-)[w|-](x|-)(r|-)[w|-](x|-)(r|-)[w|-](x|-)/ {
-      size_val = $4
-      date = $5 " " $6
-      path = $7
-      for (j=8; j<=NF; j++) {
-          path = path " " $j
-      }
-      
-      if (size_val != last_size || date != last_date) {
-          if (size_val >= 1024^3) size_str = sprintf("%.1fG", size_val / (1024^3))
-          else if (size_val >= 1024^2) size_str = sprintf("%.1fM", size_val / (1024^2))
-          else if (size_val >= 1024) size_str = sprintf("%.1fK", size_val / 1024)
-          else size_str = sprintf("%dB", size_val)
-          
-          count++
-          printf "%-4d | %-10s | %-21s | %-12s | %s\n", count, snap, date, size_str, path
-          last_size = size_val
-          last_date = date
-      }
-  }'
-  
-  if [ "${PIPESTATUS[0]}" -ne 0 ]; then
-    echo "History search failed or no matches found."
-  fi
-  debug_stop
-}
-
-function differ {
-  rescript_lock
-  if [[ ${#rest[@]} -eq 0 ]] ; then
-    mapfile -t snaps < <(restic snapshots -q | grep -E "^[a-z0-9]{8} " | tail -n 2 | awk '{print $1}')
-    if [[ ${#snaps[@]} -lt 2 ]] ; then
-      echo "You need at least 2 snapshots to perform a diff."
-      exit 1
-    fi
-    restic diff "${snaps[0]}" "${snaps[1]}"
-  else
-    restic diff "${rest[@]}"
   fi
 }
 
@@ -2424,6 +2267,115 @@ function extract {
   rm -f "$err_file"
 }
 
+function history {
+  rescript_lock
+  debug_start
+  if [[ ${#rest[@]} -eq 0 ]] ; then
+    echo "You must provide a pattern or file path to search history for."
+    exit 1
+  fi
+  
+  local col_no=5
+  local col_snap=10
+  local col_date=21
+  local col_size=12
+  local col_path=$(( cols - col_no - col_snap - col_date - col_size - 7 ))
+  
+  print_line "="
+  printf "${c_white}%-4s | %-10s | %-21s | %-12s | %s${c_reset}\n" "No" "Snapshot" "Date" "Size" "Path"
+  print_line "="
+  
+  restic find -l "${rest[@]}" 2>/dev/null | awk -v path_len="$col_path" '
+  {
+    gsub(/\x1b\[[0-9;]*[a-zA-Z]/, "")
+    gsub(/\r/, "")
+  }
+  /Found matching entries in snapshot/ {
+      for(i=1; i<=NF; i++) {
+          if ($i == "snapshot") {
+              snap = substr($(i+1), 1, 8)
+              break
+          }
+      }
+      next
+  }
+  /^[-dcbp](r|-)[w|-](x|-)(r|-)[w|-](x|-)(r|-)[w|-](x|-)/ {
+      size_val = $4
+      date = $5 " " $6
+      path = $7
+      for (j=8; j<=NF; j++) {
+          path = path " " $j
+      }
+      
+      if (size_val != last_size || date != last_date) {
+          if (size_val >= 1024^3) size_str = sprintf("%.1fG", size_val / (1024^3))
+          else if (size_val >= 1024^2) size_str = sprintf("%.1fM", size_val / (1024^2))
+          else if (size_val >= 1024) size_str = sprintf("%.1fK", size_val / 1024)
+          else size_str = sprintf("%dB", size_val)
+          
+          count++
+          printf "%-4d | %-10s | %-21s | %-12s | %s\n", count, snap, date, size_str, path
+          last_size = size_val
+          last_date = date
+      }
+  }'
+  
+  if [ "${PIPESTATUS[0]}" -ne 0 ]; then
+    echo "History search failed or no matches found."
+  fi
+  debug_stop
+}
+
+function logs {
+  if [[ "$catlogs" = "false" && "$removelogs" = "false" ]] ; then
+    if ls "$logs_dir/$repo"-* 1> /dev/null 2>&1 ; then
+      local log_count
+      log_count=$(find "$logs_dir" -maxdepth 1 -type f -name "*$repo*" | wc -l)
+      print_line "="
+      echo -e "${c_white}Log Files for Context:${c_reset} ${c_cyan}$repo${c_reset}"
+      print_line "="
+      find "$logs_dir" -maxdepth 1 -type f -name "*$repo*" -exec basename {} \;
+      print_line "-"
+      echo -e "${c_cyan}Total log files: $log_count${c_reset}"
+      echo -e "${c_blue}Your logs are saved at $logs_dir${c_reset}"
+      exit 0
+    else
+      echo "There are no log files to list for [$repo]."
+      exit 0
+    fi
+  elif [[ "$catlogs" = "true" && "$removelogs" = "true" ]] ; then
+    echo "You cannot use '--cat' and '--remove' at the same time"
+    echo ""
+    logs-help
+    exit 1
+  fi
+  if [[ "$catlogs" = "true" ]] ; then
+    cat "$logs_dir/$logfile"
+  elif [[ "$removelogs" = "true" ]] ; then
+    if [[ "$logfile" = "all" ]] ; then
+      if ls "$logs_dir/$repo"-* 1> /dev/null 2>&1 ; then
+        rm -rfv "${logs_dir:?}/$repo"-*
+        echo -e "${c_green}Log files removed for [$repo].${c_reset}"
+        exit 0
+      else
+        echo "There are no log files to remove for [$repo]."
+        exit 0
+      fi
+    else
+      if ls "$logs_dir/$logfile" 1> /dev/null 2>&1 ; then
+        rm -rfv "${logs_dir:?}/$logfile"
+        echo "[$logfile] removed."
+        exit 0
+      else
+        echo "There are is log file called [$logfile]."
+        exit 1
+      fi
+    fi
+  else
+    echo "Something is not right."
+    exit 1
+  fi
+}
 function mounter {
   rescript_lock
   local bg=false
@@ -2476,41 +2428,6 @@ function mounter {
   fi
 }
 
-function umounter {
-  rescript_lock
-  debug_start
-  local pid_file="/tmp/rescript_mount_${repo}.pid"
-
-  if [[ -f "$pid_file" ]]; then
-    IFS=':' read -r pid mount_point < "$pid_file"
-    if kill -0 "$pid" 2>/dev/null; then
-      echo -e "${c_cyan}Stopping mounter process (PID: $pid)...${c_reset}"
-      kill -15 "$pid"
-      sleep 1
-      if kill -0 "$pid" 2>/dev/null; then
-        kill -9 "$pid"
-      fi
-      echo -e "${c_green}Mounter process stopped.${c_reset}"
-    fi
-
-    if [[ -d "$mount_point" ]]; then
-      if mountpoint -q "$mount_point"; then
-        echo -e "${c_cyan}Unmounting repository from:${c_reset} ${c_white}$mount_point${c_reset}"
-        if ! fusermount -u "$mount_point" 2>/dev/null; then
-          umount "$mount_point" 2>/dev/null
-        fi
-      fi
-      rmdir "$mount_point" 2>/dev/null
-      echo -e "${c_green}Mount point cleaned up.${c_reset}"
-    fi
-    rm -f "$pid_file"
-  else
-    echo -e "${c_cyan}No background mounter found for repository:${c_reset} ${c_white}$repo${c_reset}"
-  fi
-  debug_stop
-  exit 0
-}
-
 function now_next {
   case "$unix_name" in
     Linux|GNU)
@@ -2523,28 +2440,6 @@ function now_next {
   next=$(cat "$config_dir/$repo-datefile" 2>/dev/null || echo "0")
   if ! [[ "$next" =~ ^[0-9]+$ ]] ; then
     next=0
-  fi
-}
-
-function rescript_lock {
-  if [[ "$rescript_lock_created" == "true" ]]; then return 0; fi
-  if [ -e "$lock" ]; then
-    echo "WARNING: [$repo] repo is already running..."
-    echo "If you are sure $repo is not running, type"
-    echo " "
-    echo "  rescript $repo unlocker"
-    echo " "
-    echo "This will remove the lock for [$repo] repository."
-    echo ""
-    echo "Lock file info:"
-    stat "$lock_dir/$repo.lock"
-    latest_cmd="$cmd"
-    exit_code="1"
-    latest_error
-  else
-    touch "$lock"
-    trap 'rm -rf "${lock:?}" ; rm -rf "${tmplog:?}"' INT QUIT TERM EXIT
-    rescript_lock_created="true"
   fi
 }
 
@@ -2582,7 +2477,7 @@ function restorer {
 
   set_sim_flag "Restorer" "--verify"
 
-  if [[ "$snap_id" ]] ; then
+  if [[ "${snap_id:-}" ]] ; then
     debug_start
     # shellcheck disable=SC2086
     restic restore "$snap_id" --target "$restore_dir" $sim_flag
@@ -2591,11 +2486,101 @@ function restorer {
   else
     debug_start
     # shellcheck disable=SC2086
-    restic restore latest --target "$restore_dir" $restore_opts $sim_flag
+    restic restore latest --target "$restore_dir" ${restore_opts:-} $sim_flag
     check_restic_error $?
     debug_stop
   fi
   report_errors
+}
+
+function search {
+  rescript_lock
+  debug_start
+  if [[ ${#rest[@]} -eq 0 ]] ; then
+    echo "You must provide a search pattern."
+    exit 1
+  fi
+  
+  print_line "="
+  printf "${c_white}%-4s | %-10s | %-21s | %-15s | %s${c_reset}\n" "No" "Snapshot" "Date" "Host" "Path"
+  print_line "="
+  
+  local snaps_output
+  snaps_output=$(restic snapshots -q)
+  
+  restic find "${rest[@]}" | awk -v snaps="$snaps_output" '
+  BEGIN {
+    n = split(snaps, lines, "\n")
+    for (i=1; i<=n; i++) {
+       if (lines[i] ~ /^[0-9a-fA-F]{8} /) {
+          split(lines[i], f, " ")
+          id = f[1]
+          date[id] = f[2] " " f[3]
+          host[id] = f[4]
+       }
+    }
+  }
+  {
+    gsub(/\x1b\[[0-9;]*[a-zA-Z]/, "")
+    gsub(/\r/, "")
+  }
+  /Found matching entries in snapshot/ {
+      for(i=1; i<=NF; i++) {
+          if ($i == "snapshot") {
+              snap = $(i+1)
+              break
+          }
+      }
+      next
+  }
+  /^$/ { next }
+  {
+      count++
+      printf "%-4d | %-10s | %-21s | %-15s | %s\n", count, snap, date[snap], host[snap], $0
+  }'
+  debug_stop
+}
+
+function size {
+  rescript_lock
+  local target_host="$rhost"
+  if [[ -n "$host_flag" ]] ; then
+    target_host="$host_flag"
+  fi
+  
+  local snapshot_id="latest"
+  if [[ "${rest[0]}" == "latest" || "${rest[0]}" =~ ^[a-f0-9]{8}$ || "${rest[0]}" =~ ^[a-f0-9]{64}$ ]] ; then
+    snapshot_id="${rest[0]}"
+    rest=("${rest[@]:1}")
+  fi
+  
+  if [[ ${#rest[@]} -eq 0 ]] ; then
+    echo "You must provide a path inside the repository."
+    exit 1
+  fi
+  
+  print_progress "Calculating total size" 50
+  debug_start
+
+  local total_size
+  total_size=$(restic ls -l --recursive --host "$target_host" "$snapshot_id" "${rest[@]}" 2>/dev/null | awk '
+    /^[-dcbp](r|-)[w|-](x|-)(r|-)[w|-](x|-)(r|-)[w|-](x|-)/ { sum += $4 }
+    END {
+      if (sum >= 1024^3) printf "%.2f GB\n", sum / (1024^3)
+      else if (sum >= 1024^2) printf "%.2f MB\n", sum / (1024^2)
+      else if (sum >= 1024) printf "%.2f KB\n", sum / 1024
+      else printf "%d B\n", sum
+    }
+  ')
+  debug_stop
+  print_progress "Calculating total size" 100
+  echo -ne '\n'
+  
+  if [[ -z "$total_size" || "$total_size" == "0 B" ]] ; then
+    echo -e "${c_red}Path not found or empty.${c_reset}"
+  else
+    echo -e "\n${c_white}Total size for [${rest[*]}] in snapshot ${snapshot_id}:${c_reset} ${c_green}${total_size}${c_reset}"
+  fi
 }
 
 function snaps {
@@ -2631,6 +2616,71 @@ function snaps {
   latest_error
 }
 
+function statinfo {
+  debug_start
+  local target_host="${host_flag:-$rhost}"
+  latest_host_stat=$(restic stats --host "$target_host" latest | grep 'Total Size' | sed 's/Total Size: //g' | sed 's/^[ \t]*//')
+  check_restic_error $?
+  print_progress "Calculating repo stats" 25
+  
+  host_stat=$(restic stats --mode raw-data --host "$target_host" latest | grep 'Total Size' | sed 's/Total Size: //g' | sed 's/^[ \t]*//')
+  check_restic_error $?
+  print_progress "Calculating repo stats" 50
+  
+  stat_restore_size=$(restic stats | grep 'Total Size' | sed 's/Total Size: //g' | sed 's/^[ \t]*//')
+  check_restic_error $?
+  print_progress "Calculating repo stats" 75
+  
+  stat_raw_data=$(restic stats --mode raw-data | grep 'Total Size' | sed 's/Total Size: //g' | sed 's/^[ \t]*//')
+  check_restic_error $?
+  print_progress "Calculating repo stats" 100
+  
+  echo -ne '\n'
+  debug_stop
+  
+  echo ""
+  print_line "="
+  printf "${c_white}%-20s | %-18s | %-20s${c_reset}\n" "Summarized Info" "Restore Size" "Deduplicated Size"
+  print_line "="
+  printf "%-20s | %-18s | %-20s\n" "Latest Snapshot" "$latest_host_stat" "$host_stat"
+  printf "%-20s | %-18s | %-20s\n" "All Snapshots" "$stat_restore_size" "$stat_raw_data"
+}
+
+function umounter {
+  rescript_lock
+  debug_start
+  local pid_file="/tmp/rescript_mount_${repo}.pid"
+
+  if [[ -f "$pid_file" ]]; then
+    IFS=':' read -r pid mount_point < "$pid_file"
+    if kill -0 "$pid" 2>/dev/null; then
+      echo -e "${c_cyan}Stopping mounter process (PID: $pid)...${c_reset}"
+      kill -15 "$pid"
+      sleep 1
+      if kill -0 "$pid" 2>/dev/null; then
+        kill -9 "$pid"
+      fi
+      echo -e "${c_green}Mounter process stopped.${c_reset}"
+    fi
+
+    if [[ -d "$mount_point" ]]; then
+      if mountpoint -q "$mount_point"; then
+        echo -e "${c_cyan}Unmounting repository from:${c_reset} ${c_white}$mount_point${c_reset}"
+        if ! fusermount -u "$mount_point" 2>/dev/null; then
+          umount "$mount_point" 2>/dev/null
+        fi
+      fi
+      rmdir "$mount_point" 2>/dev/null
+      echo -e "${c_green}Mount point cleaned up.${c_reset}"
+    fi
+    rm -f "$pid_file"
+  else
+    echo -e "${c_cyan}No background mounter found for repository:${c_reset} ${c_white}$repo${c_reset}"
+  fi
+  debug_stop
+  exit 0
+}
+
 function unlocker {
   if [[ ! -e "$lock" ]]; then
     echo -e "${c_cyan}No locks found...${c_reset}"
@@ -2639,11 +2689,6 @@ function unlocker {
     echo -e "${c_green}Script unlocked...${c_reset}"
   fi
 }
-
-# ============================================================== #
-# Call Commands and Functions Related to a Repository            #
-# ============================================================== #
-
 function upgrade_repo {
   rescript_lock
   debug_start
@@ -2660,18 +2705,6 @@ if [[ ! $(command -v restic) ]] ; then
   exit 1
 fi
 
-function time_start {
-  if [[ "$time_flag" = "true" ]] ; then
-    SECONDS=0
-  fi
-}
-
-function time_end {
-  if [[ "$time_flag" = "true" ]] ; then
-    print_line
-    echo -e "${c_white}Duration:${c_reset} ${c_green}$(duration)${c_reset}"
-  fi
-}
 if [[ ! $(command -v restic) ]] ; then
   echo "This script is made to work with [restic]. Please, install"
   echo "[restic] package to proceed. If you have [restic] binary"
@@ -2685,11 +2718,11 @@ if [[ ! $(command -v restic) ]] ; then
   echo "release page: https://github.com/restic/restic/releases"
   exit
 fi
-if [[ ! "$2" || "$2" == -* ]] ; then
+if [[ ! "${2:-}" || "${2:-}" == -* ]] ; then
   cmd="automatic"
   shift 1
 else
-  cmd="$2"
+  cmd="${2:-}"
   shift 2
 fi
 
@@ -2869,7 +2902,7 @@ case "$cmd" in
   next)
     shopt -u nocasematch
     parse_generic_args "next-help" "$@"
-    if [[ -z "$CLEAN" ]] ; then
+    if [[ -z "${CLEAN:-}" ]] ; then
       echo "You have not indicated any policy for the CLEAN value..."
       echo "The script will run check, forget and prune every time it runs"
       echo "unless you change the CLEAN variable at the beginning of this script."

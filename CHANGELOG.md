@@ -10,6 +10,11 @@
 
 * **DRY UI Elements:** Refactored all hardcoded menu borders (`======================` and `----------------------`) across `utils`, `config`, and `install` modules into centralized global variables (`$ui_line_eq`, `$ui_line_dash`) defined in `01_globals.sh`. This ensures visual consistency and allows for instant global customization of the UI.
 * **Orchestrator Architecture Fix:** Moved the `all` command orchestrator block from `01_globals.sh` to the top of `06_core.sh`. This resolves a dependency order issue, allowing the orchestrator to natively use the `print_line "="` utility function (which calculates dynamic terminal width) instead of relying on manual hardcoded loops, while still catching the command before the strict repository validation router.
+* **Command Micro-Modularization:** Split the monolithic `07_commands.sh` script into a new `src/commands/` directory containing individual files for each operational command. Moved remaining core utility functions to `02_utils.sh`. Updated the `build.sh` compiler to dynamically concatenate all command modules, vastly improving codebase maintainability.
+* **Bash Strict Mode (Stability):** Implemented strict execution rules (`set -euo pipefail`) at the core level (`01_globals.sh`), ensuring the script fails safely upon encountering uninitialized variables or command errors.
+* **Variable Defensiveness:** Added robust variable initializations (`${VAR:-}`) for all external user configurations and internal state flags to ensure full compliance with Strict Mode and prevent silent failures.
+* **Module Reordering:** Renamed `08_main.sh` to `07_main.sh` to maintain logical sequential ordering following the modularization process.
+* **Host Targeting Fix:** Fixed a bug in the `info` command where it ignored the custom `--host` flag and always queried the system's hostname.
 * **Build Script Polish:** Updated `build.sh` to output directly to the final `rescript` executable, removing the redundant `rescript.new` step for cleaner compilation in development environments.
 
 ---

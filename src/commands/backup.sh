@@ -1,0 +1,37 @@
+function backup {
+  print_context
+  declare -a bu_opts
+  if [[ "${EXCLUDE_CACHE:-}" = "yes" || "${EXCLUDE_CACHE:-}" = "y" || -z "${EXCLUDE_CACHE:-}" ]] ; then
+    bu_opts+=( --exclude-caches )
+  fi
+  if [[ "${EXCLUDE_FILE:-}" = "yes" || "${EXCLUDE_FILE:-}" = "y" || -z "${EXCLUDE_FILE:-}" ]] ; then
+    bu_opts+=( --exclude-file="$excludes" )
+  fi
+  if [[ "${ONE_FILE_SYSTEM:-}" = "yes" || "${ONE_FILE_SYSTEM:-}" = "y" ]] ; then
+    bu_opts+=( --one-file-system )
+  fi
+  if [[ -n "$HOST" ]] ; then
+    bu_opts+=( --host="$HOST" )
+  fi
+  if [[ -n "${TAG:-}" ]] ; then
+    bu_opts+=( --tag="${TAG:-}" )
+  fi
+  if [[ -n "$RESTIC_COMPRESSION" ]] ; then
+    bu_opts+=( --compression="$RESTIC_COMPRESSION" )
+  fi
+  rescript_lock
+  debug_start
+  set_sim_flag "Backup"
+  if [[ "$skip_flag" = "true" ]] ; then
+    restic backup $sim_flag --verbose "${bu_opts[@]}" --exclude-file=<(find "$BACKUP_DIR" -iname ".~lock.*" 2> /dev/null | sed -e 's/.~lock.//g' | sed -e 's/#//g') --exclude=".~lock.*" "${rest[@]}" $BACKUP_DIR
+  else
+    restic backup $sim_flag --verbose "${bu_opts[@]}" "${rest[@]}" $BACKUP_DIR
+  fi
+  check_restic_error $?
+  debug_stop
+
+}
+
+
+
+
