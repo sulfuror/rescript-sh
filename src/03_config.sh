@@ -170,7 +170,7 @@ EOF
 
 function _list_files {
   local title="$1"
-  local pattern="$2"
+  local pattern="${2:-}"
   local sedpat="$3"
   echo "$ui_line_eq"
   printf " %-20s \n" "$title"

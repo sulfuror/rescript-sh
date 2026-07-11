@@ -180,9 +180,9 @@ case "$cmd" in
       if _parse_standard_flags "$1" ; then shift ; continue ; fi
       case "$1" in
         -h|--help) env-help ; exit 0 ;;
-        -V) var_flag="$2" ; shift ;;
+        -V) var_flag="${2:-}" ; shift ;;
         --var=*) var_flag="${1#*=}" ;;
-        --var) var_flag="$2" ; shift ;;
+        --var) var_flag="${2:-}" ; shift ;;
         -*) rest+=( "$1" ) ;;
       esac
       shift
@@ -217,9 +217,9 @@ case "$cmd" in
       if _parse_standard_flags "$1" ; then shift ; continue ; fi
       case "$1" in
         -h|--help) info-help ; exit 0 ;;
-        -H) host_flag="$2" ; shift ;;
+        -H) host_flag="${2:-}" ; shift ;;
         --host=*) host_flag="${1#*=}" ;;
-        --host) host_flag="$2" ; shift ;;
+        --host) host_flag="${2:-}" ; shift ;;
         -*) rest+=( "$1" ) ;;
         *) rest+=( "$1" ) ;;
       esac
@@ -233,9 +233,9 @@ case "$cmd" in
       if _parse_standard_flags "$1" ; then shift ; continue ; fi
       case "$1" in
         -h|--help) size-help ; exit 0 ;;
-        -H) host_flag="$2" ; shift ;;
+        -H) host_flag="${2:-}" ; shift ;;
         --host=*) host_flag="${1#*=}" ;;
-        --host) host_flag="$2" ; shift ;;
+        --host) host_flag="${2:-}" ; shift ;;
         -*) rest+=( "$1" ) ;;
         *) rest+=( "$1" ) ;;
       esac
@@ -247,13 +247,13 @@ case "$cmd" in
     while [[ $# -gt 0 ]] ; do
       if _parse_standard_flags "$1" ; then shift ; continue ; fi
       case "$1" in
-        -W) catlogs="true" ; logfile="$2" ; shift ;;
+        -W) catlogs="true" ; logfile="${2:-}" ; shift ;;
         --view=*) catlogs="true" ; logfile="${1#*=}" ;;
-        --view) catlogs="true" ; logfile="$2" ; shift ;;
+        --view) catlogs="true" ; logfile="${2:-}" ; shift ;;
         -h|--help) logs-help ; exit 0 ;;
-        -R) removelogs="true" ; logfile="$2" ; shift ;;
+        -R) removelogs="true" ; logfile="${2:-}" ; shift ;;
         --remove=*) removelogs="true" ; logfile="${1#*=}" ;;
-        --remove) removelogs="true" ; logfile="$2" ; shift ;;
+        --remove) removelogs="true" ; logfile="${2:-}" ; shift ;;
         -*) rest+=( "$1" ) ;;
         *) rest+=( "$1" ) ;;
       esac
@@ -277,18 +277,18 @@ case "$cmd" in
       if _parse_standard_flags "$1" ; then shift ; continue ; fi
       case "$1" in
         -h|--help) restorer-help ; exit 0 ;;
-        -H) host_flag="$2" ; shift ;;
+        -H) host_flag="${2:-}" ; shift ;;
         --host=*) host_flag="${1#*=}" ;;
-        --host) host_flag="$2" ; shift ;;
-        -P) path_flag="$2" ; shift ;;
+        --host) host_flag="${2:-}" ; shift ;;
+        -P) path_flag="${2:-}" ; shift ;;
         --path=*) path_flag="${1#*=}" ;;
-        --path) path_flag="$2" ; shift ;;
-        -Z) snap_flag="$2" ; shift ;;
+        --path) path_flag="${2:-}" ; shift ;;
+        -Z) snap_flag="${2:-}" ; shift ;;
         --snapshot=*) snap_flag="${1#*=}" ;;
-        --snapshot) snap_flag="$2" ; shift ;;
-        -T) tag_flag="$2" ; shift ;;
+        --snapshot) snap_flag="${2:-}" ; shift ;;
+        -T) tag_flag="${2:-}" ; shift ;;
         --tag=*) tag_flag="${1#*=}" ;;
-        --tag) tag_flag="$2" ; shift ;;
+        --tag) tag_flag="${2:-}" ; shift ;;
         -*) 
           echo "[$1] is not a valid option..."
           echo ""
@@ -338,7 +338,7 @@ case "$cmd" in
       --repo=*) cmd="${cmd#--repo=}" ;;
       -r|--repo) cmd="${rest[1]}" ;;
     esac
-    run_quietly restic_alone
+    execute_with_metrics run_quietly restic_alone
     ;;
 esac
 

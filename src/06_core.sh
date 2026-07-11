@@ -326,7 +326,7 @@ else
   rhost=$(hostname)
 fi
 
-declare -a policies
+declare -a policies=()
 
 # Set variables for functions
 if [[ -n "${KEEP_LAST:-}" && "$KEEP_LAST" -gt "0" ]] 2>/dev/null ; then

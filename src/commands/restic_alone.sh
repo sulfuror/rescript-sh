@@ -1,6 +1,7 @@
 function restic_alone {
   rescript_lock
   debug_start
+  print_context
   restic "${rest[@]}"
   latest_cmd=$prev_cmd exit_code="$?"
   debug_stop

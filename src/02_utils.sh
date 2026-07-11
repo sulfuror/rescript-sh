@@ -239,7 +239,11 @@ function opsys {
 }
 
 function duration {
-  declare -a dur
+  if [[ "$SECONDS" -eq 0 ]] ; then
+    echo "0 seconds"
+    return
+  fi
+  declare -a dur=()
   d="$((SECONDS/60/60/24))"
   h="$((SECONDS/60/60%24))"
   m="$((SECONDS/60%60))"

@@ -15,6 +15,10 @@
 * **Variable Defensiveness:** Added robust variable initializations (`${VAR:-}`) for all external user configurations and internal state flags to ensure full compliance with Strict Mode and prevent silent failures.
 * **Module Reordering:** Renamed `08_main.sh` to `07_main.sh` to maintain logical sequential ordering following the modularization process.
 * **Host Targeting Fix:** Fixed a bug in the `info` command where it ignored the custom `--host` flag and always queried the system's hostname.
+* **Timer Fix:** Resolved an unbound array variable error (`dur`) in the `duration` function when the elapsed time was exactly zero seconds.
+* **Array Initializations:** Fixed missing empty array initializations (`=()`) for `policies` and `bu_opts` to prevent unbound variable crashes in strict mode.
+* **Flag Argument Protection:** Protected dynamically captured flags (like `$2` in `--host`) with fallbacks (`${2:-}`) to prevent fatal crashes if the flag is provided without a subsequent argument.
+* **Raw Restic Command Flags:** Wrapped the default command fallback router (`restic_alone`) with `execute_with_metrics`, enabling all rescript global flags (like `-T` for timer, `-L` for logs) to work seamlessly with any raw restic command.
 * **Build Script Polish:** Updated `build.sh` to output directly to the final `rescript` executable, removing the redundant `rescript.new` step for cleaner compilation in development environments.
 
 ---
