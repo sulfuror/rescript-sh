@@ -56,8 +56,10 @@ GOOGLE_CREDENTIALS=""
 # SHOW_STATS: set to "yes" to calculate and display repository stats at the end.
 # SKIP_OFFICE: set to yes to temporarily exclude open (in use) "office" documents.
 # TAG: tag your snapshots.
+# WEBHOOK_URL: set to a Discord/Slack webhook URL to receive push notifications.
 CLEAN="7days"
 CONFIRMATION_EMAIL=""
+WEBHOOK_URL=""
 DESTINATION=""
 EMAIL=""
 EXCLUDE_FILE="yes"

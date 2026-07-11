@@ -5,9 +5,14 @@ if [[ "${1:-}" == "all" ]]; then
   shift 1
   excluded_repos=()
   forward_args=()
+  parallel_execution="false"
   
   while [[ $# -gt 0 ]]; do
     case "${1:-}" in
+      -P|--parallel)
+        parallel_execution="true"
+        shift 1
+        ;;
       --ignore-repo|-X)
         if [[ -n "${2:-}" && "${2:-}" != -* ]]; then
           excluded_repos+=("${2:-}")
@@ -41,16 +46,32 @@ if [[ "${1:-}" == "all" ]]; then
       echo "Usage: rescript all [command] [flags] ..."
       echo ""
       echo "The 'all' keyword executes a command across ALL configured"
-      echo "repositories sequentially."
+      echo "repositories sequentially (or in parallel with -P)."
       echo ""
       echo "Flags specific to 'all':"
+      echo "  -P, --parallel              Execute on all repositories in parallel."
       echo "  -X, --ignore-repo <repo>    Exclude a repository. Can be used multiple times."
       echo ""
       echo "Examples:"
       echo "  rescript all backup -q"
       echo "  rescript all cleanup --simulate --ignore-repo [repo_name]"
+      echo "  rescript all backup --parallel"
       exit 0
     fi
+  fi
+  
+  if [[ "$parallel_execution" == "true" ]]; then
+    has_quiet=false
+    for arg in "${forward_args[@]}"; do
+      if [[ "$arg" == "-Q" || "$arg" == "--quiet" ]]; then
+        has_quiet=true
+        break
+      fi
+    done
+    if [[ "$has_quiet" == "false" ]]; then
+      forward_args+=("-Q")
+    fi
+    echo -e "${c_cyan}Running jobs in parallel... (enforcing quiet mode)${c_reset}"
   fi
   
   config_dir="$HOME/.rescript/config"
@@ -105,12 +126,22 @@ if [[ "${1:-}" == "all" ]]; then
         print_line "="
       fi
     fi
-    "$0" "$r_name" "${forward_args[@]}" || true
-    if [[ "$has_help" == "true" ]]; then
-      exit 0
+    
+    if [[ "$parallel_execution" == "true" ]]; then
+      "$0" "$r_name" "${forward_args[@]}" &
+    else
+      "$0" "$r_name" "${forward_args[@]}" || true
+      if [[ "$has_help" == "true" ]]; then
+        exit 0
+      fi
+      echo ""
     fi
-    echo ""
   done
+  
+  if [[ "$parallel_execution" == "true" ]]; then
+    wait
+    echo -e "${c_green}All parallel jobs finished!${c_reset}"
+  fi
   
   exit 0
 fi

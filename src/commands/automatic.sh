@@ -32,7 +32,7 @@ function automatic {
       cleanup
       print_line
       echo -e "${c_cyan}Checking for Errors in Repo...${c_reset}"
-      restic check --cleanup-cache
+      run_restic_with_retry check --cleanup-cache
       check_restic_error $?
     fi
   }

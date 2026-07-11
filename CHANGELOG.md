@@ -1,5 +1,27 @@
 # Rescript Changelog
 
+## v6.0
+
+---
+
+### July 11, 2026
+
+#### 🚀 Major Features
+
+* **Parallel Orchestration (`all --parallel`):** The orchestrator now natively supports parallel execution using the `-P` or `--parallel` flag. When using this flag, Rescript will launch all configured repositories simultaneously in the background (enforcing quiet mode `-Q` to keep the terminal clean) and wait for all jobs to complete. This drastically reduces total backup duration for users with multiple repositories.
+* **Push Notifications (Webhooks):** Added support for instant Push Notifications via Webhooks. You can now define a `WEBHOOK_URL` (Discord, Slack, etc.) in your repository configuration. Rescript will automatically POST JSON payloads upon successful completion or fatal failure of jobs, complimenting or replacing traditional SMTP email notifications.
+* **Auto-Heal (Network Retries):** Added robust network resilience by wrapping destructive restic commands (`backup`, `check`, `forget`, `prune`, `restore`) with a self-healing retry loop. If `restic` fails with a fatal error (like a network timeout, code 1) or a temporary lock (code 11), Rescript will intelligently pause for 30 seconds and retry the command up to 3 times before definitively failing.
+
+#### 🛠️ Internal Refactoring & UI
+
+* **Command Extraction (`install` / `update`):** Completed the strict modular architecture by extracting `install` and `update` commands from the monolithic `04_install.sh` script into `src/commands/install.sh` and `src/commands/update.sh` respectively.
+* **Template Separation:** Extracted heavy heredoc template strings (`config_file`, `sys_exclusions`, etc.) from the core `03_config.sh` script into a dedicated `src/templates/` directory, drastically reducing cognitive load and adhering strictly to the "Separation of Concerns" architectural pattern.
+* **Core File Renumbering:** Renumbered remaining files in `src/` (01 to 06) sequentially to patch the numbering gap left by the refactorings. Updated the `build.sh` compiler to seamlessly inject the newly separated templates and sequentially concatenate the core files.
+
+---
+
+*End of changelog for version 6.0*
+
 ## v5.2
 
 ---

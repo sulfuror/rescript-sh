@@ -6,11 +6,11 @@ function cleanup {
 
   if [[ -n "${policies[*]}" ]] ; then
     debug_start
-    restic forget $sim_flag "${policies[@]}" "${rest[@]}"
+    run_restic_with_retry forget $sim_flag "${policies[@]}" "${rest[@]}"
     check_restic_error $?
     debug_stop
     debug_start
-    restic prune $sim_flag --cleanup-cache
+    run_restic_with_retry prune $sim_flag --cleanup-cache
     check_restic_error $?
     debug_stop
   else

@@ -120,7 +120,7 @@ case "$cmd" in
     if [[ "$check_flag" = "true" ]] ; then
       print_line
       echo -e "${c_cyan}Starting check...${c_reset}"
-      run_quietly restic check --cleanup-cache
+      run_quietly run_restic_with_retry check --cleanup-cache
     fi
     if [[ "$info_flag" = "true" ]] ; then
       print_line
@@ -162,7 +162,7 @@ case "$cmd" in
     if [[ "$check_flag" = "true" ]] ; then
       print_line
       echo -e "${c_cyan}Starting check...${c_reset}"
-      run_quietly restic check --cleanup-cache
+      run_quietly run_restic_with_retry check --cleanup-cache
     fi
     if [[ "$info_flag" = "true" ]] ; then
       print_line

@@ -38,7 +38,7 @@ function print_line {
   echo -ne "${c_reset}"
 }
 
-function send_email {
+function _send_email {
   local subject="${1:-}"
   if [[ "$simulate_flag" == "true" ]]; then
     echo -e "${c_yellow}SIMULATE: Would send email to [$EMAIL] with subject: [$subject]${c_reset}"
@@ -71,6 +71,21 @@ function send_email {
       fi
     else
       echo "[rescript] can't send emails; install [mailutils] package to do so."
+    fi
+  fi
+}
+
+function _send_webhook {
+  local subject="${1:-}"
+  if [[ -n "${WEBHOOK_URL:-}" ]] ; then
+    if [[ "$simulate_flag" == "true" ]]; then
+      echo -e "${c_yellow}SIMULATE: Would send webhook to [$WEBHOOK_URL] with subject: [$subject]${c_reset}"
+      return 0
+    fi
+    if [[ "$(command -v curl)" ]] ; then
+      curl -s -X POST -H "Content-Type: application/json" -d "{\"content\": \"$subject\"}" "$WEBHOOK_URL" >/dev/null 2>&1
+    else
+      echo -e "${c_yellow}[rescript] can't send webhooks; install [curl] package to do so.${c_reset}"
     fi
   fi
 }
@@ -163,6 +178,9 @@ function job_done {
   if [[ "${CONFIRMATION_EMAIL:-}" = "y" || "${CONFIRMATION_EMAIL:-}" = "yes" ]] ; then
     _send_email "rescript: [$repo] $cmd finished successfully!"
   fi
+  if [[ -n "${WEBHOOK_URL:-}" ]] ; then
+    _send_webhook "rescript: [$repo] $cmd finished successfully!"
+  fi
 }
 
 function report_errors {
@@ -178,7 +196,33 @@ function report_errors {
       echo -e "${c_red}$error_message${c_reset}"
     fi
     _send_email "rescript: [$repo] $cmd failed!"
+    _send_webhook "rescript: [$repo] $cmd failed!"
   fi
+}
+
+function run_restic_with_retry {
+  local max_attempts=3
+  local attempt=1
+  local exit_code=0
+  
+  while [[ $attempt -le $max_attempts ]]; do
+    restic "$@"
+    exit_code=$?
+    
+    # Restic exit code 1 = fatal error (often network/IO)
+    # Restic exit code 11 = repository locked
+    if [[ $exit_code -ne 1 && $exit_code -ne 11 ]]; then
+      break
+    fi
+    
+    if [[ $attempt -lt $max_attempts ]]; then
+      echo -e "${c_yellow}Warning: restic failed with exit code $exit_code. Retrying in 30 seconds... (Attempt $attempt of $max_attempts)${c_reset}"
+      sleep 30
+    fi
+    ((attempt++))
+  done
+  
+  return $exit_code
 }
 
 function check_restic_error {

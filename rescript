@@ -166,7 +166,7 @@ function print_line {
   echo -ne "${c_reset}"
 }
 
-function send_email {
+function _send_email {
   local subject="${1:-}"
   if [[ "$simulate_flag" == "true" ]]; then
     echo -e "${c_yellow}SIMULATE: Would send email to [$EMAIL] with subject: [$subject]${c_reset}"
@@ -199,6 +199,21 @@ function send_email {
       fi
     else
       echo "[rescript] can't send emails; install [mailutils] package to do so."
+    fi
+  fi
+}
+
+function _send_webhook {
+  local subject="${1:-}"
+  if [[ -n "${WEBHOOK_URL:-}" ]] ; then
+    if [[ "$simulate_flag" == "true" ]]; then
+      echo -e "${c_yellow}SIMULATE: Would send webhook to [$WEBHOOK_URL] with subject: [$subject]${c_reset}"
+      return 0
+    fi
+    if [[ "$(command -v curl)" ]] ; then
+      curl -s -X POST -H "Content-Type: application/json" -d "{\"content\": \"$subject\"}" "$WEBHOOK_URL" >/dev/null 2>&1
+    else
+      echo -e "${c_yellow}[rescript] can't send webhooks; install [curl] package to do so.${c_reset}"
     fi
   fi
 }
@@ -291,6 +306,9 @@ function job_done {
   if [[ "${CONFIRMATION_EMAIL:-}" = "y" || "${CONFIRMATION_EMAIL:-}" = "yes" ]] ; then
     _send_email "rescript: [$repo] $cmd finished successfully!"
   fi
+  if [[ -n "${WEBHOOK_URL:-}" ]] ; then
+    _send_webhook "rescript: [$repo] $cmd finished successfully!"
+  fi
 }
 
 function report_errors {
@@ -306,7 +324,33 @@ function report_errors {
       echo -e "${c_red}$error_message${c_reset}"
     fi
     _send_email "rescript: [$repo] $cmd failed!"
+    _send_webhook "rescript: [$repo] $cmd failed!"
   fi
+}
+
+function run_restic_with_retry {
+  local max_attempts=3
+  local attempt=1
+  local exit_code=0
+  
+  while [[ $attempt -le $max_attempts ]]; do
+    restic "$@"
+    exit_code=$?
+    
+    # Restic exit code 1 = fatal error (often network/IO)
+    # Restic exit code 11 = repository locked
+    if [[ $exit_code -ne 1 && $exit_code -ne 11 ]]; then
+      break
+    fi
+    
+    if [[ $attempt -lt $max_attempts ]]; then
+      echo -e "${c_yellow}Warning: restic failed with exit code $exit_code. Retrying in 30 seconds... (Attempt $attempt of $max_attempts)${c_reset}"
+      sleep 30
+    fi
+    ((attempt++))
+  done
+  
+  return $exit_code
 }
 
 function check_restic_error {
@@ -618,8 +662,10 @@ GOOGLE_CREDENTIALS=""
 # SHOW_STATS: set to "yes" to calculate and display repository stats at the end.
 # SKIP_OFFICE: set to yes to temporarily exclude open (in use) "office" documents.
 # TAG: tag your snapshots.
+# WEBHOOK_URL: set to a Discord/Slack webhook URL to receive push notifications.
 CLEAN="7days"
 CONFIRMATION_EMAIL=""
+WEBHOOK_URL=""
 DESTINATION=""
 EMAIL=""
 EXCLUDE_FILE="yes"
@@ -1438,9 +1484,14 @@ if [[ "${1:-}" == "all" ]]; then
   shift 1
   excluded_repos=()
   forward_args=()
+  parallel_execution="false"
   
   while [[ $# -gt 0 ]]; do
     case "${1:-}" in
+      -P|--parallel)
+        parallel_execution="true"
+        shift 1
+        ;;
       --ignore-repo|-X)
         if [[ -n "${2:-}" && "${2:-}" != -* ]]; then
           excluded_repos+=("${2:-}")
@@ -1474,16 +1525,32 @@ if [[ "${1:-}" == "all" ]]; then
       echo "Usage: rescript all [command] [flags] ..."
       echo ""
       echo "The 'all' keyword executes a command across ALL configured"
-      echo "repositories sequentially."
+      echo "repositories sequentially (or in parallel with -P)."
       echo ""
       echo "Flags specific to 'all':"
+      echo "  -P, --parallel              Execute on all repositories in parallel."
       echo "  -X, --ignore-repo <repo>    Exclude a repository. Can be used multiple times."
       echo ""
       echo "Examples:"
       echo "  rescript all backup -q"
       echo "  rescript all cleanup --simulate --ignore-repo [repo_name]"
+      echo "  rescript all backup --parallel"
       exit 0
     fi
+  fi
+  
+  if [[ "$parallel_execution" == "true" ]]; then
+    has_quiet=false
+    for arg in "${forward_args[@]}"; do
+      if [[ "$arg" == "-Q" || "$arg" == "--quiet" ]]; then
+        has_quiet=true
+        break
+      fi
+    done
+    if [[ "$has_quiet" == "false" ]]; then
+      forward_args+=("-Q")
+    fi
+    echo -e "${c_cyan}Running jobs in parallel... (enforcing quiet mode)${c_reset}"
   fi
   
   config_dir="$HOME/.rescript/config"
@@ -1538,12 +1605,22 @@ if [[ "${1:-}" == "all" ]]; then
         print_line "="
       fi
     fi
-    "$0" "$r_name" "${forward_args[@]}" || true
-    if [[ "$has_help" == "true" ]]; then
-      exit 0
+    
+    if [[ "$parallel_execution" == "true" ]]; then
+      "$0" "$r_name" "${forward_args[@]}" &
+    else
+      "$0" "$r_name" "${forward_args[@]}" || true
+      if [[ "$has_help" == "true" ]]; then
+        exit 0
+      fi
+      echo ""
     fi
-    echo ""
   done
+  
+  if [[ "$parallel_execution" == "true" ]]; then
+    wait
+    echo -e "${c_green}All parallel jobs finished!${c_reset}"
+  fi
   
   exit 0
 fi
@@ -1822,7 +1899,7 @@ function automatic {
       cleanup
       print_line
       echo -e "${c_cyan}Checking for Errors in Repo...${c_reset}"
-      restic check --cleanup-cache
+      run_restic_with_retry check --cleanup-cache
       check_restic_error $?
     fi
   }
@@ -1937,9 +2014,9 @@ function backup {
   debug_start
   set_sim_flag "Backup"
   if [[ "$skip_flag" = "true" ]] ; then
-    restic backup $sim_flag --verbose "${bu_opts[@]}" --exclude-file=<(find "$BACKUP_DIR" -iname ".~lock.*" 2> /dev/null | sed -e 's/.~lock.//g' | sed -e 's/#//g') --exclude=".~lock.*" "${rest[@]}" $BACKUP_DIR
+    run_restic_with_retry backup $sim_flag --verbose "${bu_opts[@]}" --exclude-file=<(find "$BACKUP_DIR" -iname ".~lock.*" 2> /dev/null | sed -e 's/.~lock.//g' | sed -e 's/#//g') --exclude=".~lock.*" "${rest[@]}" $BACKUP_DIR
   else
-    restic backup $sim_flag --verbose "${bu_opts[@]}" "${rest[@]}" $BACKUP_DIR
+    run_restic_with_retry backup $sim_flag --verbose "${bu_opts[@]}" "${rest[@]}" $BACKUP_DIR
   fi
   check_restic_error $?
   debug_stop
@@ -2000,11 +2077,11 @@ function cleanup {
 
   if [[ -n "${policies[*]}" ]] ; then
     debug_start
-    restic forget $sim_flag "${policies[@]}" "${rest[@]}"
+    run_restic_with_retry forget $sim_flag "${policies[@]}" "${rest[@]}"
     check_restic_error $?
     debug_stop
     debug_start
-    restic prune $sim_flag --cleanup-cache
+    run_restic_with_retry prune $sim_flag --cleanup-cache
     check_restic_error $?
     debug_stop
   else
@@ -2390,7 +2467,7 @@ function restic_alone {
   rescript_lock
   debug_start
   print_context
-  restic "${rest[@]}"
+  run_restic_with_retry "${rest[@]}"
   latest_cmd=$prev_cmd exit_code="$?"
   debug_stop
   rest_cmd="${rest[0]}"
@@ -2424,13 +2501,13 @@ function restorer {
   if [[ "${snap_id:-}" ]] ; then
     debug_start
     # shellcheck disable=SC2086
-    restic restore "$snap_id" --target "$restore_dir" $sim_flag
+    run_restic_with_retry restore "$snap_id" --target "$restore_dir" $sim_flag
     check_restic_error $?
     debug_stop
   else
     debug_start
     # shellcheck disable=SC2086
-    restic restore latest --target "$restore_dir" ${restore_opts:-} $sim_flag
+    run_restic_with_retry restore latest --target "$restore_dir" ${restore_opts:-} $sim_flag
     check_restic_error $?
     debug_stop
   fi
@@ -2823,7 +2900,7 @@ case "$cmd" in
     if [[ "$check_flag" = "true" ]] ; then
       print_line
       echo -e "${c_cyan}Starting check...${c_reset}"
-      run_quietly restic check --cleanup-cache
+      run_quietly run_restic_with_retry check --cleanup-cache
     fi
     if [[ "$info_flag" = "true" ]] ; then
       print_line
@@ -2865,7 +2942,7 @@ case "$cmd" in
     if [[ "$check_flag" = "true" ]] ; then
       print_line
       echo -e "${c_cyan}Starting check...${c_reset}"
-      run_quietly restic check --cleanup-cache
+      run_quietly run_restic_with_retry check --cleanup-cache
     fi
     if [[ "$info_flag" = "true" ]] ; then
       print_line
