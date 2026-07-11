@@ -19,6 +19,7 @@
 * **Array Initializations:** Fixed missing empty array initializations (`=()`) for `policies` and `bu_opts` to prevent unbound variable crashes in strict mode.
 * **Flag Argument Protection:** Protected dynamically captured flags (like `$2` in `--host`) with fallbacks (`${2:-}`) to prevent fatal crashes if the flag is provided without a subsequent argument.
 * **Raw Restic Command Flags:** Wrapped the default command fallback router (`restic_alone`) with `execute_with_metrics`, enabling all rescript global flags (like `-T` for timer, `-L` for logs) to work seamlessly with any raw restic command.
+* **Test Suite Coverage Expansion:** Expanded `tests/run_all.sh` framework to cover strict mode edge cases, including gracefully handling missing flag arguments and extreme duration metrics (`0 seconds`), and verifying raw restic command integration with orchestrator loops.
 * **Build Script Polish:** Updated `build.sh` to output directly to the final `rescript` executable, removing the redundant `rescript.new` step for cleaner compilation in development environments.
 
 ---

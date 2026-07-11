@@ -33,3 +33,6 @@ fi
 
 # Test Debug Flag (-D)
 run_test "Global Flag: Debug (-D)" "$RESCRIPT test info -D"
+
+# Test Raw Restic Command with Global Rescript Flags
+run_test "Command: raw restic with global flags (check -T -M -Q)" "$RESCRIPT test check -T -M -Q"
