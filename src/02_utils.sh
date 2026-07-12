@@ -91,7 +91,7 @@ function _send_webhook {
 }
 
 function print_context {
-  if [[ "${context_flag:-}" != "true" || "$quiet_flag" == "true" || "$context_printed" == "true" ]] ; then
+  if [[ "${context_flag:-}" != "true" || "$context_printed" == "true" ]] ; then
     return 0
   fi
   context_printed="true"
@@ -411,12 +411,20 @@ function logger {
     else
       log="$logs_dir/$repo-$cmd-log-$(date +%Y-%m-%d-%H:%M).log"
     fi
-    exec > >(tee -a "$log") 2>&1
+    if [[ "$quiet_flag" == "true" ]]; then
+      exec > "$log" 2>&1
+    else
+      exec > >(tee -a "$log") 2>&1
+    fi
     if [[ -n "$LOG_RETENTION" && "$LOG_RETENTION" -gt 0 ]] 2>/dev/null ; then
       find "$logs_dir" -name "$repo-*.log" -type f -mtime +"$LOG_RETENTION" -exec rm -f {} +
     fi
   else
-    exec > >(tee -a "$tmplog") 2>&1
+    if [[ "$quiet_flag" == "true" ]]; then
+      exec > "$tmplog" 2>&1
+    else
+      exec > >(tee -a "$tmplog") 2>&1
+    fi
   fi
 }
 

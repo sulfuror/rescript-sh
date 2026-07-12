@@ -49,11 +49,7 @@ function parse_generic_args {
 }
 
 function run_quietly {
-  if [[ "$quiet_flag" = "true" ]] ; then
-    "$@" > /dev/null
-  else
-    "$@"
-  fi
+  "$@"
 }
 
 function execute_with_metrics {

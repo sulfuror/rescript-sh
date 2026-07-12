@@ -19,7 +19,7 @@ cmd=""
 exit_code=""
 latest_cmd=""
 context_printed=""
-version="5.2"
+version="6.0"
 function usage {
 cat <<EOF
 Name        : rescript

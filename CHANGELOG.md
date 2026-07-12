@@ -17,6 +17,7 @@
 * **Command Extraction (`install` / `update`):** Completed the strict modular architecture by extracting `install` and `update` commands from the monolithic `04_install.sh` script into `src/commands/install.sh` and `src/commands/update.sh` respectively.
 * **Template Separation:** Extracted heavy heredoc template strings (`config_file`, `sys_exclusions`, etc.) from the core `03_config.sh` script into a dedicated `src/templates/` directory, drastically reducing cognitive load and adhering strictly to the "Separation of Concerns" architectural pattern.
 * **Core File Renumbering:** Renumbered remaining files in `src/` (01 to 06) sequentially to patch the numbering gap left by the refactorings. Updated the `build.sh` compiler to seamlessly inject the newly separated templates and sequentially concatenate the core files.
+* **UI & Logging Overhaul for Parallelism:** Overhauled the `logger` and `run_quietly` internal functions so that Quiet Mode (`-Q` or enforced by `-P`) gracefully writes all Restic stdout/stderr natively to the `.log` files without duplicating it to the terminal, rather than destroying it. Reprogrammed `print_context` and `time_end` to flawlessly respect the `.log` routing during quiet parallel runs, keeping terminal output minimal but logging robust.
 
 ---
 

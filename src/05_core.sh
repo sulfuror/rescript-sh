@@ -71,36 +71,69 @@ if [[ "${1:-}" == "all" ]]; then
     if [[ "$has_quiet" == "false" ]]; then
       forward_args+=("-Q")
     fi
-    echo -e "${c_cyan}Running jobs in parallel... (enforcing quiet mode)${c_reset}"
-  fi
-  
-  config_dir="$HOME/.rescript/config"
-  if [[ ! -d "$config_dir" ]]; then
-    echo "No repositories configured."
-    exit 1
-  fi
-  
-  repos=()
-  for conf in "$config_dir"/*.conf; do
-    [ -e "$conf" ] || continue
-    repo_name=$(basename "$conf" .conf)
     
-    excluded=false
-    for ex in "${excluded_repos[@]}"; do
-      if [[ "$ex" == "$repo_name" ]]; then
-        excluded=true
-        break
+    config_dir="$HOME/.rescript/config"
+    if [[ ! -d "$config_dir" ]]; then
+      echo "No repositories configured."
+      exit 1
+    fi
+    
+    repos=()
+    for conf in "$config_dir"/*.conf; do
+      [ -e "$conf" ] || continue
+      repo_name=$(basename "$conf" .conf)
+      
+      excluded=false
+      for ex in "${excluded_repos[@]}"; do
+        if [[ "$ex" == "$repo_name" ]]; then
+          excluded=true
+          break
+        fi
+      done
+      
+      if [[ "$excluded" == "false" ]]; then
+        repos+=("$repo_name")
       fi
     done
     
-    if [[ "$excluded" == "false" ]]; then
-      repos+=("$repo_name")
+    if [[ ${#repos[@]} -eq 0 ]]; then
+      echo "No repositories found or all were excluded."
+      exit 0
     fi
-  done
+    
+    repo_list=$(IFS=', '; echo "${repos[*]}")
+    echo -e "${c_cyan}Running on repositories: ${c_white}$repo_list${c_cyan} (in parallel, enforcing quiet mode)${c_reset}"
+  fi
   
-  if [[ ${#repos[@]} -eq 0 ]]; then
-    echo "No repositories found or all were excluded."
-    exit 0
+  if [[ "$parallel_execution" != "true" ]]; then
+    config_dir="$HOME/.rescript/config"
+    if [[ ! -d "$config_dir" ]]; then
+      echo "No repositories configured."
+      exit 1
+    fi
+    
+    repos=()
+    for conf in "$config_dir"/*.conf; do
+      [ -e "$conf" ] || continue
+      repo_name=$(basename "$conf" .conf)
+      
+      excluded=false
+      for ex in "${excluded_repos[@]}"; do
+        if [[ "$ex" == "$repo_name" ]]; then
+          excluded=true
+          break
+        fi
+      done
+      
+      if [[ "$excluded" == "false" ]]; then
+        repos+=("$repo_name")
+      fi
+    done
+    
+    if [[ ${#repos[@]} -eq 0 ]]; then
+      echo "No repositories found or all were excluded."
+      exit 0
+    fi
   fi
   
   has_metadata=false
@@ -119,7 +152,7 @@ if [[ "${1:-}" == "all" ]]; then
   fi
 
   for r_name in "${repos[@]}"; do
-    if [[ "$has_metadata" == "false" && "$is_automatic" == "false" ]]; then
+    if [[ "$has_metadata" == "false" && "$is_automatic" == "false" && "$parallel_execution" == "false" ]]; then
       if [[ "$has_help" == "false" ]]; then
         print_line "="
         printf "${c_white}Running on repository:${c_reset} ${c_cyan}%s${c_reset}\n" "$r_name"
