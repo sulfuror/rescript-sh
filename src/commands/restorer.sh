@@ -1,6 +1,27 @@
 function restorer {
   rescript_lock
-  if [[ "$host_flag" ]] ; then
+  if [[ "${interactive_flag:-}" == "true" ]] ; then
+    echo -e "${c_cyan}Fetching snapshot list...${c_reset}"
+    mapfile -t snap_list < <(run_restic_with_retry snapshots 2>/dev/null | grep -E '^[0-9a-f]{8}')
+    if [[ ${#snap_list[@]} -eq 0 ]]; then
+      echo "No snapshots found to restore."
+      exit 1
+    fi
+    echo -e "${c_cyan}Select a snapshot to restore:${c_reset}"
+    PS3="Enter the number of the snapshot: "
+    select sel_snap in "${snap_list[@]}" "Cancel"; do
+      if [[ "$sel_snap" == "Cancel" ]]; then
+        echo "Canceled."
+        exit 0
+      elif [[ -n "$sel_snap" ]]; then
+        snap_id=$(echo "$sel_snap" | awk '{print $1}')
+        restore_dir="$HOME/restore-ID-${snap_id}_$(date +%s)"
+        break
+      else
+        echo "Invalid selection."
+      fi
+    done
+  elif [[ "$host_flag" ]] ; then
     restore_dir="$HOME/restore-latest-host-${host_flag}_$(date +%s)"
     restore_opts="--host $host_flag"
   elif [[ "$path_flag" ]] ; then

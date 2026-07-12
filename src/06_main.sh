@@ -285,6 +285,7 @@ case "$cmd" in
         -T) tag_flag="${2:-}" ; shift ;;
         --tag=*) tag_flag="${1#*=}" ;;
         --tag) tag_flag="${2:-}" ; shift ;;
+        -i|--interactive) interactive_flag="true" ;;
         -*) 
           echo "[$1] is not a valid option..."
           echo ""

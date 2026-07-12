@@ -12,18 +12,7 @@ function automatic {
   print_context
   context_flag="false"
 
-  if [[ -n "$PRE_CMD" ]] ; then
-    echo -e "${c_cyan}Running PRE_CMD...${c_reset}"
-    if [[ "$simulate_flag" == "true" ]]; then
-      echo -e "${c_yellow}SIMULATE: $PRE_CMD${c_reset}"
-    else
-      eval "$PRE_CMD"
-      if [[ $? -ne 0 ]] ; then
-        echo "PRE_CMD failed. Exiting..."
-        exit 1
-      fi
-    fi
-  fi
+
 
   function _run_auto_cleanup {
     if [[ -n "${policies[*]}" ]] ; then
@@ -98,14 +87,7 @@ function automatic {
   esac
   # Time and Runtime
   time_end
-  if [[ -n "$POST_CMD" ]] ; then
-    echo -e "${c_cyan}Running POST_CMD...${c_reset}"
-    if [[ "$simulate_flag" == "true" ]]; then
-      echo -e "${c_yellow}SIMULATE: $POST_CMD${c_reset}"
-    else
-      eval "$POST_CMD"
-    fi
-  fi
+
   if [[ -n "${CLEAN:-}" && -z "${policies[*]}" ]] ; then
     clean_num="${CLEAN//[A-Za-z]/}"
     clean_unit="${CLEAN//[0-9]/}"

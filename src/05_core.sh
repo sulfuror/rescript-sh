@@ -212,7 +212,15 @@ case "${1:-}" in
     exit 1
     ;;
   config)
-    _check_help_or_error "${1:-}" "${2:-}"
+    if [[ "${2:-}" == "-h" || "${2:-}" == "--help" ]]; then
+      config-help
+      exit 0
+    elif [[ "${2:-}" == "--wizard" ]]; then
+      config_wizard
+      exit 0
+    elif [[ -n "${2:-}" ]]; then
+      echo "Invalid option [${2:-}]..." ; echo "" ; config-help ; exit 1
+    fi
     if [[ -z "$rescript_editor" ]] ; then
       select_editor
       echo "Please type [rescript config] again to set/edit"
@@ -328,6 +336,9 @@ esac
 # ============================================================== #
 # Functions                                                      #
 # ============================================================== #
+if [[ -f "$config_dir/global.conf" ]]; then
+  source "$config_dir/global.conf"
+fi
 source "$config_file"
 # Defaulting unset variables from config for strict mode
 export HOST="${HOST:-}"

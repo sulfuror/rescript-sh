@@ -18,17 +18,25 @@ function config_menu {
   echo "$ui_line_eq"
   echo " [1] Edit Existing    "
   echo " [2] New Repository   "
-  echo " [3] Delete Config    "
-  echo " [4] Back to Main Menu"
-  echo " [5] Exit             "
+  echo " [3] Edit Global Config"
+  echo " [4] Delete Config    "
+  echo " [5] Back to Main Menu"
+  echo " [6] Exit             "
   echo "$ui_line_eq"
-  read -rp "Select an option and press Enter [ 1 - 5 ]: " cfgopt
+  read -rp "Select an option and press Enter [ 1 - 6 ]: " cfgopt
   case "$cfgopt" in
     1|edit) clear ; edit_config_files ;;
     2|new) new_config_file ;;
-    3|delete) clear ; delete_config_file ;;
-    4|back) clear ; main_menu ;;
-    5|exit) echo "Exiting..." ; exit ;;
+    3|global) 
+      if [[ ! -f "$config_dir/global.conf" ]]; then
+        global_config_template > "$config_dir/global.conf"
+        chmod 600 "$config_dir/global.conf"
+      fi
+      "$rescript_editor" "$config_dir/global.conf" 2> /dev/null
+      clear ; config_menu ;;
+    4|delete) clear ; delete_config_file ;;
+    5|back) clear ; main_menu ;;
+    6|exit) echo "Exiting..." ; exit ;;
     *) clear ; echo "No valid selection; try again..." ; config_menu ;;
   esac
 }
@@ -104,6 +112,52 @@ function delete_config_file {
         echo "There is no configuration files called [$del}; try again..."
         delete_config_file
       fi
+      ;;
+  esac
+}
+
+function config_wizard {
+  clear
+  echo "$ui_line_eq"
+  echo "    Rescript Configuration Wizard"
+  echo "$ui_line_eq"
+  read -rp "1. Repository Name (e.g., local-backup): " w_name
+  if [[ -z "$w_name" ]]; then echo "Name cannot be empty. Exiting." ; exit 1 ; fi
+  if [[ -f "$config_dir/$w_name.conf" ]]; then echo "Repository already exists! Exiting." ; exit 1 ; fi
+
+  read -rp "2. Restic Repository Location (e.g., /mnt/backup, s3:s3.amazonaws.com/bucket): " w_repo
+  read -rs -p "3. Restic Password: " w_pass ; echo ""
+  read -rp "4. Target Directory to Backup (default: $HOME): " w_dir
+  w_dir=${w_dir:-$HOME}
+  
+  read -rp "5. Webhook URL (Optional, press Enter to skip): " w_web
+  
+  echo "Creating configuration..."
+  
+  local new_conf="$config_dir/$w_name.conf"
+  config_file > "$new_conf"
+  
+  sed -i "s|RESTIC_REPO=\"\"|RESTIC_REPO=\"$w_repo\"|" "$new_conf"
+  sed -i "s|RESTIC_PASSWORD=\"\"|RESTIC_PASSWORD=\"$w_pass\"|" "$new_conf"
+  sed -i "s|BACKUP_DIR=\"\$HOME\"|BACKUP_DIR=\"$w_dir\"|" "$new_conf"
+  if [[ -n "$w_web" ]]; then
+    sed -i "s|# WEBHOOK_URL=\"\"|WEBHOOK_URL=\"$w_web\"|" "$new_conf"
+  fi
+  
+  chmod 600 "$new_conf"
+  touch "$config_dir/$w_name-exclusions"
+  touch "$config_dir/$w_name-datefile"
+  simple_exclusions > "$config_dir/$w_name-exclusions"
+  date -R > "$config_dir/$w_name-datefile"
+  
+  echo -e "\nConfiguration [$w_name] created successfully!"
+  read -rp "Would you like to initialize this repository now? (y/n): " ans
+  case $ans in
+    y|yes) 
+      "$0" "$w_name" init
+      ;;
+    *)
+      echo "You can initialize it later by running: rescript $w_name init"
       ;;
   esac
 }

@@ -144,25 +144,19 @@ rescript help [command]
 ```
 First thing to do is to configure your repository by typing:
 
+```bash
+rescript config --wizard
+```
+
+This will launch the **Interactive Configuration Wizard** which will ask for your repository name, password, target directory, and webhooks to automatically generate your configuration file and initialize your repository.
+
+Alternatively, you can manually run:
 ```
 rescript config
 ```
-This command will display a dialog where you'll be asked to select a text editor
-you want to use. The list of editors are: Nano, Vim, Gedit, Mousepad, Leafpad,
-Pluma, Kate, Xed, Other (can be used to set other text editor not listed) and Exit (exit the dialog).
+This command will give you a menu where you can edit your existing configuration files, create new ones manually, or edit the **Global Configuration**. The Global Configuration (`global.conf`) allows you to define variables (like `KEEP_*` retention policies, `WEBHOOK_URL`, or `CLEAN` policies) that act as defaults for all your repositories!
 
-Once the text editor is set, then it will display 3 options: 1) Configuration,
-2) Exclusions, 3) Exit. Select 1 to open the configuration file, 2 to open the 
-exclusion list and 3 to exit the dialog. Once you've done that you can start
-using the script. If you don't have any repo remember to run `rescript [repo_name] init`
-after configuring `rescript` or else it will fail to do anything.
-
-### Configuration files
-
-When you use `config` command to create a repository configuration file, `rescript` will create a template
-of the configuration file for you. It will also set the permissions for those configuration files to `600`, which
-means that only the user who created that configuration file will have the permission over the file (read/write); no other
-user will be able to open and read that configuration file.
+When you use the `config` command to manually create a repository configuration file, `rescript` will create a template of the configuration file for you. It will also set the permissions for those configuration files to `600`, which means that only the user who created that configuration file will have the permission over the file (read/write); no other user will be able to open and read that configuration file.
 
 ### Things you need to change in your configuration file
 
@@ -172,6 +166,9 @@ user will be able to open and read that configuration file.
 * `RESTIC_PASSWORD=""`: Put your restic password.
 * `RESTIC_REPO=""`: Put your repository directory.
 * `BACKUP_DIR="$HOME"`: This is what you're backing up; by default is your home directory.
+
+> [!TIP]
+> **Global Retention Policies:** You no longer need to define `KEEP_*` policies for every single repository! You can define your ideal retention policy directly in the **Global Configuration** (`global.conf`). Repositories will automatically inherit these global retention policies unless you explicitly override them in the repository's specific `.conf` file.
 * `KEEP_LAST=""`: Indicate the number of "last" backups you want to keep.
 * `KEEP_HOURLY="8"`: Indicate the number of hourly backups you want to keep.
 * `KEEP_DAILY="7"`: Indicate the number of daily backups you want to keep.
@@ -228,8 +225,8 @@ These variables are optional because the script will still work if you don't wan
 * `EXCLUDE_CACHE="yes"`: set "yes" to use `--exclude-cache` flag for backups (by default is set to yes; if blank it will exclude cache for previous versions compatibility).
 * `ONE_FILE_SYSTEM=""`: set to "yes" to use `--one-file-system` flag for backups.
 * `LOG_RETENTION=""`: Native log rotation. Set a number of days (e.g. `30`) and Rescript will automatically prune `.rescript/logs` older than that amount.
-* `PRE_CMD=""`: Arbitrary system commands to run *before* the automatic backup process (e.g. `docker stop mycontainer`).
-* `POST_CMD=""`: Arbitrary system commands to run *after* the automatic backup process completes.
+* `PRE_CMD=""`: Arbitrary system commands to run *before* the backup process, whether manual or automatic (e.g. `docker stop mycontainer`).
+* `POST_CMD=""`: Arbitrary system commands to run *after* the backup process, whether manual or automatic (e.g. `docker start mycontainer`).
 
 The configuration file also has variables for B2 and AWS ID's and Keys. If not required
 just leave it blank.
@@ -343,10 +340,10 @@ Please see restic `help` and [documentation](https://restic.readthedocs.io/en/st
      rescript [repo_name] next [flags]
      ```
 
-12. **restorer**: restore the snapshot you want to restore. It will automatically create a new folder in your home directory called `restore-snapshotID-randomnumber`.
-    Usage:
-     ```
-     rescript [repo_name] restorer [-H|--host=host] [-P|--path=path] [-Z|--snapshot=snapshot ID] [-T|--tag=tag]
+12. **restorer**: restore the snapshot you want to restore. It will automatically create a new folder in your home directory called `restore-snapshotID-randomnumber`. You can also run it interactively to select from a menu of snapshots.
+
+     ```bash
+     rescript [repo_name] restorer [-i|--interactive] [-H|--host=host] [-P|--path=path] [-Z|--snapshot=snapshot ID] [-T|--tag=tag]
      ```
 
 13. **search**: quickly search for a specific file or directory across all your snapshots.

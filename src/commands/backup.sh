@@ -20,6 +20,19 @@ function backup {
     bu_opts+=( --compression="$RESTIC_COMPRESSION" )
   fi
   rescript_lock
+  
+  if [[ -n "$PRE_CMD" ]] ; then
+    echo -e "${c_cyan}Running PRE_CMD...${c_reset}"
+    if [[ "$simulate_flag" == "true" ]]; then
+      echo -e "${c_yellow}SIMULATE: $PRE_CMD${c_reset}"
+    else
+      eval "$PRE_CMD"
+      if [[ $? -ne 0 ]] ; then
+        echo "PRE_CMD failed. Exiting..."
+        exit 1
+      fi
+    fi
+  fi
   debug_start
   set_sim_flag "Backup"
   if [[ "$skip_flag" = "true" ]] ; then
@@ -29,6 +42,15 @@ function backup {
   fi
   check_restic_error $?
   debug_stop
+
+  if [[ -n "$POST_CMD" ]] ; then
+    echo -e "${c_cyan}Running POST_CMD...${c_reset}"
+    if [[ "$simulate_flag" == "true" ]]; then
+      echo -e "${c_yellow}SIMULATE: $POST_CMD${c_reset}"
+    else
+      eval "$POST_CMD"
+    fi
+  fi
 
 }
 

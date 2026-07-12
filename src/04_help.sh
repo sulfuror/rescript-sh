@@ -95,9 +95,11 @@ and open your configuration and exclusions files.
 
 Usage:
   rescript config
+  rescript config --wizard
 
 Global flags:
   -h, --help            Display usage.
+  --wizard              Run the interactive config wizard to easily set up a new repository.
 
 EOF
 }
@@ -295,6 +297,7 @@ Usage:
   rescript [repo_name] restorer [flags] [host|path|snapshot ID|tag]
 
 Command flags:
+  -i, --interactive     Fetch a list of snapshots and present an interactive menu to choose from.
   -H, --host hostname   Only consider snapshots for this host
                         when snapshot-ID is [latest].
   -P, --path path       Only consider snapshots which include
