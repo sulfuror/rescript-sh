@@ -4,7 +4,7 @@ function env_conf {
 
   if [[ "${var_flag:-}" ]] ; then
     upper_var=$(echo "${var_flag:-}" | tr '[:lower:]' '[:upper:]')
-    search=$(sed '/^#/ d' < "$config_dir/$repo.conf" | sed '/^\s*$/d' | grep "$upper_var")
+    search=$(sed '/^#/ d' < "$config_repo" | sed '/^\s*$/d' | grep "$upper_var")
     if [[ -z "$search" ]] ; then
       echo "There is no var named [$var_flag]..."
       echo ""
@@ -27,7 +27,7 @@ function env_conf {
     echo -e "${c_white}Configuration Context: ${c_cyan}$repo${c_reset}"
     print_line "="
     
-    sed '/^#/ d' < "$config_dir/$repo.conf" | sed '/^\s*$/d' | awk -v cw="${c_white}" -v cc="${c_cyan}" -v cr="${c_reset}" -F'=' '{
+    sed '/^#/ d' < "$config_repo" | sed '/^\s*$/d' | awk -v cw="${c_white}" -v cc="${c_cyan}" -v cr="${c_reset}" -F'=' '{
       if (length($1) == 0) next;
       key = $1
       sub(/^[^=]*=/, "", $0)

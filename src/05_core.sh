@@ -218,6 +218,19 @@ case "${1:-}" in
     elif [[ "${2:-}" == "--wizard" ]]; then
       config_wizard
       exit 0
+    elif [[ "${2:-}" == "-g" || "${2:-}" == "--global" ]]; then
+      if [[ -z "$rescript_editor" ]] ; then
+        select_editor
+        echo "Please type [rescript config --global] again to edit"
+        echo "your global configuration."
+        exit
+      fi
+      if [[ ! -f "$config_global" ]]; then
+        global_config_template > "$config_global"
+        chmod 600 "$config_global"
+      fi
+      "$rescript_editor" "$config_global" 2> /dev/null
+      exit 0
     elif [[ -n "${2:-}" ]]; then
       echo "Invalid option [${2:-}]..." ; echo "" ; config-help ; exit 1
     fi
@@ -336,10 +349,10 @@ esac
 # ============================================================== #
 # Functions                                                      #
 # ============================================================== #
-if [[ -f "$config_dir/global.conf" ]]; then
-  source "$config_dir/global.conf"
+if [[ -f "$config_global" ]]; then
+  source "$config_global"
 fi
-source "$config_file"
+source "$config_repo"
 # Defaulting unset variables from config for strict mode
 export HOST="${HOST:-}"
 export CLEAN="${CLEAN:-}"

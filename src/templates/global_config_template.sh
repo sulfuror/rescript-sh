@@ -8,16 +8,6 @@ cat <<EOF
 # repository's value will override the global value here.
 # ------------------------------------------------------------------------------- #
 
-# AWS, B2, Azure, Google Cloud Credentials
-AWS_ID=""
-AWS_KEY=""
-AZURE_NAME=""
-AZURE_KEY=""
-B2_ID=""
-B2_KEY=""
-GOOGLE_ID=""
-GOOGLE_CREDENTIALS=""
-
 # ------------------------------------------------------------------------------- #
 # RETENTION POLICIES
 # ------------------------------------------------------------------------------- #
@@ -71,7 +61,22 @@ RESTIC_COMPRESSION="auto"
 # EXCLUDE_CACHE: set "yes" to use "--exclude-cache" flag for backups (by default is set to yes; if blank it will exclude cache for previous versions compatibility).
 EXCLUDE_CACHE="yes"
 
+# EXCLUDE_FILE: set "yes" to use the exclude file generated for backups (by default is set to yes; if blank it will read the exclusion file for previous versions comptability).
+EXCLUDE_FILE="yes"
+
+# HOST: use a custom hostname for your snapshots across all repositories.
+HOST=""
+
 # ONE_FILE_SYSTEM: set to "yes" to use "--one-file-system" flag for backups.
 ONE_FILE_SYSTEM=""
+
+# SHOW_SNAPS: set to "yes" to show a list of snapshots at the end of the backup.
+SHOW_SNAPS="yes"
+
+# SHOW_STATS: set to "yes" to calculate and display repository stats at the end.
+SHOW_STATS="yes"
+
+# SKIP_OFFICE: set to yes to temporarily exclude open (in use) "office" documents.
+SKIP_OFFICE=""
 EOF
 }

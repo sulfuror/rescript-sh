@@ -28,11 +28,11 @@ function config_menu {
     1|edit) clear ; edit_config_files ;;
     2|new) new_config_file ;;
     3|global) 
-      if [[ ! -f "$config_dir/global.conf" ]]; then
-        global_config_template > "$config_dir/global.conf"
-        chmod 600 "$config_dir/global.conf"
+      if [[ ! -f "$config_global" ]]; then
+        global_config_template > "$config_global"
+        chmod 600 "$config_global"
       fi
-      "$rescript_editor" "$config_dir/global.conf" 2> /dev/null
+      "$rescript_editor" "$config_global" 2> /dev/null
       clear ; config_menu ;;
     4|delete) clear ; delete_config_file ;;
     5|back) clear ; main_menu ;;
@@ -121,6 +121,77 @@ function config_wizard {
   echo "$ui_line_eq"
   echo "    Rescript Configuration Wizard"
   echo "$ui_line_eq"
+  if [[ ! -f "$config_global" ]]; then
+    echo "--- Global Setup ---"
+    echo "Let's set up your global defaults first."
+    
+    # 1. Email setup
+    read -rp "1. Do you want to receive email alerts? (y/n) [n]: " ans_email
+    w_email=""
+    w_confirm=""
+    if [[ "$ans_email" == "y" || "$ans_email" == "yes" ]]; then
+      read -rp "   Enter your email address: " w_email
+      read -rp "   Receive emails also on successful backups? (y/n) [n]: " ans_success
+      if [[ "$ans_success" == "y" || "$ans_success" == "yes" ]]; then
+        w_confirm="yes"
+      fi
+    fi
+    
+    # 2. Webhook
+    read -rp "2. Discord/Slack Webhook URL (Optional, press Enter to skip): " w_web
+    
+    # 3. Logging
+    read -rp "3. Enable automatic logging? (y/n) [y]: " ans_log
+    w_log="yes"
+    if [[ "$ans_log" == "n" || "$ans_log" == "no" ]]; then
+      w_log="no"
+    fi
+    w_log_ret=""
+    if [[ "$w_log" == "yes" ]]; then
+      read -rp "   Log retention in days (Optional, leave blank to keep forever): " w_log_ret
+    fi
+    
+    # 4. Retention Policies
+    echo "4. Retention Policies (Press Enter to keep the default)"
+    read -rp "   Keep Last (default: none): " w_k_last
+    read -rp "   Keep Hourly (default: 8): " w_k_hourly
+    read -rp "   Keep Daily (default: 7): " w_k_daily
+    read -rp "   Keep Weekly (default: 4): " w_k_weekly
+    read -rp "   Keep Monthly (default: 12): " w_k_monthly
+    read -rp "   Keep Yearly (default: 10): " w_k_yearly
+    
+    global_config_template > "$config_global"
+    chmod 600 "$config_global"
+    
+    local g_conf="$config_global"
+    
+    if [[ -n "$w_email" ]]; then
+      sed -i "s|^EMAIL=\"\"|EMAIL=\"$w_email\"|" "$g_conf"
+    fi
+    if [[ -n "$w_confirm" ]]; then
+      sed -i "s|^CONFIRMATION_EMAIL=\"\"|CONFIRMATION_EMAIL=\"$w_confirm\"|" "$g_conf"
+    fi
+    if [[ -n "$w_web" ]]; then
+      sed -i "s|^WEBHOOK_URL=\"\"|WEBHOOK_URL=\"$w_web\"|" "$g_conf"
+    fi
+    
+    sed -i "s|^LOGGING=\"yes\"|LOGGING=\"$w_log\"|" "$g_conf"
+    
+    if [[ -n "$w_log_ret" ]]; then
+      sed -i "s|^LOG_RETENTION=\"\"|LOG_RETENTION=\"$w_log_ret\"|" "$g_conf"
+    fi
+    
+    if [[ -n "$w_k_last" ]]; then sed -i "s|^KEEP_LAST=\"\"|KEEP_LAST=\"$w_k_last\"|" "$g_conf" ; fi
+    if [[ -n "$w_k_hourly" ]]; then sed -i "s|^KEEP_HOURLY=\"8\"|KEEP_HOURLY=\"$w_k_hourly\"|" "$g_conf" ; fi
+    if [[ -n "$w_k_daily" ]]; then sed -i "s|^KEEP_DAILY=\"7\"|KEEP_DAILY=\"$w_k_daily\"|" "$g_conf" ; fi
+    if [[ -n "$w_k_weekly" ]]; then sed -i "s|^KEEP_WEEKLY=\"4\"|KEEP_WEEKLY=\"$w_k_weekly\"|" "$g_conf" ; fi
+    if [[ -n "$w_k_monthly" ]]; then sed -i "s|^KEEP_MONTHLY=\"12\"|KEEP_MONTHLY=\"$w_k_monthly\"|" "$g_conf" ; fi
+    if [[ -n "$w_k_yearly" ]]; then sed -i "s|^KEEP_YEARLY=\"10\"|KEEP_YEARLY=\"$w_k_yearly\"|" "$g_conf" ; fi
+    
+    echo -e "Global configuration saved.\n"
+  fi
+
+  echo "--- Repository Setup ---"
   read -rp "1. Repository Name (e.g., local-backup): " w_name
   if [[ -z "$w_name" ]]; then echo "Name cannot be empty. Exiting." ; exit 1 ; fi
   if [[ -f "$config_dir/$w_name.conf" ]]; then echo "Repository already exists! Exiting." ; exit 1 ; fi
@@ -130,8 +201,6 @@ function config_wizard {
   read -rp "4. Target Directory to Backup (default: $HOME): " w_dir
   w_dir=${w_dir:-$HOME}
   
-  read -rp "5. Webhook URL (Optional, press Enter to skip): " w_web
-  
   echo "Creating configuration..."
   
   local new_conf="$config_dir/$w_name.conf"
@@ -139,10 +208,7 @@ function config_wizard {
   
   sed -i "s|RESTIC_REPO=\"\"|RESTIC_REPO=\"$w_repo\"|" "$new_conf"
   sed -i "s|RESTIC_PASSWORD=\"\"|RESTIC_PASSWORD=\"$w_pass\"|" "$new_conf"
-  sed -i "s|BACKUP_DIR=\"\$HOME\"|BACKUP_DIR=\"$w_dir\"|" "$new_conf"
-  if [[ -n "$w_web" ]]; then
-    sed -i "s|# WEBHOOK_URL=\"\"|WEBHOOK_URL=\"$w_web\"|" "$new_conf"
-  fi
+  sed -i "s|^BACKUP_DIR=.*|BACKUP_DIR=\"$w_dir\"|" "$new_conf"
   
   chmod 600 "$new_conf"
   touch "$config_dir/$w_name-exclusions"
@@ -151,6 +217,7 @@ function config_wizard {
   date -R > "$config_dir/$w_name-datefile"
   
   echo -e "\nConfiguration [$w_name] created successfully!"
+  echo "Tip: You can edit your global configuration at any time by running: rescript config --global"
   read -rp "Would you like to initialize this repository now? (y/n): " ans
   case $ans in
     y|yes) 

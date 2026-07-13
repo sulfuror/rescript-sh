@@ -114,7 +114,8 @@ logs_dir="$rescript_dir/logs"
 tmplog=$(mktemp)
 excludes="$config_dir/$1-exclusions"
 lock="$lock_dir/$repo.lock"
-config_file="$config_dir/$repo.conf"
+config_global="$config_dir/global.conf"
+config_repo="$config_dir/$repo.conf"
 unix_name=$(uname -s)
 
 if [[ -d "/tmp" ]] ; then

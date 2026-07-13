@@ -96,9 +96,11 @@ and open your configuration and exclusions files.
 Usage:
   rescript config
   rescript config --wizard
+  rescript config -g, --global
 
 Global flags:
   -h, --help            Display usage.
+  -g, --global          Open the global configuration file directly.
   --wizard              Run the interactive config wizard to easily set up a new repository.
 
 EOF

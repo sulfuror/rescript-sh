@@ -16,25 +16,23 @@ RESTIC_REPO=""
 BACKUP_DIR="$HOME"
 
 # ------------------------------------------------------------------------------- #
+# CLOUD CREDENTIALS
+# ------------------------------------------------------------------------------- #
+# Provide the necessary credentials for your cloud provider (leave blank if local).
+AWS_ID=""
+AWS_KEY=""
+AZURE_NAME=""
+AZURE_KEY=""
+B2_ID=""
+B2_KEY=""
+GOOGLE_ID=""
+GOOGLE_CREDENTIALS=""
+
+# ------------------------------------------------------------------------------- #
 # OPTIONAL VALUES
 # ------------------------------------------------------------------------------- #
 # DESTINATION: display name of your destination in output instead of path (i.e.: Wasabi, B2, etc.).
 DESTINATION=""
-
-# EXCLUDE_FILE: set "yes" to use the exclude file generated for backups (by default is set to yes; if blank it will read the exclusion file for previous versions comptability).
-EXCLUDE_FILE="yes"
-
-# HOST: use a custom hostname for your snapshots.
-HOST=""
-
-# SHOW_SNAPS: set to "yes" to show a list of snapshots at the end of the backup.
-SHOW_SNAPS="yes"
-
-# SHOW_STATS: set to "yes" to calculate and display repository stats at the end.
-SHOW_STATS="yes"
-
-# SKIP_OFFICE: set to yes to temporarily exclude open (in use) "office" documents.
-SKIP_OFFICE=""
 
 # TAG: tag your snapshots.
 TAG=""
@@ -46,15 +44,14 @@ TAG=""
 # If you wish to OVERRIDE the global value for this specific repository only, 
 # uncomment the variable below and assign your new value.
 
-# Cloud Credentials
-# AWS_ID=""
-# AWS_KEY=""
-# AZURE_NAME=""
-# AZURE_KEY=""
-# B2_ID=""
-# B2_KEY=""
-# GOOGLE_ID=""
-# GOOGLE_CREDENTIALS=""
+# Backup Preferences
+# EXCLUDE_FILE="yes"
+# HOST=""
+# SKIP_OFFICE=""
+
+# Notifications and Output
+# SHOW_SNAPS="yes"
+# SHOW_STATS="yes"
 
 # ------------------------------------------------------------------------------- #
 # RETENTION POLICIES
