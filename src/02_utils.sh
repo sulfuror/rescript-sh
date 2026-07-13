@@ -188,9 +188,7 @@ function print_context {
 }
 
 function job_done {
-  if [[ -z "$cmd" ]] ; then
-    cmd="backup"
-  fi
+  cmd="${cmd:-backup}"
   if [[ "${CONFIRMATION_EMAIL:-}" = "y" || "${CONFIRMATION_EMAIL:-}" = "yes" ]] ; then
     _send_email "rescript: [$repo] $cmd finished successfully!"
   fi
@@ -200,9 +198,7 @@ function job_done {
 }
 
 function report_errors {
-  if [[ -z "$cmd" ]] ; then
-    cmd="backup"
-  fi
+  cmd="${cmd:-backup}"
   if [[ -n "$error_message" ]] ; then
     if [[ "$ping_code" -gt "0" ]] ; then
       echo -e "${c_red}$error_message${c_reset}"

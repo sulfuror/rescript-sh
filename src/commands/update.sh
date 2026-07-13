@@ -7,11 +7,7 @@ function update {
     echo "Please, install [wget] to proceed."
     exit
   fi
-  if [[ -d "/tmp" ]] ; then
-    tmp_dir="/tmp"
-  else
-    tmp_dir="$TMPDIR"
-  fi
+
   wget -P "$tmp_dir" https://gitlab.com/sulfuror/rescript.sh/raw/master/rescript 2> /dev/null
   rescript_latest="$tmp_dir/rescript"
   trap 'rm -rf "$rescript_latest" 2> /dev/null' INT QUIT TERM EXIT

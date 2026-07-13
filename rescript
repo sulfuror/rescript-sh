@@ -73,6 +73,7 @@ Commands:
   search                Find a file or directory across snapshots.
   size                  Calculate recursive size of a given path.
   snaps                 List snapshots in your repository (compact mode).
+  status                Print a dashboard with the status of your repositories.
   umounter              Unmount a previously mounted restic repository.
   unlocker              Remove lock created by rescript.
   upgrade               Upgrade restic repository to the latest format.
@@ -317,9 +318,7 @@ function print_context {
 }
 
 function job_done {
-  if [[ -z "$cmd" ]] ; then
-    cmd="backup"
-  fi
+  cmd="${cmd:-backup}"
   if [[ "${CONFIRMATION_EMAIL:-}" = "y" || "${CONFIRMATION_EMAIL:-}" = "yes" ]] ; then
     _send_email "rescript: [$repo] $cmd finished successfully!"
   fi
@@ -329,9 +328,7 @@ function job_done {
 }
 
 function report_errors {
-  if [[ -z "$cmd" ]] ; then
-    cmd="backup"
-  fi
+  cmd="${cmd:-backup}"
   if [[ -n "$error_message" ]] ; then
     if [[ "$ping_code" -gt "0" ]] ; then
       echo -e "${c_red}$error_message${c_reset}"
@@ -1783,6 +1780,30 @@ Global flags:
 
 EOF
 }
+
+function status-help {
+cat <<EOF
+[status] prints a dashboard showing the state of your repositories.
+
+This command provides a quick overview of configured repositories,
+displaying snapshot counts, the latest snapshot date, and optionally
+the repository size and health. It can be run on a single repository
+or globally for all configured repositories.
+
+Usage:
+  rescript status [flags]
+  rescript [repo_name] status [flags]
+
+Command flags:
+  -F, --full            Display a full dashboard including size and health.
+                        Note: This takes significantly more time.
+  -X, --exclude         Exclude specific repositories (e.g. -X foo -X bar).
+
+Global flags:
+  -h, --help            Display usage.
+
+EOF
+}
 function automatic {
   rescript_lock
   case "$LOGGING" in
@@ -2803,11 +2824,7 @@ function update {
     echo "Please, install [wget] to proceed."
     exit
   fi
-  if [[ -d "/tmp" ]] ; then
-    tmp_dir="/tmp"
-  else
-    tmp_dir="$TMPDIR"
-  fi
+
   wget -P "$tmp_dir" https://gitlab.com/sulfuror/rescript.sh/raw/master/rescript 2> /dev/null
   rescript_latest="$tmp_dir/rescript"
   trap 'rm -rf "$rescript_latest" 2> /dev/null' INT QUIT TERM EXIT
