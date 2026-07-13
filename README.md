@@ -151,10 +151,16 @@ rescript config --wizard
 This will launch the **Interactive Configuration Wizard** which will ask for your repository name, password, target directory, and webhooks to automatically generate your configuration file and initialize your repository.
 
 Alternatively, you can manually run:
-```
+```bash
 rescript config
 ```
-This command will give you a menu where you can edit your existing configuration files, create new ones manually, or edit the **Global Configuration**. The Global Configuration (`global.conf`) allows you to define variables (like `KEEP_*` retention policies, `WEBHOOK_URL`, or `CLEAN` policies) that act as defaults for all your repositories!
+This command will give you a menu where you can edit your existing configuration files, create new ones manually, or edit the **Global Configuration**. 
+
+You can also bypass the menu and directly edit your global configuration by running:
+```bash
+rescript config --global
+```
+The Global Configuration (`global.conf`) allows you to define variables (like `KEEP_*` retention policies, `WEBHOOK_URL`, `EXCLUDE_FILE`, or `CLEAN` policies) that act as defaults for all your repositories! Cloud credentials and passwords remain safely isolated to your repository-specific files.
 
 When you use the `config` command to manually create a repository configuration file, `rescript` will create a template of the configuration file for you. It will also set the permissions for those configuration files to `600`, which means that only the user who created that configuration file will have the permission over the file (read/write); no other user will be able to open and read that configuration file.
 
