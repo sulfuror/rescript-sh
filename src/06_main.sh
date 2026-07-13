@@ -85,6 +85,10 @@ case "$cmd" in
     done
     run_quietly automatic
     ;;
+  status)
+    parse_generic_args status-help "$@"
+    run_quietly global_status "${rest[@]}"
+    ;;
   backup)
     shopt -u nocasematch
     while [[ $# -gt 0 ]] ; do

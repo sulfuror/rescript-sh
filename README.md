@@ -170,6 +170,7 @@ When you use the `config` command to manually create a repository configuration 
 > _Always put the values between the quotes to avoid globbing._
 
 * `RESTIC_PASSWORD=""`: Put your restic password.
+* `RESTIC_PASSWORD_COMMAND=""`: If you prefer not to store plaintext passwords, leave `RESTIC_PASSWORD` empty and define this variable with a command that outputs your password (e.g., `pass restic/repo`).
 * `RESTIC_REPO=""`: Put your repository directory.
 * `BACKUP_DIR="$HOME"`: This is what you're backing up; by default is your home directory.
 
@@ -208,7 +209,9 @@ These variables are optional because the script will still work if you don't wan
    stable hostname when taking a snapshot. If your snapshots are always using the same hostname
    you don't need to change this unless you want to assign another hostname to your snapshots.
 * `LOGGING="yes"`: By default `rescript` will create a log for every run of the script
-   and logs will be located at `$HOME/.rescript/logs`. Commands and options will not
+   at `$HOME/.rescript/logs`.
+* `LOG_RETENTION=""`: Indicate the number of days you want to keep logs (e.g., 30). Leave blank to keep all logs forever.
+   Logs older than 7 days are automatically compressed using `gzip` to aggressively preserve disk space. Commands and options will not
    create a log; logs only will be created when you run the script without any
    command and option. You can turn logging off by switching this variable from
    "yes" to "no".
@@ -366,15 +369,23 @@ Please see restic `help` and [documentation](https://restic.readthedocs.io/en/st
 
 15. **snaps**: this command is simply `snapshots --compact` wrapped up in a custom Rescript-styled table. You may use it with any restic flags.
 
-16. **umounter**: elegantly kill any background mounter processes and unmount the repository safely.
+16. **status**: prints a quick dashboard showing the state of your repositories (snapshot counts and latest snapshot dates).
+    Usage:
+     ```
+     rescript status [flags]
+     rescript [repo_name] status [flags]
+     ```
+    You can exclude specific repos globally with `-X` (e.g., `rescript status -X repo_name`) and display exact sizes and health data using `-F` (or `--full`).
+
+17. **umounter**: elegantly kill any background mounter processes and unmount the repository safely.
     Usage:
      ```
      rescript [repo_name] umounter
      ```
 
-17. **unlocker**: this command WILL NOT unlock your restic repository. It deletes the temporary `.lock` file created by the script if it got stuck due to a forceful exit.
+18. **unlocker**: this command WILL NOT unlock your restic repository. It deletes the temporary `.lock` file created by the script if it got stuck due to a forceful exit.
 
-18. **upgrade**: easily upgrade your restic repository to the newer v2 repository format.
+19. **upgrade**: easily upgrade your restic repository to the newer v2 repository format.
 
 ### Rescript Global Flags
 

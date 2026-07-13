@@ -73,6 +73,7 @@ Commands:
   search                Find a file or directory across snapshots.
   size                  Calculate recursive size of a given path.
   snaps                 List snapshots in your repository (compact mode).
+  status                Print a dashboard with the status of your repositories.
   umounter              Unmount a previously mounted restic repository.
   unlocker              Remove lock created by rescript.
   upgrade               Upgrade restic repository to the latest format.

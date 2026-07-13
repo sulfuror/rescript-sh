@@ -31,11 +31,27 @@ else
   int="false"
 fi
 
+function array_contains {
+  local target="$1"
+  shift
+  for element in "$@"; do
+    if [[ "$element" == "$target" ]]; then
+      return 0
+    fi
+  done
+  return 1
+}
+
 function print_line {
-  local char="${1:--}"
-  echo -ne "${c_gray}"
-  printf "%${cols}s\n" "" | tr ' ' "$char"
-  echo -ne "${c_reset}"
+  local char=${1:--}
+  local cols=$(tput cols 2>/dev/null || echo 80)
+  [[ -z "$cols" || ! "$cols" =~ ^[0-9]+$ ]] && cols=80
+  
+  local line=""
+  for (( i=0; i<cols; i++ )); do
+    line="${line}${char}"
+  done
+  echo -ne "${c_gray}${line}${c_reset}\n"
 }
 
 function _send_email {
@@ -404,6 +420,43 @@ function print_progress {
   printf "](%s%%)\r" "$percent"
 }
 
+function run_with_spinner {
+  local cmd="$1"
+  local label="${2:-Working}"
+  
+  # Hide cursor
+  tput civis 2>/dev/null || true
+  
+  printf "%b " "$label"
+  
+  # Execute the command in the background, suppressing stdout/stderr
+  eval "$cmd" > /dev/null 2>&1 &
+  local pid=$!
+  
+  local spin='-\|/'
+  local i=0
+  while kill -0 $pid 2>/dev/null; do
+    i=$(( (i+1) % 4 ))
+    printf "\r%b %s" "$label" "${spin:$i:1}"
+    sleep 0.1
+  done
+  
+  # Wait to get the exact exit code
+  wait $pid
+  local exit_code=$?
+  
+  # Restore cursor and clean spinner
+  tput cnorm 2>/dev/null || true
+  
+  if [[ $exit_code -eq 0 ]]; then
+    printf "\r%b %bDone!%b \n" "$label" "$c_green" "$c_reset"
+  else
+    printf "\r%b %bFailed!%b \n" "$label" "$c_red" "$c_reset"
+  fi
+  
+  return $exit_code
+}
+
 function logger {
   if [[ "$log_flag" = "true" ]] ; then
     if [[ ! "$cmd" ]] ; then
@@ -417,8 +470,10 @@ function logger {
       exec > >(tee -a "$log") 2>&1
     fi
     if [[ -n "$LOG_RETENTION" && "$LOG_RETENTION" -gt 0 ]] 2>/dev/null ; then
-      find "$logs_dir" -name "$repo-*.log" -type f -mtime +"$LOG_RETENTION" -exec rm -f {} +
+      find "$logs_dir" \( -name "$repo-*.log" -o -name "$repo-*.log.gz" \) -type f -mtime +"$LOG_RETENTION" -exec rm -f {} +
     fi
+    # Compress logs older than 7 days
+    find "$logs_dir" -name "$repo-*.log" -type f -mtime +7 -exec gzip -q {} + 2>/dev/null || true
   else
     if [[ "$quiet_flag" == "true" ]]; then
       exec > "$tmplog" 2>&1

@@ -12,6 +12,8 @@ cat <<EOF
 # ------------------------------------------------------------------------------- #
 # Set restic password, repository location/directory and backup directory.
 RESTIC_PASSWORD=""
+# Or, if using a password manager/command (leave RESTIC_PASSWORD empty):
+RESTIC_PASSWORD_COMMAND=""
 RESTIC_REPO=""
 BACKUP_DIR="$HOME"
 

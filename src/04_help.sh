@@ -503,3 +503,27 @@ Global flags:
 
 EOF
 }
+
+function status-help {
+cat <<EOF
+[status] prints a dashboard showing the state of your repositories.
+
+This command provides a quick overview of configured repositories,
+displaying snapshot counts, the latest snapshot date, and optionally
+the repository size and health. It can be run on a single repository
+or globally for all configured repositories.
+
+Usage:
+  rescript status [flags]
+  rescript [repo_name] status [flags]
+
+Command flags:
+  -F, --full            Display a full dashboard including size and health.
+                        Note: This takes significantly more time.
+  -X, --exclude         Exclude specific repositories (e.g. -X foo -X bar).
+
+Global flags:
+  -h, --help            Display usage.
+
+EOF
+}

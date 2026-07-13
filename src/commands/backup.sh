@@ -21,14 +21,13 @@ function backup {
   fi
   rescript_lock
   
-  if [[ -n "$PRE_CMD" ]] ; then
-    echo -e "${c_cyan}Running PRE_CMD...${c_reset}"
+  if [[ -n "$PRE_CMD" && "${RESCRIPT_SKIP_HOOKS:-}" != "true" ]] ; then
     if [[ "$simulate_flag" == "true" ]]; then
+      echo -e "${c_cyan}Running PRE_CMD...${c_reset}"
       echo -e "${c_yellow}SIMULATE: $PRE_CMD${c_reset}"
     else
-      eval "$PRE_CMD"
+      run_with_spinner "$PRE_CMD" "${c_cyan}Running PRE_CMD...${c_reset}"
       if [[ $? -ne 0 ]] ; then
-        echo "PRE_CMD failed. Exiting..."
         exit 1
       fi
     fi
@@ -43,12 +42,12 @@ function backup {
   check_restic_error $?
   debug_stop
 
-  if [[ -n "$POST_CMD" ]] ; then
-    echo -e "${c_cyan}Running POST_CMD...${c_reset}"
+  if [[ -n "$POST_CMD" && "${RESCRIPT_SKIP_HOOKS:-}" != "true" ]] ; then
     if [[ "$simulate_flag" == "true" ]]; then
+      echo -e "${c_cyan}Running POST_CMD...${c_reset}"
       echo -e "${c_yellow}SIMULATE: $POST_CMD${c_reset}"
     else
-      eval "$POST_CMD"
+      run_with_spinner "$POST_CMD" "${c_cyan}Running POST_CMD...${c_reset}"
     fi
   fi
 

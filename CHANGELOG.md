@@ -13,9 +13,14 @@
 * **Auto-Heal (Network Retries):** Added robust network resilience by wrapping destructive restic commands (`backup`, `check`, `forget`, `prune`, `restore`) with a self-healing retry loop. If `restic` fails with a fatal error (like a network timeout, code 1) or a temporary lock (code 11), Rescript will intelligently pause for 30 seconds and retry the command up to 3 times before definitively failing.
 * **Interactive Config Wizard (`config --wizard`):** You can now instantly bootstrap a new repository profile without opening a text editor. The wizard interactively asks for your repository name, location, password, and target directory. On its first run, it also seamlessly walks you through a global setup to configure your default emails, logging, and retention policies.
 * **Interactive Restore Menu (`restorer -i`):** Added the `-i` (or `--interactive`) flag to the `restorer` command. Instead of manually finding and specifying a snapshot ID, Rescript will now fetch all available snapshots and present a numbered, navigable menu allowing you to restore any snapshot with a single keystroke.
-* **Global Configuration (`global.conf`):** Introduced a global configuration hierarchy accessible via `config -g` or `config --global`. Variables defined in `~/.rescript/config/global.conf` (such as `WEBHOOK_URL`, `CONFIRMATION_EMAIL`, `EXCLUDE_FILE`, `HOST`, or `CLEAN` policies) will now act as defaults and be inherited by all repository profiles unless explicitly overridden. Cloud credentials remain securely isolated to local configurations.
+* **Global Configuration (`global.conf`):** Introduced a global configuration hierarchy accessible via `config -g` or `config --global`. Variables defined in `~/.rescript/config/global.conf` (such as `WEBHOOK_URL`, `CONFIRMATION_EMAIL`, `EXCLUDE_FILE`, `HOST`, or `CLEAN` policies) will now act as defaults and be inherited by all repository profiles unless explicitly overridden.
 * **Global Retention Policies:** Promoted all `KEEP_*` retention policies to the global configuration, allowing you to define a single retention strategy that propagates to all repositories by default.
 * **Global Hooks (`PRE_CMD` / `POST_CMD`):** The Pre and Post execution hooks have been migrated from the `automatic` cron wrapper directly into the core `backup` function. This guarantees that your hooks (like stopping Docker containers or mounting drives) are always securely executed, even when running manual backups.
+* **Global Hooks Orchestrator (`all` wrapper):** When using the `all` command, Rescript now intelligently executes the global `PRE_CMD` exactly once before any backups begin, and the global `POST_CMD` exactly once after all repositories finish (even in parallel execution). It automatically suppresses redundant local repository hooks to prevent duplicate executions (like stopping a server multiple times).
+* **Indeterminate Progress Spinner:** Added a native bash animation spinner for hook executions. While your `PRE_CMD` or `POST_CMD` runs in the background (e.g., during a long database dump), Rescript hides the raw output and displays an elegant rotating spinner to indicate activity, keeping the terminal UI incredibly clean.
+* **Status Dashboard (`status`):** Introduced a brand new `status` command to give you a quick dashboard overview of all your repositories in one place. It displays snapshot counts and the latest snapshot date. You can run it on a specific repo (`rescript [repo] status`), globally, exclude specific repos (`-X`), and fetch advanced stats like size and health with `-F` (or `--full`).
+* **Password Manager Integration (`RESTIC_PASSWORD_COMMAND`):** Added native support for extracting the Restic repository password dynamically through external password managers (like `pass`, `bitwarden-cli`, or keychain tools). You can now leave `RESTIC_PASSWORD` empty and define `RESTIC_PASSWORD_COMMAND="your command"` in your `.conf` files to avoid storing plaintext passwords.
+* **Automatic Log Compression:** Rescript now automatically compresses log files older than 7 days using `gzip` to heavily save disk space in `~/.rescript/logs`. The `LOG_RETENTION` background cleaner has also been upgraded to correctly manage and purge these `.log.gz` files when they expire.
 
 #### 🛠️ Internal Refactoring & UI
 
@@ -25,40 +30,27 @@
 * **Configuration UX Overhaul:** Interleaved all variable descriptions directly above their corresponding definitions in the generated `.conf` templates, dramatically improving readability and the manual editing experience.
 * **Core File Renumbering:** Renumbered remaining files in `src/` (01 to 06) sequentially to patch the numbering gap left by the refactorings. Updated the `build.sh` compiler to seamlessly inject the newly separated templates and sequentially concatenate the core files.
 * **UI & Logging Overhaul for Parallelism:** Overhauled the `logger` and `run_quietly` internal functions so that Quiet Mode (`-Q` or enforced by `-P`) gracefully writes all Restic stdout/stderr natively to the `.log` files without duplicating it to the terminal, rather than destroying it. Reprogrammed `print_context` and `time_end` to flawlessly respect the `.log` routing during quiet parallel runs, keeping terminal output minimal but logging robust.
+* **DRY UI Elements:** Refactored all hardcoded menu borders (`======================` and `----------------------`) across `utils`, `config`, and `install` modules into centralized global variables (`$ui_line_eq`, `$ui_line_dash`) defined in `01_globals.sh`. This ensures visual consistency and allows for instant global customization of the UI.
+* **Orchestrator Architecture Fix:** Moved the `all` command orchestrator block from `01_globals.sh` to the top of `05_core.sh`. This resolves a dependency order issue, allowing the orchestrator to natively use the `print_line "="` utility function (which calculates dynamic terminal width) instead of relying on manual hardcoded loops, while still catching the command before the strict repository validation router.
+* **Command Micro-Modularization:** Split the monolithic `07_commands.sh` script into a new `src/commands/` directory containing individual files for each operational command. Moved remaining core utility functions to `02_utils.sh`. Updated the `build.sh` compiler to dynamically concatenate all command modules, vastly improving codebase maintainability.
+* **Bash Strict Mode (Stability):** Implemented strict execution rules (`set -euo pipefail`) at the core level (`01_globals.sh`), ensuring the script fails safely upon encountering uninitialized variables or command errors.
+* **Variable Defensiveness:** Added robust variable initializations (`${VAR:-}`) for all external user configurations and internal state flags to ensure full compliance with Strict Mode and prevent silent failures.
+* **Test Suite Coverage Expansion:** Expanded `tests/run_all.sh` framework to cover strict mode edge cases, including gracefully handling missing flag arguments and extreme duration metrics (`0 seconds`), and verifying raw restic command integration with orchestrator loops.
+* **Build Script Polish:** Updated `build.sh` to output directly to the final `rescript` executable, removing the redundant `rescript.new` step for cleaner compilation in development environments.
 
 #### 🐛 Bug Fixes
 
 * **Wizard Variable Evaluation Bug:** Fixed a silent bug in `config --wizard` where the `BACKUP_DIR` target path failed to save if the template automatically evaluated system variables during creation.
-
----
-
-*End of changelog for version 6.0*
-
-## v5.2
-
----
-
-### July 10, 2026
-
-#### 🛠️ Internal Refactoring & UI
-
-* **DRY UI Elements:** Refactored all hardcoded menu borders (`======================` and `----------------------`) across `utils`, `config`, and `install` modules into centralized global variables (`$ui_line_eq`, `$ui_line_dash`) defined in `01_globals.sh`. This ensures visual consistency and allows for instant global customization of the UI.
-* **Orchestrator Architecture Fix:** Moved the `all` command orchestrator block from `01_globals.sh` to the top of `06_core.sh`. This resolves a dependency order issue, allowing the orchestrator to natively use the `print_line "="` utility function (which calculates dynamic terminal width) instead of relying on manual hardcoded loops, while still catching the command before the strict repository validation router.
-* **Command Micro-Modularization:** Split the monolithic `07_commands.sh` script into a new `src/commands/` directory containing individual files for each operational command. Moved remaining core utility functions to `02_utils.sh`. Updated the `build.sh` compiler to dynamically concatenate all command modules, vastly improving codebase maintainability.
-* **Bash Strict Mode (Stability):** Implemented strict execution rules (`set -euo pipefail`) at the core level (`01_globals.sh`), ensuring the script fails safely upon encountering uninitialized variables or command errors.
-* **Variable Defensiveness:** Added robust variable initializations (`${VAR:-}`) for all external user configurations and internal state flags to ensure full compliance with Strict Mode and prevent silent failures.
-* **Module Reordering:** Renamed `08_main.sh` to `07_main.sh` to maintain logical sequential ordering following the modularization process.
+* **Global Config Exclusion Bug:** Fixed a bug where the `all` command orchestrator would mistakenly parse the `global.conf` file as if it were a backup repository, throwing variable-not-bound errors.
 * **Host Targeting Fix:** Fixed a bug in the `info` command where it ignored the custom `--host` flag and always queried the system's hostname.
 * **Timer Fix:** Resolved an unbound array variable error (`dur`) in the `duration` function when the elapsed time was exactly zero seconds.
 * **Array Initializations:** Fixed missing empty array initializations (`=()`) for `policies` and `bu_opts` to prevent unbound variable crashes in strict mode.
 * **Flag Argument Protection:** Protected dynamically captured flags (like `$2` in `--host`) with fallbacks (`${2:-}`) to prevent fatal crashes if the flag is provided without a subsequent argument.
 * **Raw Restic Command Flags:** Wrapped the default command fallback router (`restic_alone`) with `execute_with_metrics`, enabling all rescript global flags (like `-T` for timer, `-L` for logs) to work seamlessly with any raw restic command.
-* **Test Suite Coverage Expansion:** Expanded `tests/run_all.sh` framework to cover strict mode edge cases, including gracefully handling missing flag arguments and extreme duration metrics (`0 seconds`), and verifying raw restic command integration with orchestrator loops.
-* **Build Script Polish:** Updated `build.sh` to output directly to the final `rescript` executable, removing the redundant `rescript.new` step for cleaner compilation in development environments.
 
 ---
 
-*End of changelog for version 5.2*
+*End of changelog for version 6.0*
 
 ## v5.1
 

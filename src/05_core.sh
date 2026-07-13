@@ -72,73 +72,44 @@ if [[ "${1:-}" == "all" ]]; then
       forward_args+=("-Q")
     fi
     
-    config_dir="$HOME/.rescript/config"
-    if [[ ! -d "$config_dir" ]]; then
-      echo "No repositories configured."
-      exit 1
+  fi
+  
+  if [[ ! -d "$config_dir" ]]; then
+    echo "No repositories configured."
+    exit 1
+  fi
+  
+  repos=()
+  for conf in "$config_dir"/*.conf; do
+    [ -e "$conf" ] || continue
+    repo_name=$(basename "$conf" .conf)
+    
+    if [[ "$repo_name" == "global" ]]; then
+      continue
     fi
     
-    repos=()
-    for conf in "$config_dir"/*.conf; do
-      [ -e "$conf" ] || continue
-      repo_name=$(basename "$conf" .conf)
-      
-      excluded=false
-      for ex in "${excluded_repos[@]}"; do
-        if [[ "$ex" == "$repo_name" ]]; then
-          excluded=true
-          break
-        fi
-      done
-      
-      if [[ "$excluded" == "false" ]]; then
-        repos+=("$repo_name")
-      fi
-    done
-    
-    if [[ ${#repos[@]} -eq 0 ]]; then
-      echo "No repositories found or all were excluded."
-      exit 0
+    if ! array_contains "$repo_name" "${excluded_repos[@]}"; then
+      repos+=("$repo_name")
     fi
-    
+  done
+  
+  if [[ ${#repos[@]} -eq 0 ]]; then
+    echo "No repositories found or all were excluded."
+    exit 0
+  fi
+  
+  if [[ "$parallel_execution" == "true" ]]; then
     repo_list=$(IFS=', '; echo "${repos[*]}")
     echo -e "${c_cyan}Running on repositories: ${c_white}$repo_list${c_cyan} (in parallel, enforcing quiet mode)${c_reset}"
   fi
   
-  if [[ "$parallel_execution" != "true" ]]; then
-    config_dir="$HOME/.rescript/config"
-    if [[ ! -d "$config_dir" ]]; then
-      echo "No repositories configured."
-      exit 1
-    fi
-    
-    repos=()
-    for conf in "$config_dir"/*.conf; do
-      [ -e "$conf" ] || continue
-      repo_name=$(basename "$conf" .conf)
-      
-      excluded=false
-      for ex in "${excluded_repos[@]}"; do
-        if [[ "$ex" == "$repo_name" ]]; then
-          excluded=true
-          break
-        fi
-      done
-      
-      if [[ "$excluded" == "false" ]]; then
-        repos+=("$repo_name")
-      fi
-    done
-    
-    if [[ ${#repos[@]} -eq 0 ]]; then
-      echo "No repositories found or all were excluded."
-      exit 0
-    fi
-  fi
-  
   has_metadata=false
   is_automatic=false
+  is_simulate=false
   for arg in "${forward_args[@]}"; do
+    if [[ "$arg" == "-S" || "$arg" == "--simulate" ]]; then
+      is_simulate=true
+    fi
     if [[ "$arg" == "-M" || "$arg" == "--metadata" ]]; then
       has_metadata=true
     fi
@@ -150,6 +121,25 @@ if [[ "${1:-}" == "all" ]]; then
   if [[ ${#forward_args[@]} -eq 0 ]]; then
     is_automatic=true
   fi
+
+  config_global="$HOME/.rescript/config/global.conf"
+  if [[ -f "$config_global" ]]; then
+    source "$config_global"
+  fi
+  
+  if [[ -n "${PRE_CMD:-}" ]] ; then
+    if [[ "$is_simulate" == "true" ]]; then
+      echo -e "${c_cyan}Running Global PRE_CMD...${c_reset}"
+      echo -e "${c_yellow}SIMULATE: $PRE_CMD${c_reset}"
+    else
+      run_with_spinner "$PRE_CMD" "${c_cyan}Running Global PRE_CMD...${c_reset}"
+      if [[ $? -ne 0 ]] ; then
+        exit 1
+      fi
+    fi
+  fi
+  
+  export RESCRIPT_SKIP_HOOKS="true"
 
   for r_name in "${repos[@]}"; do
     if [[ "$has_metadata" == "false" && "$is_automatic" == "false" && "$parallel_execution" == "false" ]]; then
@@ -174,6 +164,15 @@ if [[ "${1:-}" == "all" ]]; then
   if [[ "$parallel_execution" == "true" ]]; then
     wait
     echo -e "${c_green}All parallel jobs finished!${c_reset}"
+  fi
+  
+  if [[ -n "${POST_CMD:-}" ]] ; then
+    if [[ "$is_simulate" == "true" ]]; then
+      echo -e "${c_cyan}Running Global POST_CMD...${c_reset}"
+      echo -e "${c_yellow}SIMULATE: $POST_CMD${c_reset}"
+    else
+      run_with_spinner "$POST_CMD" "${c_cyan}Running Global POST_CMD...${c_reset}"
+    fi
   fi
   
   exit 0
@@ -210,6 +209,14 @@ case "${1:-}" in
     echo ""
     "${1:-}"-help
     exit 1
+    ;;
+  status)
+    if [[ "${2:-}" == "-h" || "${2:-}" == "--help" ]]; then
+      status-help 2>/dev/null || echo "Usage: rescript status [-F|--full]"
+      exit 0
+    fi
+    global_status "${@:2}"
+    exit 0
     ;;
   config)
     if [[ "${2:-}" == "-h" || "${2:-}" == "--help" ]]; then
@@ -383,6 +390,7 @@ if [[ -n "${RESCRIPT_PASS:-}" ]] ; then
 else
   export RESTIC_PASSWORD="${RESTIC_PASSWORD:-}"
 fi
+export RESTIC_PASSWORD_COMMAND="${RESTIC_PASSWORD_COMMAND:-}"
 export RESTIC_COMPRESSION="${RESTIC_COMPRESSION:-auto}"
 SECONDS=0
 
