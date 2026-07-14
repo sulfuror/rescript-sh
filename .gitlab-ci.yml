@@ -24,9 +24,9 @@ update-wiki:
     # 4. Check for real changes. If there are any, push them automatically
     - git add .
     - |
-      if git diff-index --quiet HEAD --; then
+      if [ -z "$(git status --porcelain)" ]; then
         echo "No new changes in docs/. The wiki is up to date."
       else
         git commit -m "docs: Auto-update wiki from docs/ [skip ci]"
-        git push origin HEAD:main
+        git push origin HEAD
       fi
