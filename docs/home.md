@@ -1,3 +1,6 @@
+---
+title: Home
+---
 ### Index
 
 1. [Commands and Options](home/commands-and-options)

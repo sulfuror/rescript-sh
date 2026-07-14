@@ -1,3 +1,6 @@
+---
+title: Installation
+---
 ### Dependencies:
 1. restic >= 0.9.2
 2. wget

@@ -1,3 +1,6 @@
+---
+title: Commands and Options
+---
 There are three commands that will not work as restic usually work, and those are the following commands:
 
 1. **backup**: This command will run a backup according to the variables set before.

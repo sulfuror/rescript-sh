@@ -1,3 +1,6 @@
+---
+title: Mac and FreeBSD
+---
 ### Mac OS
 
 1. Install [brew](https://brew.sh).
