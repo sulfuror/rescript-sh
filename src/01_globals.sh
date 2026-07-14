@@ -20,6 +20,14 @@ exit_code=""
 latest_cmd=""
 context_printed=""
 version="6.0"
+function hide_cursor {
+  tput civis 2> /dev/null || true
+}
+
+function show_cursor {
+  tput cnorm 2> /dev/null || true
+}
+
 function usage {
 cat <<EOF
 Name        : rescript

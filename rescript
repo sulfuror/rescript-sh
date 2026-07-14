@@ -20,6 +20,14 @@ exit_code=""
 latest_cmd=""
 context_printed=""
 version="6.0"
+function hide_cursor {
+  tput civis 2> /dev/null || true
+}
+
+function show_cursor {
+  tput cnorm 2> /dev/null || true
+}
+
 function usage {
 cat <<EOF
 Name        : rescript
@@ -551,7 +559,7 @@ function run_with_spinner {
   local label="${2:-Working}"
   
   # Hide cursor
-  tput civis 2>/dev/null || true
+  hide_cursor
   
   printf "%b " "$label"
   
@@ -572,7 +580,7 @@ function run_with_spinner {
   local exit_code=$?
   
   # Restore cursor and clean spinner
-  tput cnorm 2>/dev/null || true
+  show_cursor
   
   if [[ $exit_code -eq 0 ]]; then
     printf "\r%b %bDone!%b \n" "$label" "$c_green" "$c_reset"
