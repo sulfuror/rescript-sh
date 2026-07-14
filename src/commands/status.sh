@@ -69,7 +69,7 @@ function global_status {
     
     if [[ -n "$raw_snapshots" ]]; then
       local snap_count_str
-      snap_count_str=$(echo "$raw_snapshots" | grep "snapshots" | tail -n1 | awk '{print $1}' || true)
+      snap_count_str=$(echo "$raw_snapshots" | awk '/snapshots/{print $1}' | tail -n1 || true)
       if [[ -n "$snap_count_str" && "$snap_count_str" -gt 0 ]] 2>/dev/null; then
         num_snaps="$snap_count_str"
         latest_date=$(restic -r "$RESTIC_REPO" snapshots --latest 1 2>/dev/null | awk 'NR==3 {print $2, $3}' || true)
@@ -77,7 +77,7 @@ function global_status {
     fi
     
     if [[ "$full_mode" == "true" ]]; then
-      tput civis 2>/dev/null || true
+      hide_cursor
       local base_row=$(printf "%-15s | %-10s | %-21s | " "$repo" "$num_snaps" "$latest_date")
       
       (
@@ -87,7 +87,7 @@ function global_status {
         # Stats
         raw_stats=$(restic -r "$RESTIC_REPO" stats --mode raw-data 2>/dev/null)
         if [[ -n "$raw_stats" ]]; then
-          local size_raw=$(echo "$raw_stats" | grep "Total Size:" | awk '{print $3$4}')
+          local size_raw=$(echo "$raw_stats" | awk '/Total Size:/{print $3$4}')
           if [[ -n "$size_raw" ]]; then
             size_str="$size_raw"
           fi
@@ -118,7 +118,7 @@ function global_status {
         rm -f "/tmp/rescript_status_$repo"
       fi
       
-      tput cnorm 2>/dev/null || true
+      show_cursor
       printf "\r%b %-12s | %b\e[K\n" "$base_row" "$size_str" "$health_str"
       
     else

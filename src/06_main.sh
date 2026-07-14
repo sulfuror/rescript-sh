@@ -117,15 +117,7 @@ case "$cmd" in
       echo -e "${c_cyan}Starting cleanup...${c_reset}"
       run_quietly cleanup
     fi
-    if [[ "$check_flag" = "true" ]] ; then
-      print_line
-      echo -e "${c_cyan}Starting check...${c_reset}"
-      run_quietly run_restic_with_retry check --cleanup-cache
-    fi
-    if [[ "$info_flag" = "true" ]] ; then
-      print_line
-      run_quietly statinfo
-    fi
+    _run_post_actions
     time_end
     ;;
   cleanup)
@@ -159,15 +151,7 @@ case "$cmd" in
       echo -e "${c_cyan}Starting cleanup...${c_reset}"
     fi
     run_quietly cleanup
-    if [[ "$check_flag" = "true" ]] ; then
-      print_line
-      echo -e "${c_cyan}Starting check...${c_reset}"
-      run_quietly run_restic_with_retry check --cleanup-cache
-    fi
-    if [[ "$info_flag" = "true" ]] ; then
-      print_line
-      run_quietly statinfo
-    fi
+    _run_post_actions
     time_end
     ;;
   diff)

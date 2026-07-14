@@ -14,7 +14,7 @@ function restorer {
         echo "Canceled."
         exit 0
       elif [[ -n "$sel_snap" ]]; then
-        snap_id=$(echo "$sel_snap" | awk '{print $1}')
+        snap_id="${sel_snap%% *}"
         restore_dir="$HOME/restore-ID-${snap_id}_$(date +%s)"
         break
       else

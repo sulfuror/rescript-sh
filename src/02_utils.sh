@@ -535,3 +535,15 @@ function set_sim_flag {
     sim_flag="--dry-run"
   fi
 }
+
+function _run_post_actions {
+  if [[ "$check_flag" = "true" ]] ; then
+    print_line
+    echo -e "${c_cyan}Starting check...${c_reset}"
+    run_quietly run_restic_with_retry check --cleanup-cache
+  fi
+  if [[ "$info_flag" = "true" ]] ; then
+    print_line
+    run_quietly statinfo
+  fi
+}

@@ -4,7 +4,7 @@ function env_conf {
 
   if [[ "${var_flag:-}" ]] ; then
     upper_var=$(echo "${var_flag:-}" | tr '[:lower:]' '[:upper:]')
-    search=$(sed '/^#/ d' < "$config_repo" | sed '/^\s*$/d' | grep "$upper_var")
+    search=$(grep "^[[:space:]]*${upper_var}=" "$config_repo" || true)
     if [[ -z "$search" ]] ; then
       echo "There is no var named [$var_flag]..."
       echo ""

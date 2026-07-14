@@ -665,6 +665,18 @@ function set_sim_flag {
     sim_flag="--dry-run"
   fi
 }
+
+function _run_post_actions {
+  if [[ "$check_flag" = "true" ]] ; then
+    print_line
+    echo -e "${c_cyan}Starting check...${c_reset}"
+    run_quietly run_restic_with_retry check --cleanup-cache
+  fi
+  if [[ "$info_flag" = "true" ]] ; then
+    print_line
+    run_quietly statinfo
+  fi
+}
 function config_file {
 cat <<EOF
 # =============================================================================== #
@@ -2054,7 +2066,7 @@ function env_conf {
 
   if [[ "${var_flag:-}" ]] ; then
     upper_var=$(echo "${var_flag:-}" | tr '[:lower:]' '[:upper:]')
-    search=$(sed '/^#/ d' < "$config_repo" | sed '/^\s*$/d' | grep "$upper_var")
+    search=$(grep "^[[:space:]]*${upper_var}=" "$config_repo" || true)
     if [[ -z "$search" ]] ; then
       echo "There is no var named [$var_flag]..."
       echo ""
@@ -2436,7 +2448,7 @@ function restorer {
         echo "Canceled."
         exit 0
       elif [[ -n "$sel_snap" ]]; then
-        snap_id=$(echo "$sel_snap" | awk '{print $1}')
+        snap_id="${sel_snap%% *}"
         restore_dir="$HOME/restore-ID-${snap_id}_$(date +%s)"
         break
       else
@@ -2603,19 +2615,19 @@ function snaps {
 function statinfo {
   debug_start
   local target_host="${host_flag:-$rhost}"
-  latest_host_stat=$(restic stats --host "$target_host" latest | grep 'Total Size' | sed 's/Total Size: //g' | sed 's/^[ \t]*//')
+  latest_host_stat=$(restic stats --host "$target_host" latest 2>/dev/null | awk -F': ' '/Total Size/{print $2}')
   check_restic_error $?
   print_progress "Calculating repo stats" 25
   
-  host_stat=$(restic stats --mode raw-data --host "$target_host" latest | grep 'Total Size' | sed 's/Total Size: //g' | sed 's/^[ \t]*//')
+  host_stat=$(restic stats --mode raw-data --host "$target_host" latest 2>/dev/null | awk -F': ' '/Total Size/{print $2}')
   check_restic_error $?
   print_progress "Calculating repo stats" 50
   
-  stat_restore_size=$(restic stats | grep 'Total Size' | sed 's/Total Size: //g' | sed 's/^[ \t]*//')
+  stat_restore_size=$(restic stats 2>/dev/null | awk -F': ' '/Total Size/{print $2}')
   check_restic_error $?
   print_progress "Calculating repo stats" 75
   
-  stat_raw_data=$(restic stats --mode raw-data | grep 'Total Size' | sed 's/Total Size: //g' | sed 's/^[ \t]*//')
+  stat_raw_data=$(restic stats --mode raw-data 2>/dev/null | awk -F': ' '/Total Size/{print $2}')
   check_restic_error $?
   print_progress "Calculating repo stats" 100
   
@@ -2701,7 +2713,7 @@ function global_status {
     
     if [[ -n "$raw_snapshots" ]]; then
       local snap_count_str
-      snap_count_str=$(echo "$raw_snapshots" | grep "snapshots" | tail -n1 | awk '{print $1}' || true)
+      snap_count_str=$(echo "$raw_snapshots" | awk '/snapshots/{print $1}' | tail -n1 || true)
       if [[ -n "$snap_count_str" && "$snap_count_str" -gt 0 ]] 2>/dev/null; then
         num_snaps="$snap_count_str"
         latest_date=$(restic -r "$RESTIC_REPO" snapshots --latest 1 2>/dev/null | awk 'NR==3 {print $2, $3}' || true)
@@ -2709,7 +2721,7 @@ function global_status {
     fi
     
     if [[ "$full_mode" == "true" ]]; then
-      tput civis 2>/dev/null || true
+      hide_cursor
       local base_row=$(printf "%-15s | %-10s | %-21s | " "$repo" "$num_snaps" "$latest_date")
       
       (
@@ -2719,7 +2731,7 @@ function global_status {
         # Stats
         raw_stats=$(restic -r "$RESTIC_REPO" stats --mode raw-data 2>/dev/null)
         if [[ -n "$raw_stats" ]]; then
-          local size_raw=$(echo "$raw_stats" | grep "Total Size:" | awk '{print $3$4}')
+          local size_raw=$(echo "$raw_stats" | awk '/Total Size:/{print $3$4}')
           if [[ -n "$size_raw" ]]; then
             size_str="$size_raw"
           fi
@@ -2750,7 +2762,7 @@ function global_status {
         rm -f "/tmp/rescript_status_$repo"
       fi
       
-      tput cnorm 2>/dev/null || true
+      show_cursor
       printf "\r%b %-12s | %b\e[K\n" "$base_row" "$size_str" "$health_str"
       
     else
@@ -3451,15 +3463,7 @@ case "$cmd" in
       echo -e "${c_cyan}Starting cleanup...${c_reset}"
       run_quietly cleanup
     fi
-    if [[ "$check_flag" = "true" ]] ; then
-      print_line
-      echo -e "${c_cyan}Starting check...${c_reset}"
-      run_quietly run_restic_with_retry check --cleanup-cache
-    fi
-    if [[ "$info_flag" = "true" ]] ; then
-      print_line
-      run_quietly statinfo
-    fi
+    _run_post_actions
     time_end
     ;;
   cleanup)
@@ -3493,15 +3497,7 @@ case "$cmd" in
       echo -e "${c_cyan}Starting cleanup...${c_reset}"
     fi
     run_quietly cleanup
-    if [[ "$check_flag" = "true" ]] ; then
-      print_line
-      echo -e "${c_cyan}Starting check...${c_reset}"
-      run_quietly run_restic_with_retry check --cleanup-cache
-    fi
-    if [[ "$info_flag" = "true" ]] ; then
-      print_line
-      run_quietly statinfo
-    fi
+    _run_post_actions
     time_end
     ;;
   diff)

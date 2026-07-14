@@ -1,19 +1,19 @@
 function statinfo {
   debug_start
   local target_host="${host_flag:-$rhost}"
-  latest_host_stat=$(restic stats --host "$target_host" latest | grep 'Total Size' | sed 's/Total Size: //g' | sed 's/^[ \t]*//')
+  latest_host_stat=$(restic stats --host "$target_host" latest 2>/dev/null | awk -F': ' '/Total Size/{print $2}')
   check_restic_error $?
   print_progress "Calculating repo stats" 25
   
-  host_stat=$(restic stats --mode raw-data --host "$target_host" latest | grep 'Total Size' | sed 's/Total Size: //g' | sed 's/^[ \t]*//')
+  host_stat=$(restic stats --mode raw-data --host "$target_host" latest 2>/dev/null | awk -F': ' '/Total Size/{print $2}')
   check_restic_error $?
   print_progress "Calculating repo stats" 50
   
-  stat_restore_size=$(restic stats | grep 'Total Size' | sed 's/Total Size: //g' | sed 's/^[ \t]*//')
+  stat_restore_size=$(restic stats 2>/dev/null | awk -F': ' '/Total Size/{print $2}')
   check_restic_error $?
   print_progress "Calculating repo stats" 75
   
-  stat_raw_data=$(restic stats --mode raw-data | grep 'Total Size' | sed 's/Total Size: //g' | sed 's/^[ \t]*//')
+  stat_raw_data=$(restic stats --mode raw-data 2>/dev/null | awk -F': ' '/Total Size/{print $2}')
   check_restic_error $?
   print_progress "Calculating repo stats" 100
   
