@@ -179,9 +179,8 @@ if [[ "${1:-}" == "all" ]]; then
 fi
 
 if [[ ! "${1:-}"  ]] ; then
-  echo "You need to indicate the name of your repository or a"
-  echo "command; type [rescript help] for usage."
-  exit
+  usage
+  exit 1
 fi
 
 function _check_help_or_error {

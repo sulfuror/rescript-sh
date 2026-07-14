@@ -113,7 +113,7 @@ c_reset="\033[0m"
 ui_line_eq="======================"
 ui_line_dash="----------------------"
 
-repo="$1"
+repo="${1:-}"
 
 # Rescript directories and files
 rescript_dir="$HOME/.rescript"
@@ -121,7 +121,7 @@ config_dir="$rescript_dir/config"
 lock_dir="$rescript_dir/lock"
 logs_dir="$rescript_dir/logs"
 tmplog=$(mktemp)
-excludes="$config_dir/$1-exclusions"
+excludes="$config_dir/${1:-}-exclusions"
 lock="$lock_dir/$repo.lock"
 config_global="$config_dir/global.conf"
 config_repo="$config_dir/$repo.conf"
