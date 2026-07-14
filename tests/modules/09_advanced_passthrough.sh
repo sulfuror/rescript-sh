@@ -29,4 +29,4 @@ run_test "Advanced: raw restic 'forget' with retentions" "$RESCRIPT test forget 
 run_test "Advanced: mixed rescript & restic flags" "$RESCRIPT test check -Q --read-data-subset=5% -T"
 
 # 9. Restore with specific target and include
-run_test "Advanced: raw restic 'restore' with filters" "$RESCRIPT test restore latest --target /tmp/rescript_test_restore --include $SRC_PATH/docs"
+run_test "Advanced: raw restic 'restore' with filters" "$RESCRIPT test restore latest --target $TEST_ENV/restore_test --include $SRC_PATH/docs"
