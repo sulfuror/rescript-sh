@@ -8,6 +8,8 @@
 
 #### 🚀 Major Features
 
+* **Native Bash Autocompletion:** The `install` command now automatically generates and configures programmable Bash Autocompletion for your local user or system, enabling you to use `TAB` to quickly auto-complete configured repositories, rescript commands, and global flags.
+
 * **Parallel Orchestration (`all --parallel`):** The orchestrator now natively supports parallel execution using the `-P` or `--parallel` flag. When using this flag, Rescript will launch all configured repositories simultaneously in the background (enforcing quiet mode `-Q` to keep the terminal clean) and wait for all jobs to complete. This drastically reduces total backup duration for users with multiple repositories.
 * **Push Notifications (Webhooks):** Added support for instant Push Notifications via Webhooks. You can now define a `WEBHOOK_URL` (Discord, Slack, etc.) in your repository configuration. Rescript will automatically POST JSON payloads upon successful completion or fatal failure of jobs, complimenting or replacing traditional SMTP email notifications.
 * **Auto-Heal (Network Retries):** Added robust network resilience by wrapping destructive restic commands (`backup`, `check`, `forget`, `prune`, `restore`) with a self-healing retry loop. If `restic` fails with a fatal error (like a network timeout, code 1) or a temporary lock (code 11), Rescript will intelligently pause for 30 seconds and retry the command up to 3 times before definitively failing.

@@ -18,6 +18,12 @@ You can install the script using the following commands:
 |1. System-wide | `/usr/bin` |
 |2. For this user | `~/bin` or `~/.local/bin` |
 
+> [!NOTE]
+> Running `rescript install` will automatically generate and install **native Bash Autocompletion** for both the system or the local user, enabling you to use `TAB` to auto-complete your repositories, commands, and flags. 
+> 
+> *If you install it locally (Option 2) and your system does not automatically detect the completion, you can enable it manually by adding the following line to your `~/.bashrc` or `~/.profile`:*
+> `[[ -f ~/.local/share/bash-completion/completions/rescript ]] && source ~/.local/share/bash-completion/completions/rescript`
+
 If you chose the second option make sure to have these lines inside your `.profile`.
 
 ```

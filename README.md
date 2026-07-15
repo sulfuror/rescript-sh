@@ -26,6 +26,12 @@ chmod 700 rescript
 
 *(Note: If you choose option 2, make sure your `$PATH` includes `~/bin` or `~/.local/bin` in your `.profile`).*
 
+## Key Features
+
+- **Native Bash Autocompletion:** Running `rescript install` automatically configures Programmable Bash Autocompletion, enabling you to use `TAB` to quickly auto-complete configured repositories, commands, and global flags.
+- **Global Configuration & Hooks:** Define global retention policies and pre/post execution hooks.
+- **Auto-Heal & Parallel Execution:** Network retries and parallel orchestration.
+
 ## Documentation
 
 For full documentation regarding advanced usage, commands, global configuration (`v6.0+`), security, cron jobs, and specific OS requirements (Mac/FreeBSD), please visit our official Wiki:
