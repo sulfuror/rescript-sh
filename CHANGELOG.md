@@ -22,7 +22,6 @@
 * **Indeterminate Progress Spinner:** Added a native bash animation spinner for hook executions. While your `PRE_CMD` or `POST_CMD` runs in the background (e.g., during a long database dump), Rescript hides the raw output and displays an elegant rotating spinner to indicate activity, keeping the terminal UI incredibly clean.
 * **Status Dashboard (`status`):** Introduced a brand new `status` command to give you a quick dashboard overview of all your repositories in one place. It displays snapshot counts and the latest snapshot date. You can run it on a specific repo (`rescript [repo] status`), globally, exclude specific repos (`-X`), and fetch advanced stats like size and health with `-F` (or `--full`).
 * **Password Manager Integration (`RESTIC_PASSWORD_COMMAND`):** Added native support for extracting the Restic repository password dynamically through external password managers (like `pass`, `bitwarden-cli`, or keychain tools). You can now leave `RESTIC_PASSWORD` empty and define `RESTIC_PASSWORD_COMMAND="your command"` in your `.conf` files to avoid storing plaintext passwords.
-* **Automatic Log Compression:** Rescript now automatically compresses log files older than 7 days using `gzip` to heavily save disk space in `~/.rescript/logs`. The `LOG_RETENTION` background cleaner has also been upgraded to correctly manage and purge these `.log.gz` files when they expire.
 
 #### 🛠️ Internal Refactoring & UI
 
@@ -48,6 +47,11 @@
 * **Timer Fix:** Resolved an unbound array variable error (`dur`) in the `duration` function when the elapsed time was exactly zero seconds.
 * **Array Initializations:** Fixed missing empty array initializations (`=()`) for `policies` and `bu_opts` to prevent unbound variable crashes in strict mode.
 * **Flag Argument Protection:** Protected dynamically captured flags (like `$2` in `--host`) with fallbacks (`${2:-}`) to prevent fatal crashes if the flag is provided without a subsequent argument.
+* **Log Rotation Refactor:** Log file naming has been updated to the sortable `repo-YYYY-MM-DD-HHmmss.log` format. Reverted individual log file gzip compression to prevent clutter; rotation is now safely and strictly handled by standard `find` deletions based on `LOG_RETENTION`.
+* **Debug Trace Precision:** The `--debug` flag now meticulously traces only raw `restic` binary executions across the codebase, preventing bash noise from cluttering terminal output or corrupting the user interface.
+* **Extract Error Handling:** Resolved a critical bug where `restic dump` failures during the `extract` command would silently terminate the script (due to `set -e`) leaving empty files. Failed extracts are now gracefully caught and cleaned up.
+* **Core Unbound Variables:** Fixed lingering Bash unbound variable crashes when running `rescript [repo] size` without arguments or sending raw commands to `restic_alone.sh` directly.
+* **Help Accuracy:** The global `help` output has been updated to officially document the `init` and `automatic` execution behaviors.
 * **Raw Restic Command Flags:** Wrapped the default command fallback router (`restic_alone`) with `execute_with_metrics`, enabling all rescript global flags (like `-T` for timer, `-L` for logs) to work seamlessly with any raw restic command.
 
 ---
