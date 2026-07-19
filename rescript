@@ -19,7 +19,7 @@ cmd=""
 exit_code=""
 latest_cmd=""
 context_printed=""
-version="6.0"
+version="6.1"
 function hide_cursor {
   tput civis 2> /dev/null || true
 }
@@ -2972,12 +2972,17 @@ function update {
   rescript_latest="$tmp_dir/rescript"
   trap 'rm -rf "$rescript_latest" 2> /dev/null' INT QUIT TERM EXIT
 
-  if [[ "$(sed '3!d' "$(command -v rescript)")" = "$(sed '3!d' "$rescript_latest")" ]] ; then
+  local current_version
+  current_version=$(grep '^version=' "$(command -v rescript)" | head -n 1 | cut -d'"' -f2 || echo "unknown")
+  local remote_version
+  remote_version=$(grep '^version=' "$rescript_latest" | head -n 1 | cut -d'"' -f2 || echo "unknown")
+
+  if [[ "$current_version" == "$remote_version" ]] ; then
     echo "You are already running rescript $version, which is the latest version."
     exit 0
   else
     chmod 755 "$rescript_latest"
-    read -rp "rescript version $(sed '3!d' "$rescript_latest" | sed -e 's/version=//g') is available; do you want to install it? (y/n): " updater
+    read -rp "rescript version $remote_version is available; do you want to install it? (y/n): " updater
     case "$updater" in
       y|yes)
         if [[ $(command -v rescript) == /usr/bin/rescript || $(command -v rescript) == /bin/rescript || $(command -v rescript) == /usr/local/bin/rescript ]] ; then
