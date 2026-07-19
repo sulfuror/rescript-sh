@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # ============================================================== #
+version="6.0"
 set -euo pipefail
 # Initialize internal variables to prevent unbound variable errors
 context_flag=""
@@ -19,7 +20,6 @@ cmd=""
 exit_code=""
 latest_cmd=""
 context_printed=""
-version="6.0"
 function hide_cursor {
   tput civis 2> /dev/null || true
 }
