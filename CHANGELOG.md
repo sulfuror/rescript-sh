@@ -1,6 +1,6 @@
 # Rescript Changelog
 
-## v6.0
+## v6.1
 
 ---
 

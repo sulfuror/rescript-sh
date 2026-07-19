@@ -19,7 +19,7 @@ cmd=""
 exit_code=""
 latest_cmd=""
 context_printed=""
-version="6.0"
+version="6.1"
 function hide_cursor {
   tput civis 2> /dev/null || true
 }
