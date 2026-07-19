@@ -56,8 +56,6 @@ use the 'all' keyword instead of a specific repo name. You can use
 
   rescript all [command] --ignore-repo [repo_name]
 
-Commands that run automatically with rescript [repo_name]:
-
 Configuration commands:
   config                Rescript configuration.
   editor                Change default text editor used by rescript.
@@ -67,6 +65,7 @@ Configuration commands:
   version               Display rescript version.
   
 Commands:
+  automatic             Run backup and cleanup policies sequentially.
   backup                Take a snapshot.
   cleanup               Apply retention policies and prune.
   diff                  Compare two snapshots.
@@ -74,6 +73,7 @@ Commands:
   extract               Extract a specific file or directory.
   history               Show version history of a given file.
   info                  Display stats for latest and all snapshots.
+  init                  Initialize a new restic repository.
   logs                  List, view or remove your log files.
   mounter               Mount a restic repo.
   next                  Display next scheduled automatic cleanup time.
@@ -593,11 +593,7 @@ function run_with_spinner {
 
 function logger {
   if [[ "$log_flag" = "true" ]] ; then
-    if [[ ! "$cmd" ]] ; then
-      log="$logs_dir/$repo-log-$(date +%Y-%m-%d-%H:%M).log"
-    else
-      log="$logs_dir/$repo-$cmd-log-$(date +%Y-%m-%d-%H:%M).log"
-    fi
+    log="$logs_dir/$repo-$(date +%Y-%m-%d-%H%M%S).log"
     if [[ "$quiet_flag" == "true" ]]; then
       exec > "$log" 2>&1
     else
@@ -606,8 +602,6 @@ function logger {
     if [[ -n "$LOG_RETENTION" && "$LOG_RETENTION" -gt 0 ]] 2>/dev/null ; then
       find "$logs_dir" \( -name "$repo-*.log" -o -name "$repo-*.log.gz" \) -type f -mtime +"$LOG_RETENTION" -exec rm -f {} +
     fi
-    # Compress logs older than 7 days
-    find "$logs_dir" -name "$repo-*.log" -type f -mtime +7 -exec gzip -q {} + 2>/dev/null || true
   else
     if [[ "$quiet_flag" == "true" ]]; then
       exec > "$tmplog" 2>&1
@@ -2062,9 +2056,13 @@ function differ {
       echo "You need at least 2 snapshots to perform a diff."
       exit 1
     fi
+    debug_start
     restic diff "${snaps[0]}" "${snaps[1]}"
+    debug_stop
   else
+    debug_start
     restic diff "${rest[@]}"
+    debug_stop
   fi
 }
 
@@ -2166,8 +2164,8 @@ function extract {
     sleep 0.2
   done
   
-  wait "$pid"
-  local exit_code=$?
+  wait "$pid" || exit_code=$?
+  exit_code=${exit_code:-0}
   
   if [[ $exit_code -eq 0 ]] ; then
     print_progress "Extracting file" 100
@@ -2182,7 +2180,6 @@ function extract {
 
 function history {
   rescript_lock
-  debug_start
   if [[ ${#rest[@]} -eq 0 ]] ; then
     echo "You must provide a pattern or file path to search history for."
     exit 1
@@ -2198,6 +2195,7 @@ function history {
   printf "${c_white}%-4s | %-10s | %-21s | %-12s | %s${c_reset}\n" "No" "Snapshot" "Date" "Size" "Path"
   print_line "="
   
+  debug_start
   restic find -l "${rest[@]}" 2>/dev/null | awk -v path_len="$col_path" '
   {
     gsub(/\x1b\[[0-9;]*[a-zA-Z]/, "")
@@ -2232,13 +2230,12 @@ function history {
           last_date = date
       }
   }'
+  debug_stop
   
   if [ "${PIPESTATUS[0]}" -ne 0 ]; then
     echo "History search failed or no matches found."
   fi
-  debug_stop
 }
-
 function install_autocomplete {
   local target_dir="$1"
   local target_file="$target_dir/rescript"
@@ -2541,11 +2538,14 @@ function restic_alone {
   run_restic_with_retry "${rest[@]}"
   latest_cmd=$prev_cmd exit_code="$?"
   debug_stop
-  rest_cmd="${rest[0]}"
-  case "$rest_cmd" in
-    --repo=*) rest_cmd="${rest[1]}" ;;
-    -r*|--repo*) rest_cmd="${rest[2]}" ;;
-  esac
+  local rest_cmd=""
+  if [[ ${#rest[@]} -gt 0 ]]; then
+    rest_cmd="${rest[0]}"
+    case "$rest_cmd" in
+      --repo=*) rest_cmd="${rest[1]:-}" ;;
+      -r*|--repo*) rest_cmd="${rest[2]:-}" ;;
+    esac
+  fi
   latest_error
 }
 
@@ -2608,7 +2608,6 @@ function restorer {
 
 function search {
   rescript_lock
-  debug_start
   if [[ ${#rest[@]} -eq 0 ]] ; then
     echo "You must provide a search pattern."
     exit 1
@@ -2619,6 +2618,7 @@ function search {
   print_line "="
   
   local snaps_output
+  debug_start
   snaps_output=$(restic snapshots -q)
   
   restic find "${rest[@]}" | awk -v snaps="$snaps_output" '
@@ -2653,7 +2653,6 @@ function search {
   }'
   debug_stop
 }
-
 function size {
   rescript_lock
   local target_host="$rhost"
@@ -2662,7 +2661,7 @@ function size {
   fi
   
   local snapshot_id="latest"
-  if [[ "${rest[0]}" == "latest" || "${rest[0]}" =~ ^[a-f0-9]{8}$ || "${rest[0]}" =~ ^[a-f0-9]{64}$ ]] ; then
+  if [[ ${#rest[@]} -gt 0 ]] && [[ "${rest[0]}" == "latest" || "${rest[0]}" =~ ^[a-f0-9]{8}$ || "${rest[0]}" =~ ^[a-f0-9]{64}$ ]] ; then
     snapshot_id="${rest[0]}"
     rest=("${rest[@]:1}")
   fi
@@ -2730,26 +2729,33 @@ function snaps {
 }
 
 function statinfo {
-  debug_start
   local target_host="${host_flag:-$rhost}"
+  debug_start
   latest_host_stat=$(restic stats --host "$target_host" latest 2>/dev/null | awk -F': ' '/Total Size/{print $2}')
+  debug_stop
   check_restic_error $?
   print_progress "Calculating repo stats" 25
   
+  debug_start
   host_stat=$(restic stats --mode raw-data --host "$target_host" latest 2>/dev/null | awk -F': ' '/Total Size/{print $2}')
+  debug_stop
   check_restic_error $?
   print_progress "Calculating repo stats" 50
   
+  debug_start
   stat_restore_size=$(restic stats 2>/dev/null | awk -F': ' '/Total Size/{print $2}')
+  debug_stop
   check_restic_error $?
   print_progress "Calculating repo stats" 75
   
+  debug_start
   stat_raw_data=$(restic stats --mode raw-data 2>/dev/null | awk -F': ' '/Total Size/{print $2}')
+  debug_stop
   check_restic_error $?
   print_progress "Calculating repo stats" 100
   
   echo -ne '\n'
-  debug_stop
+
   
   echo ""
   print_line "="
@@ -2784,6 +2790,7 @@ function global_status {
     esac
   done
   
+
   if [[ ! -d "$config_dir" ]]; then
     echo "No repositories configured."
     exit 1
@@ -2826,14 +2833,18 @@ function global_status {
     local latest_date="Never"
     
     local raw_snapshots
+    debug_start
     raw_snapshots=$(restic -r "$RESTIC_REPO" snapshots 2>/dev/null || true)
+    debug_stop
     
     if [[ -n "$raw_snapshots" ]]; then
       local snap_count_str
       snap_count_str=$(echo "$raw_snapshots" | awk '/snapshots/{print $1}' | tail -n1 || true)
       if [[ -n "$snap_count_str" && "$snap_count_str" -gt 0 ]] 2>/dev/null; then
         num_snaps="$snap_count_str"
+        debug_start
         latest_date=$(restic -r "$RESTIC_REPO" snapshots --latest 1 2>/dev/null | awk 'NR==3 {print $2, $3}' || true)
+        debug_stop
       fi
     fi
     
@@ -2846,7 +2857,9 @@ function global_status {
         health_str="${c_red}Error${c_reset}"
         
         # Stats
+        debug_start
         raw_stats=$(restic -r "$RESTIC_REPO" stats --mode raw-data 2>/dev/null)
+        debug_stop
         if [[ -n "$raw_stats" ]]; then
           local size_raw=$(echo "$raw_stats" | awk '/Total Size:/{print $3$4}')
           if [[ -n "$size_raw" ]]; then
@@ -2855,9 +2868,11 @@ function global_status {
         fi
         
         # Check
+        debug_start
         if restic -r "$RESTIC_REPO" check --quiet >/dev/null 2>&1; then
           health_str="${c_green}OK${c_reset}"
         fi
+        debug_stop
         
         echo "$size_str|$health_str" > "/tmp/rescript_status_$repo"
       ) &
@@ -2888,7 +2903,6 @@ function global_status {
   done
   print_line "="
 }
-
 function status-help {
   echo "Usage: rescript status [-F|--full] [-X|--exclude <repo>]"
   echo ""

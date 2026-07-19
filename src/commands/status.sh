@@ -23,6 +23,7 @@ function global_status {
     esac
   done
   
+
   if [[ ! -d "$config_dir" ]]; then
     echo "No repositories configured."
     exit 1
@@ -65,14 +66,18 @@ function global_status {
     local latest_date="Never"
     
     local raw_snapshots
+    debug_start
     raw_snapshots=$(restic -r "$RESTIC_REPO" snapshots 2>/dev/null || true)
+    debug_stop
     
     if [[ -n "$raw_snapshots" ]]; then
       local snap_count_str
       snap_count_str=$(echo "$raw_snapshots" | awk '/snapshots/{print $1}' | tail -n1 || true)
       if [[ -n "$snap_count_str" && "$snap_count_str" -gt 0 ]] 2>/dev/null; then
         num_snaps="$snap_count_str"
+        debug_start
         latest_date=$(restic -r "$RESTIC_REPO" snapshots --latest 1 2>/dev/null | awk 'NR==3 {print $2, $3}' || true)
+        debug_stop
       fi
     fi
     
@@ -85,7 +90,9 @@ function global_status {
         health_str="${c_red}Error${c_reset}"
         
         # Stats
+        debug_start
         raw_stats=$(restic -r "$RESTIC_REPO" stats --mode raw-data 2>/dev/null)
+        debug_stop
         if [[ -n "$raw_stats" ]]; then
           local size_raw=$(echo "$raw_stats" | awk '/Total Size:/{print $3$4}')
           if [[ -n "$size_raw" ]]; then
@@ -94,9 +101,11 @@ function global_status {
         fi
         
         # Check
+        debug_start
         if restic -r "$RESTIC_REPO" check --quiet >/dev/null 2>&1; then
           health_str="${c_green}OK${c_reset}"
         fi
+        debug_stop
         
         echo "$size_str|$health_str" > "/tmp/rescript_status_$repo"
       ) &
@@ -127,7 +136,6 @@ function global_status {
   done
   print_line "="
 }
-
 function status-help {
   echo "Usage: rescript status [-F|--full] [-X|--exclude <repo>]"
   echo ""

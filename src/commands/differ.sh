@@ -6,9 +6,13 @@ function differ {
       echo "You need at least 2 snapshots to perform a diff."
       exit 1
     fi
+    debug_start
     restic diff "${snaps[0]}" "${snaps[1]}"
+    debug_stop
   else
+    debug_start
     restic diff "${rest[@]}"
+    debug_stop
   fi
 }
 

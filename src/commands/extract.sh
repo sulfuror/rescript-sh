@@ -58,8 +58,8 @@ function extract {
     sleep 0.2
   done
   
-  wait "$pid"
-  local exit_code=$?
+  wait "$pid" || exit_code=$?
+  exit_code=${exit_code:-0}
   
   if [[ $exit_code -eq 0 ]] ; then
     print_progress "Extracting file" 100

@@ -1,6 +1,5 @@
 function search {
   rescript_lock
-  debug_start
   if [[ ${#rest[@]} -eq 0 ]] ; then
     echo "You must provide a search pattern."
     exit 1
@@ -11,6 +10,7 @@ function search {
   print_line "="
   
   local snaps_output
+  debug_start
   snaps_output=$(restic snapshots -q)
   
   restic find "${rest[@]}" | awk -v snaps="$snaps_output" '
@@ -45,4 +45,3 @@ function search {
   }'
   debug_stop
 }
-

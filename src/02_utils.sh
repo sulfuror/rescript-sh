@@ -455,11 +455,7 @@ function run_with_spinner {
 
 function logger {
   if [[ "$log_flag" = "true" ]] ; then
-    if [[ ! "$cmd" ]] ; then
-      log="$logs_dir/$repo-log-$(date +%Y-%m-%d-%H:%M).log"
-    else
-      log="$logs_dir/$repo-$cmd-log-$(date +%Y-%m-%d-%H:%M).log"
-    fi
+    log="$logs_dir/$repo-$(date +%Y-%m-%d-%H%M%S).log"
     if [[ "$quiet_flag" == "true" ]]; then
       exec > "$log" 2>&1
     else
@@ -468,8 +464,6 @@ function logger {
     if [[ -n "$LOG_RETENTION" && "$LOG_RETENTION" -gt 0 ]] 2>/dev/null ; then
       find "$logs_dir" \( -name "$repo-*.log" -o -name "$repo-*.log.gz" \) -type f -mtime +"$LOG_RETENTION" -exec rm -f {} +
     fi
-    # Compress logs older than 7 days
-    find "$logs_dir" -name "$repo-*.log" -type f -mtime +7 -exec gzip -q {} + 2>/dev/null || true
   else
     if [[ "$quiet_flag" == "true" ]]; then
       exec > "$tmplog" 2>&1

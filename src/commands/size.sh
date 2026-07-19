@@ -6,7 +6,7 @@ function size {
   fi
   
   local snapshot_id="latest"
-  if [[ "${rest[0]}" == "latest" || "${rest[0]}" =~ ^[a-f0-9]{8}$ || "${rest[0]}" =~ ^[a-f0-9]{64}$ ]] ; then
+  if [[ ${#rest[@]} -gt 0 ]] && [[ "${rest[0]}" == "latest" || "${rest[0]}" =~ ^[a-f0-9]{8}$ || "${rest[0]}" =~ ^[a-f0-9]{64}$ ]] ; then
     snapshot_id="${rest[0]}"
     rest=("${rest[@]:1}")
   fi

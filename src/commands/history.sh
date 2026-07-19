@@ -1,6 +1,5 @@
 function history {
   rescript_lock
-  debug_start
   if [[ ${#rest[@]} -eq 0 ]] ; then
     echo "You must provide a pattern or file path to search history for."
     exit 1
@@ -16,6 +15,7 @@ function history {
   printf "${c_white}%-4s | %-10s | %-21s | %-12s | %s${c_reset}\n" "No" "Snapshot" "Date" "Size" "Path"
   print_line "="
   
+  debug_start
   restic find -l "${rest[@]}" 2>/dev/null | awk -v path_len="$col_path" '
   {
     gsub(/\x1b\[[0-9;]*[a-zA-Z]/, "")
@@ -50,10 +50,9 @@ function history {
           last_date = date
       }
   }'
+  debug_stop
   
   if [ "${PIPESTATUS[0]}" -ne 0 ]; then
     echo "History search failed or no matches found."
   fi
-  debug_stop
 }
-

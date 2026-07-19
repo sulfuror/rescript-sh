@@ -56,8 +56,6 @@ use the 'all' keyword instead of a specific repo name. You can use
 
   rescript all [command] --ignore-repo [repo_name]
 
-Commands that run automatically with rescript [repo_name]:
-
 Configuration commands:
   config                Rescript configuration.
   editor                Change default text editor used by rescript.
@@ -67,6 +65,7 @@ Configuration commands:
   version               Display rescript version.
   
 Commands:
+  automatic             Run backup and cleanup policies sequentially.
   backup                Take a snapshot.
   cleanup               Apply retention policies and prune.
   diff                  Compare two snapshots.
@@ -74,6 +73,7 @@ Commands:
   extract               Extract a specific file or directory.
   history               Show version history of a given file.
   info                  Display stats for latest and all snapshots.
+  init                  Initialize a new restic repository.
   logs                  List, view or remove your log files.
   mounter               Mount a restic repo.
   next                  Display next scheduled automatic cleanup time.
