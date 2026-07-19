@@ -17,3 +17,6 @@ run_test "Orchestrator: all info" "$RESCRIPT all info"
 run_test "Orchestrator: all help (-h)" "$RESCRIPT all -h"
 run_test "Orchestrator: all exclusion (-X)" "$RESCRIPT all info -X test"
 run_test "Orchestrator: all exclusion (--ignore-repo)" "$RESCRIPT all info --ignore-repo dummy"
+
+# Test Orchestrator executing raw commands
+run_test "Orchestrator: all raw command (check)" "$RESCRIPT all check"

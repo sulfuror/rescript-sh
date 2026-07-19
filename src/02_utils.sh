@@ -31,15 +31,31 @@ else
   int="false"
 fi
 
+function array_contains {
+  local target="$1"
+  shift
+  for element in "$@"; do
+    if [[ "$element" == "$target" ]]; then
+      return 0
+    fi
+  done
+  return 1
+}
+
 function print_line {
-  local char="${1:--}"
-  echo -ne "${c_gray}"
-  printf "%${cols}s\n" "" | tr ' ' "$char"
-  echo -ne "${c_reset}"
+  local char=${1:--}
+  local cols=$(tput cols 2>/dev/null || echo 80)
+  [[ -z "$cols" || ! "$cols" =~ ^[0-9]+$ ]] && cols=80
+  
+  local line=""
+  for (( i=0; i<cols; i++ )); do
+    line="${line}${char}"
+  done
+  echo -ne "${c_gray}${line}${c_reset}\n"
 }
 
 function _send_email {
-  local subject="$1"
+  local subject="${1:-}"
   if [[ "$simulate_flag" == "true" ]]; then
     echo -e "${c_yellow}SIMULATE: Would send email to [$EMAIL] with subject: [$subject]${c_reset}"
     return 0
@@ -75,8 +91,23 @@ function _send_email {
   fi
 }
 
+function _send_webhook {
+  local subject="${1:-}"
+  if [[ -n "${WEBHOOK_URL:-}" ]] ; then
+    if [[ "$simulate_flag" == "true" ]]; then
+      echo -e "${c_yellow}SIMULATE: Would send webhook to [$WEBHOOK_URL] with subject: [$subject]${c_reset}"
+      return 0
+    fi
+    if [[ "$(command -v curl)" ]] ; then
+      curl -s -X POST -H "Content-Type: application/json" -d "{\"content\": \"$subject\"}" "$WEBHOOK_URL" >/dev/null 2>&1
+    else
+      echo -e "${c_yellow}[rescript] can't send webhooks; install [curl] package to do so.${c_reset}"
+    fi
+  fi
+}
+
 function print_context {
-  if [[ "$context_flag" != "true" || "$quiet_flag" == "true" || "$context_printed" == "true" ]] ; then
+  if [[ "${context_flag:-}" != "true" || "$context_printed" == "true" ]] ; then
     return 0
   fi
   context_printed="true"
@@ -136,8 +167,8 @@ function print_context {
       if [[ -n "$hooks" ]]; then
         printf "  ${c_white}%-15s${c_reset}: ${c_cyan}%s${c_reset}\n" "Hooks" "$hooks"
       fi
-      if [[ -n "$CLEAN" ]] ; then
-        printf "  ${c_white}%-15s${c_reset}: ${c_cyan}%s${c_reset}\n" "Auto-Clean" "Every $CLEAN"
+      if [[ -n "${CLEAN:-}" ]] ; then
+        printf "  ${c_white}%-15s${c_reset}: ${c_cyan}%s${c_reset}\n" "Auto-Clean" "Every ${CLEAN:-}"
       fi
       ;;
     cleanup)
@@ -157,18 +188,17 @@ function print_context {
 }
 
 function job_done {
-  if [[ -z "$cmd" ]] ; then
-    cmd="backup"
-  fi
-  if [[ "$CONFIRMATION_EMAIL" = "y" || "$CONFIRMATION_EMAIL" = "yes" ]] ; then
+  cmd="${cmd:-backup}"
+  if [[ "${CONFIRMATION_EMAIL:-}" = "y" || "${CONFIRMATION_EMAIL:-}" = "yes" ]] ; then
     _send_email "rescript: [$repo] $cmd finished successfully!"
+  fi
+  if [[ -n "${WEBHOOK_URL:-}" ]] ; then
+    _send_webhook "rescript: [$repo] $cmd finished successfully!"
   fi
 }
 
 function report_errors {
-  if [[ -z "$cmd" ]] ; then
-    cmd="backup"
-  fi
+  cmd="${cmd:-backup}"
   if [[ -n "$error_message" ]] ; then
     if [[ "$ping_code" -gt "0" ]] ; then
       echo -e "${c_red}$error_message${c_reset}"
@@ -178,12 +208,38 @@ function report_errors {
       echo -e "${c_red}$error_message${c_reset}"
     fi
     _send_email "rescript: [$repo] $cmd failed!"
+    _send_webhook "rescript: [$repo] $cmd failed!"
   fi
 }
 
+function run_restic_with_retry {
+  local max_attempts=3
+  local attempt=1
+  local exit_code=0
+  
+  while [[ $attempt -le $max_attempts ]]; do
+    restic "$@"
+    exit_code=$?
+    
+    # Restic exit code 1 = fatal error (often network/IO)
+    # Restic exit code 11 = repository locked
+    if [[ $exit_code -ne 1 && $exit_code -ne 11 ]]; then
+      break
+    fi
+    
+    if [[ $attempt -lt $max_attempts ]]; then
+      echo -e "${c_yellow}Warning: restic failed with exit code $exit_code. Retrying in 30 seconds... (Attempt $attempt of $max_attempts)${c_reset}"
+      sleep 30
+    fi
+    ((attempt++))
+  done
+  
+  return $exit_code
+}
+
 function check_restic_error {
-  exit_code="$1"
-  latest_cmd="$prev_cmd"
+  exit_code="${1:-0}"
+  latest_cmd="${prev_cmd:-}"
   latest_error
 }
 
@@ -239,7 +295,11 @@ function opsys {
 }
 
 function duration {
-  declare -a dur
+  if [[ "$SECONDS" -eq 0 ]] ; then
+    echo "0 seconds"
+    return
+  fi
+  declare -a dur=()
   d="$((SECONDS/60/60/24))"
   h="$((SECONDS/60/60%24))"
   m="$((SECONDS/60%60))"
@@ -287,9 +347,9 @@ function duration {
 # Select Editor Menu
 function select_editor {
   clear
-  echo "======================"
+  echo "$ui_line_eq"
   echo "  Select Text Editor  "
-  echo "======================"
+  echo "$ui_line_eq"
   echo " [1] Nano             "
   echo " [2] Vim              "
   echo " [3] Gedit            "
@@ -300,7 +360,7 @@ function select_editor {
   echo " [8] Xed              "  
   echo " [9] Other            "
   echo " [10] Exit            "
-  echo "======================"
+  echo "$ui_line_eq"
   read -rp "Select the Text Editor you want to use [ 1 - 9 ]: " texteditor
   case "$texteditor" in
     1|nano) echo "nano" > "$config_dir/.editor"; echo "You have selected [Nano] as your default text editor." ;;
@@ -319,13 +379,13 @@ function select_editor {
 
 # Main menu
 function main_menu {
-  echo "======================"
+  echo "$ui_line_eq"
   echo "        Menu          "
-  echo "======================"
+  echo "$ui_line_eq"
   echo " [1] Configuration    "
   echo " [2] Exclusions       "
   echo " [3] Exit             "
-  echo "======================"
+  echo "$ui_line_eq"
   read -rp "Select an option and press Enter [ 1 - 3 ]: " main
   case "$main" in
     1|configuration) clear ; config_menu ;;
@@ -338,8 +398,8 @@ function main_menu {
 # Configuration menu
 
 function print_progress {
-  local label="$1"
-  local percent="$2"
+  local label="${1:-}"
+  local percent="${2:-}"
   local length=20
   local fill=$(( (percent * length) / 100 ))
   local empty=$(( length - fill ))
@@ -354,4 +414,130 @@ function print_progress {
   fi
   
   printf "](%s%%)\r" "$percent"
+}
+
+function run_with_spinner {
+  local cmd="$1"
+  local label="${2:-Working}"
+  
+  # Hide cursor
+  hide_cursor
+  
+  printf "%b " "$label"
+  
+  # Execute the command in the background, suppressing stdout/stderr
+  eval "$cmd" > /dev/null 2>&1 &
+  local pid=$!
+  
+  local spin='-\|/'
+  local i=0
+  while kill -0 $pid 2>/dev/null; do
+    i=$(( (i+1) % 4 ))
+    printf "\r%b %s" "$label" "${spin:$i:1}"
+    sleep 0.1
+  done
+  
+  # Wait to get the exact exit code
+  wait $pid
+  local exit_code=$?
+  
+  # Restore cursor and clean spinner
+  show_cursor
+  
+  if [[ $exit_code -eq 0 ]]; then
+    printf "\r%b %bDone!%b \n" "$label" "$c_green" "$c_reset"
+  else
+    printf "\r%b %bFailed!%b \n" "$label" "$c_red" "$c_reset"
+  fi
+  
+  return $exit_code
+}
+
+function logger {
+  if [[ "$log_flag" = "true" ]] ; then
+    log="$logs_dir/$repo-$(date +%Y-%m-%d-%H%M%S).log"
+    if [[ "$quiet_flag" == "true" ]]; then
+      exec > "$log" 2>&1
+    else
+      exec > >(tee -a "$log") 2>&1
+    fi
+    if [[ -n "$LOG_RETENTION" && "$LOG_RETENTION" -gt 0 ]] 2>/dev/null ; then
+      find "$logs_dir" \( -name "$repo-*.log" -o -name "$repo-*.log.gz" \) -type f -mtime +"$LOG_RETENTION" -exec rm -f {} +
+    fi
+  else
+    if [[ "$quiet_flag" == "true" ]]; then
+      exec > "$tmplog" 2>&1
+    else
+      exec > >(tee -a "$tmplog") 2>&1
+    fi
+  fi
+}
+
+function time_start {
+  if [[ "$time_flag" = "true" ]] ; then
+    SECONDS=0
+  fi
+}
+
+function time_end {
+  if [[ "$time_flag" = "true" ]] ; then
+    print_line
+    echo -e "${c_white}Duration:${c_reset} ${c_green}$(duration)${c_reset}"
+  fi
+}
+
+function rescript_lock {
+  if [[ "${rescript_lock_created:-}" == "true" ]]; then return 0; fi
+  if [ -e "$lock" ]; then
+    echo "WARNING: [$repo] repo is already running..."
+    echo "If you are sure $repo is not running, type"
+    echo " "
+    echo "  rescript $repo unlocker"
+    echo " "
+    echo "This will remove the lock for [$repo] repository."
+    echo ""
+    echo "Lock file info:"
+    stat "$lock_dir/$repo.lock"
+    latest_cmd="$cmd"
+    exit_code="1"
+    latest_error
+  else
+    touch "$lock"
+    trap 'rm -rf "${lock:?}" ; rm -rf "${tmplog:?}"' INT QUIT TERM EXIT
+    rescript_lock_created="true"
+  fi
+}
+
+function debug_start {
+  if [[ "$debug_flag" = "true" ]] ; then
+    set -xv
+  fi
+}
+
+function debug_stop {
+  if [[ "$debug_flag" = "true" ]] ; then
+    set +xv
+  fi
+}
+
+function set_sim_flag {
+  local cmd_name="${1:-}"
+  local default_flag="${2:-}"
+  sim_flag="$default_flag"
+  if [[ "$simulate_flag" == "true" ]]; then
+    echo -e "${c_yellow}SIMULATE: $cmd_name running in dry-run mode.${c_reset}"
+    sim_flag="--dry-run"
+  fi
+}
+
+function _run_post_actions {
+  if [[ "$check_flag" = "true" ]] ; then
+    print_line
+    echo -e "${c_cyan}Starting check...${c_reset}"
+    run_quietly run_restic_with_retry check --cleanup-cache
+  fi
+  if [[ "$info_flag" = "true" ]] ; then
+    print_line
+    run_quietly statinfo
+  fi
 }

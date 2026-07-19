@@ -1,0 +1,32 @@
+stages:
+  - deploy
+
+update-wiki:
+  stage: deploy
+  image: alpine:latest
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH  # Only run when pushing changes to the main branch
+  before_script:
+    - apk add --no-cache git
+    - git config --global user.name "GitLab CI Bot"
+    - git config --global user.email "ci-bot@gitlab.com"
+  script:
+    # 1. Clone the wiki repository using the secure variable
+    - git clone https://oauth2:${WIKI_TOKEN}@gitlab.com/sulfuror/rescript.sh.wiki.git
+    
+    # 2. Enter the wiki directory and delete old content (preserving the hidden .git directory)
+    - cd rescript.sh.wiki
+    - find . -maxdepth 1 ! -name '.' ! -name '..' ! -name '.git' -exec rm -rf {} +
+    
+    # 3. Copy all new content from the docs/ directory
+    - cp -a ../docs/. .
+    
+    # 4. Check for real changes. If there are any, push them automatically
+    - git add .
+    - |
+      if [ -z "$(git status --porcelain)" ]; then
+        echo "No new changes in docs/. The wiki is up to date."
+      else
+        git commit -m "docs: Auto-update wiki from docs/ [skip ci]"
+        git push origin HEAD
+      fi

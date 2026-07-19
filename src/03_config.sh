@@ -1,204 +1,42 @@
-function config_file {
-cat <<EOF
-# =============================================================================== #
-#                   R E S C R I P T    C O N F I G U R A T I O N                  #
-# =============================================================================== #
-# You need to set your restic password (password for the repository), the
-# directory for your repository, the backup directory (by default the backup
-# directory is your Home directory), your tag (empty by default if used) and
-# your "keep" and "excludes" policies.
-# ------------------------------------------------------------------------------- #
-# REQUIRED VALUES
-# ------------------------------------------------------------------------------- #
-# Set restic password, repository location/directory and backup directory.
-RESTIC_PASSWORD=""
-RESTIC_REPO=""
-BACKUP_DIR="$HOME"
-
-# Keep Policies (leave blank if not used)
-KEEP_LAST=""
-KEEP_HOURLY="8"
-KEEP_DAILY="7"
-KEEP_WEEKLY="4"
-KEEP_MONTHLY="12"
-KEEP_YEARLY="10"
-KEEP_WITHIN=""
-KEEP_TAG=""
-
-# AWS, B2, Azure, Google Cloud Credentials; for other not listed here you can
-# the values here (leave blank if not used).
-AWS_ID=""
-AWS_KEY=""
-AZURE_NAME=""
-AZURE_KEY=""
-B2_ID=""
-B2_KEY=""
-GOOGLE_ID=""
-GOOGLE_CREDENTIALS=""
-
-# ------------------------------------------------------------------------------- #
-# OPTIONAL VALUES
-# ------------------------------------------------------------------------------- #
-# CLEAN: determine when it will execute forget, prune and check (i.e.: 7minutes, 7hours, 7days); by default is set to 7 days.
-# CONFIRMATION_EMAIL: set to "yes" to receive email with output when job finished successfully.
-# DESTINATION: display name of your destination in output instead of path (i.e.: Wasabi, B2, etc.).
-# EMAIL: put your email address to receive emails with output when something fails (when using cron only).
-# EXCLUDE_FILE: set "yes" to use the exclude file generated for backups (by default is set to yes; if blank it will read the exclusion file for previous versions comptability).
-# EXCLUDE_CACHE: set "yes" to use "--exclude-cache" flag for backups (by default is set to yes; if blank it will exclude cache for previous versions compatibility).
-# HOST: use a custom hostname for your snapshots.
-# LOGGING: set to "yes" to save a log with output when using the automatic function (by default is set to yes).
-# LOG_RETENTION: number of days to keep logs (e.g., 30). Leave blank to keep all logs forever.
-# ONE_FILE_SYSTEM: set to "yes" to use "--one-file-system" flag for backups.
-# POST_CMD: command to run after the automatic backup finishes successfully.
-# PRE_CMD: command to run before the automatic backup starts.
-# RESTIC_COMPRESSION: set to "auto", "max" or "off" to configure data compression (requires restic 0.14.0+).
-# SHOW_SNAPS: set to "yes" to show a list of snapshots at the end of the backup.
-# SHOW_STATS: set to "yes" to calculate and display repository stats at the end.
-# SKIP_OFFICE: set to yes to temporarily exclude open (in use) "office" documents.
-# TAG: tag your snapshots.
-CLEAN="7days"
-CONFIRMATION_EMAIL=""
-DESTINATION=""
-EMAIL=""
-EXCLUDE_FILE="yes"
-EXCLUDE_CACHE="yes"
-HOST=""
-LOGGING="yes"
-LOG_RETENTION=""
-ONE_FILE_SYSTEM=""
-POST_CMD=""
-PRE_CMD=""
-RESTIC_COMPRESSION="auto"
-SHOW_SNAPS="yes"
-SHOW_STATS="yes"
-SKIP_OFFICE=""
-TAG=""
-EOF
-}
-
-function simple_exclusions {
-cat <<EOF
-# These are the default rescript exclusions:
-$HOME/.cache/*
-$HOME/.local/share/Trash/*
-$HOME/.rescript/lock/*
-$HOME/.Trash
-$HOME/.Private
-$HOME/.ecryptfs
-
-# Write your custom exclusions below:
-EOF
-}
-
-function long_exclusions {
-cat <<EOF
-# These are the default rescript exclusions for your home directory:
-$HOME/.cache/*
-$HOME/.local/share/Trash/*
-$HOME/.rescript/lock/*
-$HOME/.gvfs
-$HOME/.dbus
-$HOME/.local/share/gvfs-metadata
-$HOME/.Private
-$HOME/.Trash
-$HOME/.cddb
-$HOME/.aptitude
-$HOME/.adobe
-$HOME/.bash_history
-$HOME/.dropbox
-$HOME/.dropbox-dist
-$HOME/.macromedia
-$HOME/.xsession-errors
-$HOME/.recently-used
-$HOME/.recently-used.xbel
-$HOME/.local/share/recently-used*
-$HOME/.thumbnails/*
-$HOME/.Xauthority
-$HOME/.ICEauthority
-$HOME/.gksu.lock
-$HOME/.pulse
-$HOME/.pulse-cookie
-$HOME/.esd_auth
-$HOME/.ecryptfs
-$HOME/.mozilla
-$HOME/.config/google-chrome
-$HOME/.config/chromium
-$HOME/.opera
-$HOME/.npm
-$HOME/.gnupg/rnd
-$HOME/.gnupg/random_seed
-$HOME/.gnupg/.#*
-$HOME/.gnupg/*.lock
-$HOME/.gnupg/gpg-agent-info-*
-$HOME/.config/**/Cache
-$HOME/.config/**/GPUCache
-$HOME/.config/**/ShaderCache
-$HOME/snap/**/.config/**/Cache
-$HOME/snap/**/.config/**/GPUCache
-$HOME/snap/**/.config/**/ShaderCache
-$HOME/Downloads
-*.lock
-*.bak
-*.backup
-*.backup*
-*~
-
-# Write your custom exclusions below:
-EOF
-}
-
-function sys_exclusions {
-cat <<EOF
-# These are the default rescript exclusions for your system:
-/home/*
-/proc/*
-/sys/*
-/dev/*
-/run/*
-/mnt/*
-/media/*
-/etc/mtab
-/var/cache/apt/archives/*.deb
-lost+found/*
-/tmp/*
-/var/tmp/*
-/var/backups/*
-
-# Write your custom exclusions below:
-EOF
-}
-
 function _list_files {
   local title="$1"
-  local pattern="$2"
+  local pattern="${2:-}"
   local sedpat="$3"
-  echo "======================"
+  echo "$ui_line_eq"
   printf " %-20s \n" "$title"
-  echo "======================"
+  echo "$ui_line_eq"
   echo " [1] Back to Main Menu"
   echo " [2] Exit             "
-  echo "----------------------"
+  echo "$ui_line_dash"
   find "$config_dir" -maxdepth 1 -type f -exec basename {} \; | grep -e "$pattern" | sed -e "s/$sedpat//"
-  echo "======================"
+  echo "$ui_line_eq"
 }
 
 function config_menu {
-  echo "======================"
+  echo "$ui_line_eq"
   echo "       Options        "
-  echo "======================"
+  echo "$ui_line_eq"
   echo " [1] Edit Existing    "
   echo " [2] New Repository   "
-  echo " [3] Delete Config    "
-  echo " [4] Back to Main Menu"
-  echo " [5] Exit             "
-  echo "======================"
-  read -rp "Select an option and press Enter [ 1 - 5 ]: " cfgopt
+  echo " [3] Edit Global Config"
+  echo " [4] Delete Config    "
+  echo " [5] Back to Main Menu"
+  echo " [6] Exit             "
+  echo "$ui_line_eq"
+  read -rp "Select an option and press Enter [ 1 - 6 ]: " cfgopt
   case "$cfgopt" in
     1|edit) clear ; edit_config_files ;;
     2|new) new_config_file ;;
-    3|delete) clear ; delete_config_file ;;
-    4|back) clear ; main_menu ;;
-    5|exit) echo "Exiting..." ; exit ;;
+    3|global) 
+      if [[ ! -f "$config_global" ]]; then
+        global_config_template > "$config_global"
+        chmod 600 "$config_global"
+      fi
+      "$rescript_editor" "$config_global" 2> /dev/null
+      clear ; config_menu ;;
+    4|delete) clear ; delete_config_file ;;
+    5|back) clear ; main_menu ;;
+    6|exit) echo "Exiting..." ; exit ;;
     *) clear ; echo "No valid selection; try again..." ; config_menu ;;
   esac
 }
@@ -278,16 +116,129 @@ function delete_config_file {
   esac
 }
 
+function config_wizard {
+  clear
+  echo "$ui_line_eq"
+  echo "    Rescript Configuration Wizard"
+  echo "$ui_line_eq"
+  if [[ ! -f "$config_global" ]]; then
+    echo "--- Global Setup ---"
+    echo "Let's set up your global defaults first."
+    
+    # 1. Email setup
+    read -rp "1. Do you want to receive email alerts? (y/n) [n]: " ans_email
+    w_email=""
+    w_confirm=""
+    if [[ "$ans_email" == "y" || "$ans_email" == "yes" ]]; then
+      read -rp "   Enter your email address: " w_email
+      read -rp "   Receive emails also on successful backups? (y/n) [n]: " ans_success
+      if [[ "$ans_success" == "y" || "$ans_success" == "yes" ]]; then
+        w_confirm="yes"
+      fi
+    fi
+    
+    # 2. Webhook
+    read -rp "2. Discord/Slack Webhook URL (Optional, press Enter to skip): " w_web
+    
+    # 3. Logging
+    read -rp "3. Enable automatic logging? (y/n) [y]: " ans_log
+    w_log="yes"
+    if [[ "$ans_log" == "n" || "$ans_log" == "no" ]]; then
+      w_log="no"
+    fi
+    w_log_ret=""
+    if [[ "$w_log" == "yes" ]]; then
+      read -rp "   Log retention in days (Optional, leave blank to keep forever): " w_log_ret
+    fi
+    
+    # 4. Retention Policies
+    echo "4. Retention Policies (Press Enter to keep the default)"
+    read -rp "   Keep Last (default: none): " w_k_last
+    read -rp "   Keep Hourly (default: 8): " w_k_hourly
+    read -rp "   Keep Daily (default: 7): " w_k_daily
+    read -rp "   Keep Weekly (default: 4): " w_k_weekly
+    read -rp "   Keep Monthly (default: 12): " w_k_monthly
+    read -rp "   Keep Yearly (default: 10): " w_k_yearly
+    
+    global_config_template > "$config_global"
+    chmod 600 "$config_global"
+    
+    local g_conf="$config_global"
+    
+    if [[ -n "$w_email" ]]; then
+      sed -i "s|^EMAIL=\"\"|EMAIL=\"$w_email\"|" "$g_conf"
+    fi
+    if [[ -n "$w_confirm" ]]; then
+      sed -i "s|^CONFIRMATION_EMAIL=\"\"|CONFIRMATION_EMAIL=\"$w_confirm\"|" "$g_conf"
+    fi
+    if [[ -n "$w_web" ]]; then
+      sed -i "s|^WEBHOOK_URL=\"\"|WEBHOOK_URL=\"$w_web\"|" "$g_conf"
+    fi
+    
+    sed -i "s|^LOGGING=\"yes\"|LOGGING=\"$w_log\"|" "$g_conf"
+    
+    if [[ -n "$w_log_ret" ]]; then
+      sed -i "s|^LOG_RETENTION=\"\"|LOG_RETENTION=\"$w_log_ret\"|" "$g_conf"
+    fi
+    
+    if [[ -n "$w_k_last" ]]; then sed -i "s|^KEEP_LAST=\"\"|KEEP_LAST=\"$w_k_last\"|" "$g_conf" ; fi
+    if [[ -n "$w_k_hourly" ]]; then sed -i "s|^KEEP_HOURLY=\"8\"|KEEP_HOURLY=\"$w_k_hourly\"|" "$g_conf" ; fi
+    if [[ -n "$w_k_daily" ]]; then sed -i "s|^KEEP_DAILY=\"7\"|KEEP_DAILY=\"$w_k_daily\"|" "$g_conf" ; fi
+    if [[ -n "$w_k_weekly" ]]; then sed -i "s|^KEEP_WEEKLY=\"4\"|KEEP_WEEKLY=\"$w_k_weekly\"|" "$g_conf" ; fi
+    if [[ -n "$w_k_monthly" ]]; then sed -i "s|^KEEP_MONTHLY=\"12\"|KEEP_MONTHLY=\"$w_k_monthly\"|" "$g_conf" ; fi
+    if [[ -n "$w_k_yearly" ]]; then sed -i "s|^KEEP_YEARLY=\"10\"|KEEP_YEARLY=\"$w_k_yearly\"|" "$g_conf" ; fi
+    
+    echo -e "Global configuration saved.\n"
+  fi
+
+  echo "--- Repository Setup ---"
+  read -rp "1. Repository Name (e.g., local-backup): " w_name
+  if [[ -z "$w_name" ]]; then echo "Name cannot be empty. Exiting." ; exit 1 ; fi
+  if [[ -f "$config_dir/$w_name.conf" ]]; then echo "Repository already exists! Exiting." ; exit 1 ; fi
+
+  read -rp "2. Restic Repository Location (e.g., /mnt/backup, s3:s3.amazonaws.com/bucket): " w_repo
+  read -rs -p "3. Restic Password: " w_pass ; echo ""
+  read -rp "4. Target Directory to Backup (default: $HOME): " w_dir
+  w_dir=${w_dir:-$HOME}
+  
+  echo "Creating configuration..."
+  
+  local new_conf="$config_dir/$w_name.conf"
+  config_file > "$new_conf"
+  
+  sed -i "s|RESTIC_REPO=\"\"|RESTIC_REPO=\"$w_repo\"|" "$new_conf"
+  sed -i "s|RESTIC_PASSWORD=\"\"|RESTIC_PASSWORD=\"$w_pass\"|" "$new_conf"
+  sed -i "s|^BACKUP_DIR=.*|BACKUP_DIR=\"$w_dir\"|" "$new_conf"
+  
+  chmod 600 "$new_conf"
+  touch "$config_dir/$w_name-exclusions"
+  touch "$config_dir/$w_name-datefile"
+  simple_exclusions > "$config_dir/$w_name-exclusions"
+  date -R > "$config_dir/$w_name-datefile"
+  
+  echo -e "\nConfiguration [$w_name] created successfully!"
+  echo "Tip: You can edit your global configuration at any time by running: rescript config --global"
+  read -rp "Would you like to initialize this repository now? (y/n): " ans
+  case $ans in
+    y|yes) 
+      "$0" "$w_name" init
+      ;;
+    *)
+      echo "You can initialize it later by running: rescript $w_name init"
+      ;;
+  esac
+}
+
 # Exclusions menu
 function exclusion_menu {
-  echo "======================"
+  echo "$ui_line_eq"
   echo "  Exclusions Options  "
-  echo "======================"
+  echo "$ui_line_eq"
   echo " [1] Edit Existing    "
   echo " [2] Build Exclusions "
   echo " [3] Back to Main Menu"
   echo " [4] Exit             "
-  echo "======================"
+  echo "$ui_line_eq"
   read -rp "Select an option and press Enter [ 1 - 4 ]: " excl_opt
   case $excl_opt in
     1|edit) clear ; edit_exclusions ;;
@@ -350,14 +301,14 @@ function _build_exclusions_action {
 }
 
 function build_exclusions {
-  echo "======================"
+  echo "$ui_line_eq"
   echo "    Build Options     "
-  echo "======================"
+  echo "$ui_line_eq"
   echo " [1] For Home Dir     "
   echo " [2] For System Dir   "
   echo " [3] Back             "
   echo " [4] Exit             "
-  echo "======================"
+  echo "$ui_line_eq"
   read -rp "Select an option and press Enter [ 1 - 4 ]: " excl_bld
   case "$excl_bld" in
     1|home) _build_exclusions_action "long_exclusions" ;;

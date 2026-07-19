@@ -95,9 +95,13 @@ and open your configuration and exclusions files.
 
 Usage:
   rescript config
+  rescript config --wizard
+  rescript config -g, --global
 
 Global flags:
   -h, --help            Display usage.
+  -g, --global          Open the global configuration file directly.
+  --wizard              Run the interactive config wizard to easily set up a new repository.
 
 EOF
 }
@@ -295,6 +299,7 @@ Usage:
   rescript [repo_name] restorer [flags] [host|path|snapshot ID|tag]
 
 Command flags:
+  -i, --interactive     Fetch a list of snapshots and present an interactive menu to choose from.
   -H, --host hostname   Only consider snapshots for this host
                         when snapshot-ID is [latest].
   -P, --path path       Only consider snapshots which include
@@ -492,6 +497,30 @@ cat <<EOF
 
 Usage:
   rescript [repo_name] umounter
+
+Global flags:
+  -h, --help            Display usage.
+
+EOF
+}
+
+function status-help {
+cat <<EOF
+[status] prints a dashboard showing the state of your repositories.
+
+This command provides a quick overview of configured repositories,
+displaying snapshot counts, the latest snapshot date, and optionally
+the repository size and health. It can be run on a single repository
+or globally for all configured repositories.
+
+Usage:
+  rescript status [flags]
+  rescript [repo_name] status [flags]
+
+Command flags:
+  -F, --full            Display a full dashboard including size and health.
+                        Note: This takes significantly more time.
+  -X, --exclude         Exclude specific repositories (e.g. -X foo -X bar).
 
 Global flags:
   -h, --help            Display usage.
