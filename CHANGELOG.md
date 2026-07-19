@@ -4,7 +4,7 @@
 
 ---
 
-### July 11, 2026
+### July 18, 2026
 
 #### 🚀 Major Features
 
