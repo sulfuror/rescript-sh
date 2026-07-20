@@ -1,11 +1,12 @@
 ---
 title: Automatic
 ---
-The `automatic` command is implicitly executed by default when you run `rescript [repo]` without specifying any explicit command. 
+The `automatic` command is implicitly executed by default when you run `rescript [repo]` without specifying any explicit command.
 
-It triggers a full backup routine, running your `PRE_CMD` hooks, taking a snapshot using your configured variables, running `cleanup` to enforce retention policies, and finally executing your `POST_CMD` hooks and sending webhook/email notifications. 
+It triggers a full backup routine, running your `PRE_CMD` hooks, taking a snapshot using your configured variables, running `cleanup` to enforce retention policies, and finally executing your `POST_CMD` hooks and sending webhook/email notifications.
 
 Usage:
+
 ```bash
 rescript [repo_name] automatic
 ```
@@ -15,16 +16,62 @@ rescript [repo_name] automatic
 ### Example Output
 
 ```text
-Files:           15 new,    23 changed,  4560 unmodified
-Dirs:            0 new,     5 changed,   120 unmodified
-Added to the repo: 12.5 MiB
+=======================================================================================================================================
+                                                      Rescript Execution Context
+=======================================================================================================================================
+  Date/Time      : 2026-07-20 10:00:00
+  System         : Linux
+  Hostname       : server-01
+  Profile        : my_repo
+  Command        : automatic
+  Mode           : Live
+  Backend        : Local
+  Restic Version : 0.19.0
+  Destination    : /backup/destination/my_repo
+  Backup Source  : /home/user/Documents
+  Exclusions     : 6 rules applied
+  Auto-Clean     : Every 7days
+=======================================================================================================================================
 
-processed 4598 files, 2.3 GiB in 0:04
-snapshot b394ae18 saved
+Taking a Snapshot...
+open repository
+using parent snapshot b42180e0
+load index files
+start scan on [/home/user/Documents]
+start backup on [/home/user/Documents]
+scan finished in 0.101s: 3 files, 315.131 MiB
 
-Keeping 14 snapshots...
-removing 1 old snapshots
-[0:00] 100.00%  1 / 1 files deleted
+Files:           0 new,     0 changed,     3 unmodified
+Dirs:            0 new,     2 changed,     2 unmodified
+Data Blobs:      0 new
+Tree Blobs:      2 new
+Added to the repository: 756 B (589 B stored)
+
+processed 3 files, 315.131 MiB in 0:00
+snapshot 013464ea saved
+There are 6 exclusion rules...
+---------------------------------------------------------------------------------------------------------------------------------------
+Snapshots List...
+=======================================================================================================================================
+ID        Time                 Host          Tags    Size
+=======================================================================================================================================
+b42180e0  2026-07-18 21:40:28  server-01             315.131 MiB
+013464ea  2026-07-20 10:00:00  server-01             315.131 MiB
+---------------------------------------------------------------------------------------------------------------------------------------
+Timestamps shown in local timezone
+2 snapshots
+---------------------------------------------------------------------------------------------------------------------------------------
+Next cleanup and check in 5 days...
+---------------------------------------------------------------------------------------------------------------------------------------
+Calculating repo stats        : [####################](100%)
+
+=======================================================================================================================================
+Summarized Info      | Restore Size       | Deduplicated Size   
+=======================================================================================================================================
+Latest Snapshot      |  315.131 MiB       |  314.307 MiB        
+All Snapshots        |  5.539 GiB         |  314.329 MiB        
+---------------------------------------------------------------------------------------------------------------------------------------
+Duration: 7 seconds
 ```
 
 **[⇦ Commands](home/commands-and-options)**
