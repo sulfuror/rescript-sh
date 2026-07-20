@@ -21,6 +21,12 @@ rescript [repo_name] cleanup [flags] [options]
 ```bash
 rescript my_repo cleanup
 ```
+*Output:*
+```text
+Keeping 14 snapshots...
+removing 1 old snapshots
+[0:00] 100.00%  1 / 1 files deleted
+```
 
 **Simulate a cleanup (Dry-Run):**
 ```bash

@@ -15,6 +15,10 @@ rescript [repo_name] extract [snapshot-ID] [path/in/snapshot] [local/destination
 ```bash
 rescript my_repo extract 3a4b5c6d /home/user/Documents/report.pdf /home/user/Desktop/
 ```
+*Output:*
+```text
+[0:02] 100.00%  1 / 1 files extracted
+```
 
 **Extract an entire folder:**
 ```bash

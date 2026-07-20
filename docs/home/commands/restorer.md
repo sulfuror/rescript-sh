@@ -18,6 +18,18 @@ rescript [repo_name] restorer [flags] [snapshot ID|tag|latest]
 ```bash
 rescript my_repo restorer -i
 ```
+*Output:*
+```text
+======================================================
+  Select Snapshot to Restore  
+======================================================
+ [1] 3a4b5c6d (2026-07-10 10:00:00) server-01
+ [2] 8f9e0d1c (2026-07-11 10:00:00) server-01
+ [3] 1a2b3c4d (2026-07-12 10:00:00) server-01
+ [4] Exit
+======================================================
+Select the snapshot you want to restore [ 1 - 4 ]: 
+```
 *This will fetch all available snapshots and present a numbered menu. Simply type the number corresponding to the snapshot you want to restore.*
 
 **Restore the latest snapshot manually:**
