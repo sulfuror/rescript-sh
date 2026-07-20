@@ -15,12 +15,6 @@ rescript [repo_name] automatic
 ### Example Output
 
 ```text
-======================
-  Repository Status   
-======================
-   ✓ my_repo
-======================
-
 Files:           15 new,    23 changed,  4560 unmodified
 Dirs:            0 new,     5 changed,   120 unmodified
 Added to the repo: 12.5 MiB
