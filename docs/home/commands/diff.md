@@ -1,5 +1,5 @@
 ---
-title: rescript diff
+title: diff
 ---
 
 The `diff` command automatically compares two snapshots to show you exactly which files were added, modified, or deleted. 

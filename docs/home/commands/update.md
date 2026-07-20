@@ -1,5 +1,5 @@
 ---
-title: Update
+title: update
 ---
 Check for and download the latest version of rescript directly from the GitLab master branch. 
 

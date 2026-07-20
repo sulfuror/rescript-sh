@@ -1,5 +1,5 @@
 ---
-title: rescript backup
+title: backup
 ---
 
 The `backup` command takes a snapshot using the values set in your repository's configuration file. In v6.0+, it features an auto-heal network retry loop for maximum resilience.

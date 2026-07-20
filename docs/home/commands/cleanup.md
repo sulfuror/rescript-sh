@@ -1,5 +1,5 @@
 ---
-title: rescript cleanup
+title: cleanup
 ---
 
 The `cleanup` command performs a `forget` operation according to the retention policies defined in your configuration file, followed by a `prune` operation to free up disk space.

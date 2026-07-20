@@ -1,5 +1,5 @@
 ---
-title: rescript upgrade
+title: upgrade
 ---
 
 The `upgrade` command easily upgrades your restic repository to the newer v2 repository format (which supports better deduplication and compression).

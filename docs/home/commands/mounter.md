@@ -1,5 +1,5 @@
 ---
-title: rescript mounter
+title: mounter
 ---
 
 The `mounter` command allows you to mount your remote or local backup repository as a virtual file system in your `/home`. This lets you browse your backups exactly like regular folders using your file manager.

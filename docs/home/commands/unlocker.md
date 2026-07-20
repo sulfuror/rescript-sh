@@ -1,5 +1,5 @@
 ---
-title: rescript unlocker
+title: unlocker
 ---
 
 The `unlocker` command deletes the temporary `.lock` file created by the Rescript wrapper.

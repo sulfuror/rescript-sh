@@ -1,5 +1,5 @@
 ---
-title: rescript restorer
+title: restorer
 ---
 
 The `restorer` command easily restores a snapshot. It will automatically create a new folder in your home directory (e.g., `restore-snapshotID-randomnumber`) and restore the contents there, ensuring no existing files are overwritten.

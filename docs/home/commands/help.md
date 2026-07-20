@@ -1,5 +1,5 @@
 ---
-title: Help
+title: help
 ---
 Display rescript usage and general information about the script's flags and commands. You can also use it to get specific help for a command.
 

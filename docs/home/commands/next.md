@@ -1,5 +1,5 @@
 ---
-title: Next
+title: next
 ---
 Displays the calculated time remaining until the next automatic cleanup (prune and forget) and integrity check will be executed for your repository.
 

@@ -1,5 +1,5 @@
 ---
-title: rescript all
+title: all
 ---
 
 The `all` command is a powerful orchestrator that executes a given rescript command sequentially or in parallel across *all* your configured repositories. It automatically handles global pre/post hooks.

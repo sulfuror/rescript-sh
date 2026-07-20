@@ -51,20 +51,18 @@ Please see restic `help` and [documentation](https://restic.readthedocs.io/en/st
 
 ### Rescript Global Flags
 
-You can mix Rescript and Restic flags naturally.
+Rescript features several global flags that can be mixed naturally with its own commands or native `restic` commands.
 
-Usage:
-```
-rescript [repo_name] [command] [flags]
-```
+**[View all Global Flags details here](home/global-flags)**
 
 1. **`-D, --debug`**: Enable trace debugging (`set -xv`) for the script.
 2. **`-E, --email`**: force to send email with output.
 3. **`-h, --help`**: display help for a specific command.
 4. **`-L, --log`**: Create a logfile for this specific manual run.
-5. **`-Q, --quiet`**: silence output. If you use `--log` it will still log the output.
-6. **`-S, --simulate`**: Performs a dry-run of destructive commands like `backup` or `cleanup`, printing the exact restic command that would be run without actually modifying the repo.
-7. **`-T, --timer`**: display output with date, time and duration at the end of execution.
+5. **`-M, --metadata`**: Display execution context metadata.
+6. **`-Q, --quiet`**: silence output. If you use `--log` it will still log the output.
+7. **`-S, --simulate`**: Performs a dry-run of destructive commands like `backup` or `cleanup`, printing the exact restic command that would be run without actually modifying the repo.
+8. **`-T, --timer`**: display output with date, time and duration at the end of execution.
 
 Make use of `rescript` global flags with `restic` commands normally:
 ```

@@ -1,5 +1,5 @@
 ---
-title: rescript extract
+title: extract
 ---
 
 The `extract` command restores a single file or directory from a specific snapshot to your local machine. It features a custom progress bar to monitor extraction speed.

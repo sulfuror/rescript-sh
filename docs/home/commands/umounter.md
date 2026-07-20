@@ -1,5 +1,5 @@
 ---
-title: rescript umounter
+title: umounter
 ---
 
 The `umounter` command elegantly kills any background `mounter` processes and safely unmounts the repository from your local file system.

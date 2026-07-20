@@ -1,5 +1,5 @@
 ---
-title: rescript env
+title: env
 ---
 
 The `env` command displays the exact variable values currently loaded from your repository's configuration file. It is incredibly useful for debugging your configuration.

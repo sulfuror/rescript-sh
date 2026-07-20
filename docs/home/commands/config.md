@@ -1,5 +1,5 @@
 ---
-title: rescript config
+title: config
 ---
 
 The `config` command helps you configure repository profiles, global settings, and exclusions without manually finding the configuration files.

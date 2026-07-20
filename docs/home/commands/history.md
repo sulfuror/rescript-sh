@@ -1,5 +1,5 @@
 ---
-title: rescript history
+title: history
 ---
 
 The `history` command displays a detailed timeline of a specific file or folder across all snapshots. It allows you to see exactly when a file was modified or deleted in your backup history.

@@ -1,25 +1,36 @@
 ---
-title: rescript size
+title: size
 ---
 
-The `size` command calculates the exact size of a specific snapshot ID. Because Restic deduplicates data, calculating the isolated size of a single snapshot requires processing. This command wraps that functionality with a custom progress bar.
+The `size` command calculates the total size of a specific directory within a snapshot by parsing the `restic ls` output. If no snapshot is specified, it defaults to calculating the size in the `latest` snapshot. It wraps the process with a custom progress bar.
 
 ### Usage
 ```bash
-rescript [repo_name] size [snapshot-ID]
+rescript [repo_name] size [snapshot-ID] <path>
 ```
 
 ### Examples
 
-**Calculate the size of a specific snapshot:**
+**Calculate the size of a directory in the latest snapshot:**
 ```bash
-rescript my_repo size 3a4b5c6d
+rescript my_repo size /home/user/Documents
 ```
 *Output:*
 ```text
-[0:05] 100.00%  1234 / 1234 directories,  5678 / 5678 files
+Calculating total size        : [####################](100%)
 
-Total Size: 45.2 GiB
+Total size for [/home/user/Documents] in snapshot latest: 40.80 GB
+```
+
+**Calculate the size of a directory in a specific snapshot:**
+```bash
+rescript my_repo size 3a4b5c6d /home/user/Documents
+```
+*Output:*
+```text
+Calculating total size        : [####################](100%)
+
+Total size for [/home/user/Documents] in snapshot 3a4b5c6d: 40.80 GB
 ```
 
 **[⇦ Commands](../commands-and-options)**

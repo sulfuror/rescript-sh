@@ -1,5 +1,5 @@
 ---
-title: Automatic
+title: automatic
 ---
 The `automatic` command is implicitly executed by default when you run `rescript [repo]` without specifying any explicit command.
 

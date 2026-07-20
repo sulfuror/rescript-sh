@@ -1,5 +1,5 @@
 ---
-title: rescript search
+title: search
 ---
 
 The `search` command allows you to quickly search for a specific file or directory across all your snapshots. 

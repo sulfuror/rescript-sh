@@ -1,5 +1,5 @@
 ---
-title: rescript info
+title: info
 ---
 
 The `info` command calculates and displays detailed repository statistics in a highly readable, custom-formatted table.

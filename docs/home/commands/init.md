@@ -1,5 +1,5 @@
 ---
-title: Init
+title: init
 ---
 Initialize a new restic repository. When you create a new configuration profile, you must run this command to format the target destination and prepare it to receive restic snapshots.
 

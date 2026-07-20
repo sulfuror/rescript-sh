@@ -1,5 +1,5 @@
 ---
-title: Version
+title: version
 ---
 Display the current version of the installed rescript script.
 

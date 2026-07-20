@@ -1,5 +1,5 @@
 ---
-title: rescript snaps
+title: snaps
 ---
 
 The `snaps` command lists all available snapshots in your repository in a clean, compact view.

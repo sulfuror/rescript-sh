@@ -1,5 +1,5 @@
 ---
-title: rescript status
+title: status
 ---
 
 The `status` command (introduced in v6.0) provides a rapid dashboard overview of all your repositories. 

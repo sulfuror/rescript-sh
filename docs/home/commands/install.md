@@ -1,5 +1,5 @@
 ---
-title: Install
+title: install
 ---
 Install rescript to your system so it can be executed from any terminal. The install command will ask if you want a system-wide installation (requires root/sudo) or a local installation just for your user.
 

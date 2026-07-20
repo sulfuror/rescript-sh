@@ -1,5 +1,5 @@
 ---
-title: Editor
+title: editor
 ---
 Change default text editor used by rescript. By default rescript uses `nano` to edit the configuration files when using the `config` command. If you want to use a different text editor, you can change it globally by running the `editor` command.
 
