@@ -20,6 +20,11 @@ rescript my_repo search "report.pdf"
 ```bash
 rescript my_repo search "*.xlsx"
 ```
-*This will search through all snapshots and print exactly which snapshots contain matching files.*
+*Output:*
+```text
+Found 2 matching files in snapshot 3a4b5c6d:
+/home/user/Documents/budget.xlsx
+/home/user/Documents/report.xlsx
+```
 
 **[⇦ Commands](../commands-and-options)**

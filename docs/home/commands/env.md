@@ -15,10 +15,25 @@ rescript [repo_name] env [flags] [VARNAME]
 ```bash
 rescript my_repo env
 ```
+*Output:*
+```text
+======================
+     Environment      
+======================
+BACKUP_DIR:     /home/user/Documents/
+RESTIC_OPTS:    --exclude-caches
+KEEP_LAST:      14
+CLEAN:          7
+======================
+```
 
 **Display a specific variable's value:**
 ```bash
 rescript my_repo env KEEP_LAST
+```
+*Output:*
+```text
+14
 ```
 
 **[⇦ Commands](../commands-and-options)**
