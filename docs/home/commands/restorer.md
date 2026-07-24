@@ -6,11 +6,15 @@ The `restorer` command easily restores a snapshot. It will automatically create 
 
 ### Usage
 ```bash
-rescript [repo_name] restorer [flags] [snapshot ID|tag|latest]
+rescript [repo_name] restorer [flags] [snapshot ID]
 ```
 
-### Flags
+### Command flags
 - `-i, --interactive`: (v6.0+) opens a numbered, navigable menu allowing you to restore any snapshot with a single keystroke.
+- `-H, --host hostname`: Only consider snapshots for this host when snapshot-ID is `latest`.
+- `-P, --path path`: Only consider snapshots which include this absolute path for snapshot-ID `latest`.
+- `-Z, --snapshot ID`: Indicate snapshot-ID to restore.
+- `--tag tagname`: Only consider snapshots which include this taglist for snapshot-ID `latest`.
 
 ### Examples
 
@@ -42,4 +46,4 @@ rescript my_repo restorer latest
 rescript my_repo restorer 3a4b5c6d
 ```
 
-**[⇦ Commands](../commands-and-options)**
+**[⇦ Commands & Options](../commands-and-options)**

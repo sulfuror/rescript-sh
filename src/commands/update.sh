@@ -29,6 +29,10 @@ function update {
           if [[ "$(whoami)" = "root" ]] ; then
             mv "$rescript_latest" "$(command -v rescript)"
             echo "Rescript have been updated to the latest version!"
+            read -rp "Do you want to install/update the bash autocomplete feature? (y/N): " ans_auto
+            if [[ "$ans_auto" =~ ^[Yy] ]]; then
+              "$(command -v rescript)" install --autocomplete-only
+            fi
           else
             echo "Rescript is located at $(command -v rescript)."
             echo "To update in this location you need to run [update] again as [root]:"
@@ -42,6 +46,10 @@ function update {
           chmod 700 "$rescript_latest"
           mv "$rescript_latest" "$(command -v rescript)"
           echo "Rescript have been updated to the latest version!"
+          read -rp "Do you want to install/update the bash autocomplete feature? (y/N): " ans_auto
+          if [[ "$ans_auto" =~ ^[Yy] ]]; then
+            "$(command -v rescript)" install --autocomplete-only
+          fi
         fi
         ;;
       *)

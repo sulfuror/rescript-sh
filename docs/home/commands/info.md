@@ -32,4 +32,4 @@ All Snapshots        | 1.20 TiB           | 180.50 GiB
 ```
 *(Notice how the "Restore Size" for all snapshots combined is massive (1.20 TiB), but thanks to deduplication, it only occupies 180.50 GiB of actual disk space in the repository!)*
 
-**[⇦ Commands](../commands-and-options)**
+**[⇦ Commands & Options](../commands-and-options)**

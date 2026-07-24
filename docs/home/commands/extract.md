@@ -32,4 +32,4 @@ Extracting [/home/user/Photos] to [./Photos]...
 [0:02] 100.00%  1 / 1 files extracted
 ```
 
-**[⇦ Commands](../commands-and-options)**
+**[⇦ Commands & Options](../commands-and-options)**

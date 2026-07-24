@@ -1,5 +1,32 @@
 # Rescript Changelog
 
+## v6.1
+
+---
+
+### July 23, 2026
+
+#### 🚀 Major Features
+
+* **Autocompletion Customization:** The `install` command now supports a `--autocomplete-only [system|user]` flag to install or update the Bash autocompletion script without reinstalling the binary. The `update` command now intelligently prompts you to update autocompletion after fetching a new version.
+* **Global Metadata Context:** The `-M, --metadata` flag is now fully integrated as a global flag across all rescript commands, automatically prepending the detailed Execution Context block to the standard output.
+* **Enhanced Size Command:** The `size` command was refactored to support querying specific snapshots using `rescript [repo] size [snapshot-ID] <path>`. The `-H, --host` flag behavior was refined to strictly filter snapshots only when querying `latest`.
+
+#### 🐞 Bug Fixes
+
+* **Strict Mode Vulnerabilities (set -u):** Resolved several silent crashes caused by uninitialized variables across the codebase after enforcing Bash strict mode.
+* **Restorer Internal Conflict:** Fixed a critical bug in the `restorer` command where its `-T` shortcut for tags was being swallowed by the global `--timer` flag. The shortflag was removed to strictly enforce `--tag`, flawlessly aligning with Restic's native syntax and eliminating conflicts.
+* **Automated Tests Stability:** The test suite (`07_strict_mode_edge_cases.sh`) was sanitized to avoid using arbitrary `ls` and `find` commands, which previously caused automated test loops to stall indefinitely.
+
+#### 📖 Documentation
+
+* **Wiki Link Sanitization:** Conducted a massive overhaul of the Wiki documentation to fix widespread 404 broken links. All relative paths were sanitized to strip the conflicting `home/` prefixes that broke GitLab Wiki's internal routing.
+* **Command Helps Synced:** Performed a comprehensive audit of all `src/04_help.sh` menus and `docs/` markdown files to ensure 100% parity with the internal bash flag parser in `06_main.sh`.
+
+---
+
+*End of changelog for version 6.1*
+
 ## v6.0
 
 ---

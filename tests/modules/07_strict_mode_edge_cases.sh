@@ -42,3 +42,23 @@ if echo "$out" | grep -qi "unbound variable"; then
 else
   echo -e "[${c_green}PASS${c_reset}] (Handled by restic cleanly)"
 fi
+# Test commands for unbound variables (with and without standard flags)
+commands=("backup" "check" "cleanup" "diff" "env" "extract" "size" "snaps" "status")
+for cmd in "${commands[@]}"; do
+  echo -ne " ${c_cyan}Test:${c_reset} Strict Mode: Command '$cmd' (bare & flags) "
+  
+  out_bare=$(eval "$RESCRIPT test $cmd" 2>&1)
+  if echo "$out_bare" | grep -qi "unbound variable"; then
+    echo -e "[${c_red}FAIL${c_reset}] (Bare command crashed)"
+    continue
+  fi
+  
+  # Command with standard flags (excluding -E to avoid email send attempts)
+  out_flags=$(eval "$RESCRIPT test $cmd -D -L -Q -S -T -M" 2>&1)
+  if echo "$out_flags" | grep -qi "unbound variable"; then
+    echo -e "[${c_red}FAIL${c_reset}] (Flags command crashed)"
+    continue
+  fi
+  
+  echo -e "[${c_green}PASS${c_reset}]"
+done

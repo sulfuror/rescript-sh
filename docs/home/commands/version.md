@@ -14,4 +14,4 @@ rescript version
 rescript 6.0
 ```
 
-**[⇦ Commands](home/commands-and-options)**
+**[⇦ Commands & Options](../commands-and-options)**

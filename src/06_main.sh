@@ -251,7 +251,12 @@ case "$cmd" in
     ;;
   restorer)
     shopt -u nocasematch
-    if [[ ! "$1" ]] ; then
+    snap_flag=""
+    host_flag=""
+    path_flag=""
+    tag_flag=""
+    interactive_flag=""
+    if [[ ! "${1:-}" ]] ; then
       echo "You have not indicated any option..."
       echo ""
       restorer-help
@@ -270,7 +275,6 @@ case "$cmd" in
         -Z) snap_flag="${2:-}" ; shift ;;
         --snapshot=*) snap_flag="${1#*=}" ;;
         --snapshot) snap_flag="${2:-}" ; shift ;;
-        -T) tag_flag="${2:-}" ; shift ;;
         --tag=*) tag_flag="${1#*=}" ;;
         --tag) tag_flag="${2:-}" ; shift ;;
         -i|--interactive) interactive_flag="true" ;;
@@ -313,6 +317,7 @@ case "$cmd" in
     execute_with_metrics run_quietly upgrade_repo
     ;;
   *)
+    shopt -u nocasematch
     rest=("$cmd")
     for arg in "$@"; do
       if _parse_standard_flags "$arg" ; then continue ; fi

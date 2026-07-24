@@ -27,4 +27,4 @@ Found 2 matching files in snapshot 3a4b5c6d:
 /home/user/Documents/report.xlsx
 ```
 
-**[⇦ Commands](../commands-and-options)**
+**[⇦ Commands & Options](../commands-and-options)**

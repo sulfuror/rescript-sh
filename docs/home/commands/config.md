@@ -33,4 +33,4 @@ rescript config
 ```
 *It will ask which editor to use (nano, vim, etc.) and let you choose between editing the `conf` file or the `exclusions` file.*
 
-**[⇦ Commands](../commands-and-options)**
+**[⇦ Commands & Options](../commands-and-options)**

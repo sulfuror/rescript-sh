@@ -74,4 +74,4 @@ All Snapshots        |  5.539 GiB         |  314.329 MiB
 Duration: 7 seconds
 ```
 
-**[⇦ Commands](home/commands-and-options)**
+**[⇦ Commands & Options](../commands-and-options)**

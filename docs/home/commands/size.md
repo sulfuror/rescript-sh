@@ -6,8 +6,11 @@ The `size` command calculates the total size of a specific directory within a sn
 
 ### Usage
 ```bash
-rescript [repo_name] size [snapshot-ID] <path>
+rescript [repo_name] size [snapshot-ID] <path> [flags]
 ```
+
+### Command flags
+* `-H, --host hostname`: Only consider snapshots for this host (only applies when no snapshot ID is provided, defaulting to `latest`).
 
 ### Examples
 
@@ -33,4 +36,4 @@ Calculating total size        : [####################](100%)
 Total size for [/home/user/Documents] in snapshot 3a4b5c6d: 40.80 GB
 ```
 
-**[⇦ Commands](../commands-and-options)**
+**[⇦ Commands & Options](../commands-and-options)**

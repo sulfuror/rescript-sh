@@ -82,4 +82,4 @@ Commands usage:
   rescript help [command]
 ```
 
-**[⇦ Commands](home/commands-and-options)**
+**[⇦ Commands & Options](../commands-and-options)**

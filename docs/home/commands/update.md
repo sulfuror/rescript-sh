@@ -17,4 +17,4 @@ rescript version 6.0 is available; do you want to install it? (y/n): y
 Rescript have been updated to the latest version!
 ```
 
-**[⇦ Commands](home/commands-and-options)**
+**[⇦ Commands & Options](../commands-and-options)**

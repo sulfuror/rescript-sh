@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ============================================================== #
-version="6.0"
+version="6.1"
 set -euo pipefail
 # Initialize internal variables to prevent unbound variable errors
 context_flag=""
@@ -20,6 +20,7 @@ cmd=""
 exit_code=""
 latest_cmd=""
 context_printed=""
+log=""
 function hide_cursor {
   tput civis 2> /dev/null || true
 }
@@ -201,7 +202,7 @@ function _send_email {
   if [[ -n "$EMAIL" ]] ; then
     if [[ "$(command -v mail)" ]] ; then
       if [[ "$int" = "false" ]] ; then
-        if [[ -e "$log" ]] ; then
+        if [[ -n "${log:-}" && -e "$log" ]] ; then
           logmessage="Logfile: $log"
           catlog=$(sed -E "s/$(printf '\033')\[([0-9]{1,2}(;[0-9]{1,2})?)?[mGK]//g" "$log")
         else
@@ -1316,6 +1317,7 @@ Global flags:
   -E, --email           Force to send email with output.
   -h, --help            Display usage.
   -L, --log             Create log file with command output.
+  -M, --metadata        Display execution context metadata.
   -Q, --quiet           Silence output.
   -S, --simulate        Simulate execution (dry-run).
   -T, --timer           Display output with date, time and duration.
@@ -1349,6 +1351,7 @@ Global flags:
   -E, --email           Force to send email with output.
   -h, --help            Display usage.
   -L, --log             Create log file with command output.
+  -M, --metadata        Display execution context metadata.
   -Q, --quiet           Silence output.
   -S, --simulate        Simulate execution (dry-run).
   -T, --timer           Display output with date, time and duration.
@@ -1411,6 +1414,7 @@ Global flags:
   -E, --email           Force to send email with output.
   -h, --help            Display usage.
   -L, --log             Create log file with command output.
+  -M, --metadata        Display execution context metadata.
   -Q, --quiet           Silence output.
   -S, --simulate        Simulate execution (dry-run).
   -T, --timer           Display output with date, time and duration.
@@ -1470,6 +1474,7 @@ Global flags:
   -E, --email           Force to send email with output.
   -h, --help            Display usage.
   -L, --log             Create log file with command output.
+  -M, --metadata        Display execution context metadata.
   -Q, --quiet           Silence output.
   -S, --simulate        Simulate execution (dry-run).
   -T, --timer           Display output with date, time and duration.
@@ -1498,6 +1503,7 @@ Global flags:
   -E, --email           Force to send email with output.
   -h, --help            Display usage.
   -L, --log             Create log file with command output.
+  -M, --metadata        Display execution context metadata.
   -Q, --quiet           Silence output.
   -S, --simulate        Simulate execution (dry-run).
   -T, --timer           Display output with date, time and duration.
@@ -1508,16 +1514,21 @@ EOF
 function install-help {
 cat <<EOF
 [install] is to simply copy the script to your PATH directory
-inside your HOME. If there is no PATH in your HOME then rescript
-will ask you if you want to create one. If the answer is yes then
-it will create a [/bin] directory inside your [./local] directory.
-If the answer is no then it will exit. If you don't want to use
-rescript from your PATH then remember to use it indicating the
-complete path where the script is located; if you have set another
-location for your PATH then just copy the script and put it there.
+inside your HOME and install the bash autocompletion feature.
+If there is no PATH in your HOME then rescript will ask you if you 
+want to create one. If the answer is yes then it will create a [/bin] 
+directory inside your [./local] directory. If the answer is no then it 
+will exit. If you don't want to use rescript from your PATH then remember 
+to use it indicating the complete path where the script is located.
 
 Usage:
-  rescript install
+  rescript install [flags]
+  rescript install --autocomplete-only [system|user]
+
+Command flags:
+  --autocomplete-only   Install ONLY the bash autocompletion feature
+                        without reinstalling the rescript binary.
+                        It can optionally receive 'system' or 'user'.
 
 Global flags:
   -h, --help            Display usage.
@@ -1565,6 +1576,7 @@ Global flags:
   -E, --email           Force to send email with output.
   -h, --help            Display usage.
   -L, --log             Create log file with command output.
+  -M, --metadata        Display execution context metadata.
   -Q, --quiet           Silence output.
   -S, --simulate        Simulate execution (dry-run).
   -T, --timer           Display output with date, time and duration.
@@ -1587,7 +1599,7 @@ be named with a unique name so it will not conflict with your
 existing directories.
 
 Usage:
-  rescript [repo_name] restorer [flags] [host|path|snapshot ID|tag]
+  rescript [repo_name] restorer [flags] [snapshot ID]
 
 Command flags:
   -i, --interactive     Fetch a list of snapshots and present an interactive menu to choose from.
@@ -1596,7 +1608,7 @@ Command flags:
   -P, --path path       Only consider snapshots which include
                         this [absolute] path for snapshot-ID [latest].
   -Z, --snapshot ID     Indicate snapshot-ID to restore.
-  -T, --tag tagname     Only consider snapshots which include this
+      --tag tagname     Only consider snapshots which include this
                         taglist for snapshot-ID [latest].
 
 Global flags:
@@ -1604,6 +1616,7 @@ Global flags:
   -E, --email           Force to send email with output.
   -h, --help            Display usage.
   -L, --log             Create log file with command output.
+  -M, --metadata        Display execution context metadata.
   -Q, --quiet           Silence output.
   -S, --simulate        Simulate execution (dry-run).
   -T, --timer           Display output with date, time and duration.
@@ -1627,6 +1640,7 @@ Global flags:
   -E, --email           Force to send email with output.
   -h, --help            Display usage.
   -L, --log             Create log file with command output.
+  -M, --metadata        Display execution context metadata.
   -Q, --quiet           Silence output.
   -S, --simulate        Simulate execution (dry-run).
   -T, --timer           Display output with date, time and duration.
@@ -1653,6 +1667,7 @@ Global flags:
   -E, --email           Force to send email with output.
   -h, --help            Display usage.
   -L, --log             Create log file with command output.
+  -M, --metadata        Display execution context metadata.
   -Q, --quiet           Silence output.
   -S, --simulate        Simulate execution (dry-run).
   -T, --timer           Display output with date, time and duration.
@@ -1681,6 +1696,7 @@ Global flags:
   -E, --email           Force to send email with output.
   -h, --help            Display usage.
   -L, --log             Create log file with command output.
+  -M, --metadata        Display execution context metadata.
   -Q, --quiet           Silence output.
   -S, --simulate        Simulate execution (dry-run).
   -T, --timer           Display output with date, time and duration.
@@ -1719,6 +1735,7 @@ Global flags:
   -E, --email           Force to send email with output.
   -h, --help            Display usage.
   -L, --log             Create log file with command output.
+  -M, --metadata        Display execution context metadata.
   -Q, --quiet           Silence output.
   -S, --simulate        Simulate execution (dry-run).
   -T, --timer           Display output with date, time and duration.
@@ -1743,6 +1760,7 @@ Global flags:
   -E, --email           Force to send email with output.
   -h, --help            Display usage.
   -L, --log             Create log file with command output.
+  -M, --metadata        Display execution context metadata.
   -Q, --quiet           Silence output.
   -S, --simulate        Simulate execution (dry-run).
   -T, --timer           Display output with date, time and duration.
@@ -1771,6 +1789,7 @@ Global flags:
   -E, --email           Force to send email with output.
   -h, --help            Display usage.
   -L, --log             Create log file with command output.
+  -M, --metadata        Display execution context metadata.
   -Q, --quiet           Silence output.
   -S, --simulate        Simulate execution (dry-run).
   -T, --timer           Display output with date, time and duration.
@@ -2072,7 +2091,7 @@ function env_conf {
 
   if [[ "${var_flag:-}" ]] ; then
     upper_var=$(echo "${var_flag:-}" | tr '[:lower:]' '[:upper:]')
-    search=$(grep "^[[:space:]]*${upper_var}=" "$config_repo" || true)
+    search=$(grep -E "^[[:space:]]*[A-Z0-9_]*${upper_var}[A-Z0-9_]*=" "$config_repo" || true)
     if [[ -z "$search" ]] ; then
       echo "There is no var named [$var_flag]..."
       echo ""
@@ -2087,7 +2106,11 @@ function env_conf {
         if (length($1) == 0) next;
         key = $1
         sub(/^[^=]*=/, "", $0)
-        printf "  %s%-25s%s : %s%s%s\n", cw, key, cr, cc, $0, cr
+        val = $0
+        if ((key ~ /PASSWORD/ || key ~ /KEY/) && val != "\"\"" && val != "") {
+          val = "\"********\""
+        }
+        printf "  %s%-25s%s : %s%s%s\n", cw, key, cr, cc, val, cr
       }'
     fi
   else
@@ -2099,7 +2122,11 @@ function env_conf {
       if (length($1) == 0) next;
       key = $1
       sub(/^[^=]*=/, "", $0)
-      printf "  %s%-25s%s : %s%s%s\n", cw, key, cr, cc, $0, cr
+      val = $0
+      if ((key ~ /PASSWORD/ || key ~ /KEY/) && val != "\"\"" && val != "") {
+        val = "\"********\""
+      }
+      printf "  %s%-25s%s : %s%s%s\n", cw, key, cr, cc, val, cr
     }'
   fi
 }
@@ -2336,11 +2363,45 @@ _rescript_completions() {
 }
 complete -F _rescript_completions rescript
 EOF
-    echo -e " \033[1;32m*\033[0m Bash autocompletion installed."
+    echo -e " \033[1;32m*\033[0m Bash autocompletion installed at: \033[1;37m$target_file\033[0m"
   fi
 }
 
 function install {
+  if [[ "${1:-}" == "--autocomplete-only" ]]; then
+    local target="${2:-}"
+    if [[ -z "$target" ]]; then
+      echo "$ui_line_eq"
+      echo "  Autocomplete Installation   "
+      echo "$ui_line_eq"
+      echo " [1] System-wide              "
+      echo " [2] For this user            "
+      echo "$ui_line_eq"
+      read -rp "Select an option [ 1 - 2 ]: " target_opt
+      case "$target_opt" in
+        1|system) target="system" ;;
+        2|user) target="user" ;;
+        *) echo "No valid action indicated; exiting..."; exit 1 ;;
+      esac
+    fi
+
+    if [[ "$target" == "system" ]]; then
+      if [[ "$(whoami)" != "root" ]]; then
+        echo "You must be [root] for system-wide installation. e.g.:"
+        echo "  sudo rescript install --autocomplete-only system"
+        exit 1
+      fi
+      if [[ "$unix_name" = "Darwin" ]] ; then
+        install_autocomplete "/usr/local/etc/bash_completion.d"
+      else
+        install_autocomplete "/etc/bash_completion.d"
+      fi
+    else
+      install_autocomplete "$HOME/.local/share/bash-completion/completions"
+    fi
+    exit 0
+  fi
+
   echo "$ui_line_eq"
   echo "     Installation     "
   echo "$ui_line_eq"
@@ -2348,7 +2409,7 @@ function install {
   echo " [2] For this user    "
   echo " [3] Exit             "
   echo "$ui_line_eq"
-  read -rp "Select an option and press Enter [ 1 - 4 ]: " installation
+  read -rp "Select an option and press Enter [ 1 - 3 ]: " installation
   case "$installation" in
     1|system)
       chmod 755 "$(basename "$0")"
@@ -2671,11 +2732,19 @@ function size {
     exit 1
   fi
   
+  local host_args=()
+  if [[ "$snapshot_id" == "latest" ]]; then
+    host_args=("--host" "$target_host")
+    echo -e "${c_white}Target Host:${c_reset} ${c_cyan}${target_host}${c_reset}\n"
+  else
+    echo -e "${c_white}Snapshot ID:${c_reset} ${c_cyan}${snapshot_id}${c_reset}\n"
+  fi
+  
   print_progress "Calculating total size" 50
   debug_start
 
   local total_size
-  total_size=$(restic ls -l --recursive --host "$target_host" "$snapshot_id" "${rest[@]}" 2>/dev/null | awk '
+  total_size=$(restic ls -l --recursive "${host_args[@]}" "$snapshot_id" "${rest[@]}" 2>/dev/null | awk '
     /^[-dcbp](r|-)[w|-](x|-)(r|-)[w|-](x|-)(r|-)[w|-](x|-)/ { sum += $4 }
     END {
       if (sum >= 1024^3) printf "%.2f GB\n", sum / (1024^3)
@@ -2683,7 +2752,7 @@ function size {
       else if (sum >= 1024) printf "%.2f KB\n", sum / 1024
       else printf "%d B\n", sum
     }
-  ')
+  ' || true)
   debug_stop
   print_progress "Calculating total size" 100
   echo -ne '\n'
@@ -2989,6 +3058,10 @@ function update {
           if [[ "$(whoami)" = "root" ]] ; then
             mv "$rescript_latest" "$(command -v rescript)"
             echo "Rescript have been updated to the latest version!"
+            read -rp "Do you want to install/update the bash autocomplete feature? (y/N): " ans_auto
+            if [[ "$ans_auto" =~ ^[Yy] ]]; then
+              "$(command -v rescript)" install --autocomplete-only
+            fi
           else
             echo "Rescript is located at $(command -v rescript)."
             echo "To update in this location you need to run [update] again as [root]:"
@@ -3002,6 +3075,10 @@ function update {
           chmod 700 "$rescript_latest"
           mv "$rescript_latest" "$(command -v rescript)"
           echo "Rescript have been updated to the latest version!"
+          read -rp "Do you want to install/update the bash autocomplete feature? (y/N): " ans_auto
+          if [[ "$ans_auto" =~ ^[Yy] ]]; then
+            "$(command -v rescript)" install --autocomplete-only
+          fi
         fi
         ;;
       *)
@@ -3302,6 +3379,10 @@ case "${1:-}" in
     esac
     ;;
   install)
+    if [[ "${2:-}" == "--autocomplete-only" ]]; then
+      install "${2:-}" "${3:-}"
+      exit
+    fi
     _check_help_or_error "${1:-}" "${2:-}"
     clear
     install
@@ -3404,7 +3485,7 @@ export SHOW_STATS="${SHOW_STATS:-}"
 export CONFIRMATION_EMAIL="${CONFIRMATION_EMAIL:-}"
 export DESTINATION="${DESTINATION:-}"
 
-export RESTIC_REPOSITORY="$RESTIC_REPO"
+export RESTIC_REPOSITORY="${RESTIC_REPO:-}"
 export B2_ACCOUNT_ID="${B2_ID:-}"
 export B2_ACCOUNT_KEY="${B2_KEY:-}"
 export AWS_ACCESS_KEY_ID="${AWS_ID:-}"
@@ -3426,14 +3507,14 @@ case "${2:-}" in
   init) restic init ; exit 0 ;;
 esac
 
-case "$RESTIC_REPO" in
+case "${RESTIC_REPO:-}" in
   sftp*) ping_target=${RESTIC_REPO#sftp*@} ; ping_target=${ping_target%:*} ; ping -c 1 "$ping_target" > /dev/null || true ; ping_code="$?" ;;
   rclone*) ping_target=${RESTIC_REPO#rclone:} ; rclone about "$ping_target" > /dev/null || true ; ping_code="$?" ;;
   /*) dir "$RESTIC_REPO" 2>/dev/null 1>/dev/null || true ; ping_code="$?" ;;
 esac
 
 if [[ "$ping_code" -gt "0" ]] ; then
-  error_message="Cannot access to: $RESTIC_REPO \nPlease check your connection. If your repository is not \ninitializated run [rescript $repo init]."
+  error_message="Cannot access to: ${RESTIC_REPO:-} \nPlease check your connection. If your repository is not \ninitializated run [rescript $repo init]."
   report_errors
   exit "$ping_code"
 fi
@@ -3441,7 +3522,7 @@ fi
 if [[ -n "${DESTINATION:-}" ]] ; then
   dest=$DESTINATION
 else
-  dest=$RESTIC_REPO
+  dest=${RESTIC_REPO:-}
 fi
 
 if [[ -n "${HOST:-}" ]] ; then
@@ -3732,7 +3813,12 @@ case "$cmd" in
     ;;
   restorer)
     shopt -u nocasematch
-    if [[ ! "$1" ]] ; then
+    snap_flag=""
+    host_flag=""
+    path_flag=""
+    tag_flag=""
+    interactive_flag=""
+    if [[ ! "${1:-}" ]] ; then
       echo "You have not indicated any option..."
       echo ""
       restorer-help
@@ -3751,7 +3837,6 @@ case "$cmd" in
         -Z) snap_flag="${2:-}" ; shift ;;
         --snapshot=*) snap_flag="${1#*=}" ;;
         --snapshot) snap_flag="${2:-}" ; shift ;;
-        -T) tag_flag="${2:-}" ; shift ;;
         --tag=*) tag_flag="${1#*=}" ;;
         --tag) tag_flag="${2:-}" ; shift ;;
         -i|--interactive) interactive_flag="true" ;;
@@ -3794,6 +3879,7 @@ case "$cmd" in
     execute_with_metrics run_quietly upgrade_repo
     ;;
   *)
+    shopt -u nocasematch
     rest=("$cmd")
     for arg in "$@"; do
       if _parse_standard_flags "$arg" ; then continue ; fi

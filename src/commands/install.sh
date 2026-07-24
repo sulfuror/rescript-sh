@@ -98,11 +98,45 @@ _rescript_completions() {
 }
 complete -F _rescript_completions rescript
 EOF
-    echo -e " \033[1;32m*\033[0m Bash autocompletion installed."
+    echo -e " \033[1;32m*\033[0m Bash autocompletion installed at: \033[1;37m$target_file\033[0m"
   fi
 }
 
 function install {
+  if [[ "${1:-}" == "--autocomplete-only" ]]; then
+    local target="${2:-}"
+    if [[ -z "$target" ]]; then
+      echo "$ui_line_eq"
+      echo "  Autocomplete Installation   "
+      echo "$ui_line_eq"
+      echo " [1] System-wide              "
+      echo " [2] For this user            "
+      echo "$ui_line_eq"
+      read -rp "Select an option [ 1 - 2 ]: " target_opt
+      case "$target_opt" in
+        1|system) target="system" ;;
+        2|user) target="user" ;;
+        *) echo "No valid action indicated; exiting..."; exit 1 ;;
+      esac
+    fi
+
+    if [[ "$target" == "system" ]]; then
+      if [[ "$(whoami)" != "root" ]]; then
+        echo "You must be [root] for system-wide installation. e.g.:"
+        echo "  sudo rescript install --autocomplete-only system"
+        exit 1
+      fi
+      if [[ "$unix_name" = "Darwin" ]] ; then
+        install_autocomplete "/usr/local/etc/bash_completion.d"
+      else
+        install_autocomplete "/etc/bash_completion.d"
+      fi
+    else
+      install_autocomplete "$HOME/.local/share/bash-completion/completions"
+    fi
+    exit 0
+  fi
+
   echo "$ui_line_eq"
   echo "     Installation     "
   echo "$ui_line_eq"
@@ -110,7 +144,7 @@ function install {
   echo " [2] For this user    "
   echo " [3] Exit             "
   echo "$ui_line_eq"
-  read -rp "Select an option and press Enter [ 1 - 4 ]: " installation
+  read -rp "Select an option and press Enter [ 1 - 3 ]: " installation
   case "$installation" in
     1|system)
       chmod 755 "$(basename "$0")"

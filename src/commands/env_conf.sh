@@ -4,7 +4,7 @@ function env_conf {
 
   if [[ "${var_flag:-}" ]] ; then
     upper_var=$(echo "${var_flag:-}" | tr '[:lower:]' '[:upper:]')
-    search=$(grep "^[[:space:]]*${upper_var}=" "$config_repo" || true)
+    search=$(grep -E "^[[:space:]]*[A-Z0-9_]*${upper_var}[A-Z0-9_]*=" "$config_repo" || true)
     if [[ -z "$search" ]] ; then
       echo "There is no var named [$var_flag]..."
       echo ""
@@ -19,7 +19,11 @@ function env_conf {
         if (length($1) == 0) next;
         key = $1
         sub(/^[^=]*=/, "", $0)
-        printf "  %s%-25s%s : %s%s%s\n", cw, key, cr, cc, $0, cr
+        val = $0
+        if ((key ~ /PASSWORD/ || key ~ /KEY/) && val != "\"\"" && val != "") {
+          val = "\"********\""
+        }
+        printf "  %s%-25s%s : %s%s%s\n", cw, key, cr, cc, val, cr
       }'
     fi
   else
@@ -31,7 +35,11 @@ function env_conf {
       if (length($1) == 0) next;
       key = $1
       sub(/^[^=]*=/, "", $0)
-      printf "  %s%-25s%s : %s%s%s\n", cw, key, cr, cc, $0, cr
+      val = $0
+      if ((key ~ /PASSWORD/ || key ~ /KEY/) && val != "\"\"" && val != "") {
+        val = "\"********\""
+      }
+      printf "  %s%-25s%s : %s%s%s\n", cw, key, cr, cc, val, cr
     }'
   fi
 }

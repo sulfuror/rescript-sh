@@ -50,4 +50,4 @@ system_etc      | 1          | 2026-07-10 09:15:00   | 450.00 MiB   | OK
 ========================================================================================
 ```
 
-**[⇦ Commands](../commands-and-options)**
+**[⇦ Commands & Options](../commands-and-options)**

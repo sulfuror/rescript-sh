@@ -25,6 +25,7 @@ Global flags:
   -E, --email           Force to send email with output.
   -h, --help            Display usage.
   -L, --log             Create log file with command output.
+  -M, --metadata        Display execution context metadata.
   -Q, --quiet           Silence output.
   -S, --simulate        Simulate execution (dry-run).
   -T, --timer           Display output with date, time and duration.
@@ -58,6 +59,7 @@ Global flags:
   -E, --email           Force to send email with output.
   -h, --help            Display usage.
   -L, --log             Create log file with command output.
+  -M, --metadata        Display execution context metadata.
   -Q, --quiet           Silence output.
   -S, --simulate        Simulate execution (dry-run).
   -T, --timer           Display output with date, time and duration.
@@ -120,6 +122,7 @@ Global flags:
   -E, --email           Force to send email with output.
   -h, --help            Display usage.
   -L, --log             Create log file with command output.
+  -M, --metadata        Display execution context metadata.
   -Q, --quiet           Silence output.
   -S, --simulate        Simulate execution (dry-run).
   -T, --timer           Display output with date, time and duration.
@@ -179,6 +182,7 @@ Global flags:
   -E, --email           Force to send email with output.
   -h, --help            Display usage.
   -L, --log             Create log file with command output.
+  -M, --metadata        Display execution context metadata.
   -Q, --quiet           Silence output.
   -S, --simulate        Simulate execution (dry-run).
   -T, --timer           Display output with date, time and duration.
@@ -207,6 +211,7 @@ Global flags:
   -E, --email           Force to send email with output.
   -h, --help            Display usage.
   -L, --log             Create log file with command output.
+  -M, --metadata        Display execution context metadata.
   -Q, --quiet           Silence output.
   -S, --simulate        Simulate execution (dry-run).
   -T, --timer           Display output with date, time and duration.
@@ -217,16 +222,21 @@ EOF
 function install-help {
 cat <<EOF
 [install] is to simply copy the script to your PATH directory
-inside your HOME. If there is no PATH in your HOME then rescript
-will ask you if you want to create one. If the answer is yes then
-it will create a [/bin] directory inside your [./local] directory.
-If the answer is no then it will exit. If you don't want to use
-rescript from your PATH then remember to use it indicating the
-complete path where the script is located; if you have set another
-location for your PATH then just copy the script and put it there.
+inside your HOME and install the bash autocompletion feature.
+If there is no PATH in your HOME then rescript will ask you if you 
+want to create one. If the answer is yes then it will create a [/bin] 
+directory inside your [./local] directory. If the answer is no then it 
+will exit. If you don't want to use rescript from your PATH then remember 
+to use it indicating the complete path where the script is located.
 
 Usage:
-  rescript install
+  rescript install [flags]
+  rescript install --autocomplete-only [system|user]
+
+Command flags:
+  --autocomplete-only   Install ONLY the bash autocompletion feature
+                        without reinstalling the rescript binary.
+                        It can optionally receive 'system' or 'user'.
 
 Global flags:
   -h, --help            Display usage.
@@ -274,6 +284,7 @@ Global flags:
   -E, --email           Force to send email with output.
   -h, --help            Display usage.
   -L, --log             Create log file with command output.
+  -M, --metadata        Display execution context metadata.
   -Q, --quiet           Silence output.
   -S, --simulate        Simulate execution (dry-run).
   -T, --timer           Display output with date, time and duration.
@@ -296,7 +307,7 @@ be named with a unique name so it will not conflict with your
 existing directories.
 
 Usage:
-  rescript [repo_name] restorer [flags] [host|path|snapshot ID|tag]
+  rescript [repo_name] restorer [flags] [snapshot ID]
 
 Command flags:
   -i, --interactive     Fetch a list of snapshots and present an interactive menu to choose from.
@@ -305,7 +316,7 @@ Command flags:
   -P, --path path       Only consider snapshots which include
                         this [absolute] path for snapshot-ID [latest].
   -Z, --snapshot ID     Indicate snapshot-ID to restore.
-  -T, --tag tagname     Only consider snapshots which include this
+      --tag tagname     Only consider snapshots which include this
                         taglist for snapshot-ID [latest].
 
 Global flags:
@@ -313,6 +324,7 @@ Global flags:
   -E, --email           Force to send email with output.
   -h, --help            Display usage.
   -L, --log             Create log file with command output.
+  -M, --metadata        Display execution context metadata.
   -Q, --quiet           Silence output.
   -S, --simulate        Simulate execution (dry-run).
   -T, --timer           Display output with date, time and duration.
@@ -336,6 +348,7 @@ Global flags:
   -E, --email           Force to send email with output.
   -h, --help            Display usage.
   -L, --log             Create log file with command output.
+  -M, --metadata        Display execution context metadata.
   -Q, --quiet           Silence output.
   -S, --simulate        Simulate execution (dry-run).
   -T, --timer           Display output with date, time and duration.
@@ -362,6 +375,7 @@ Global flags:
   -E, --email           Force to send email with output.
   -h, --help            Display usage.
   -L, --log             Create log file with command output.
+  -M, --metadata        Display execution context metadata.
   -Q, --quiet           Silence output.
   -S, --simulate        Simulate execution (dry-run).
   -T, --timer           Display output with date, time and duration.
@@ -390,6 +404,7 @@ Global flags:
   -E, --email           Force to send email with output.
   -h, --help            Display usage.
   -L, --log             Create log file with command output.
+  -M, --metadata        Display execution context metadata.
   -Q, --quiet           Silence output.
   -S, --simulate        Simulate execution (dry-run).
   -T, --timer           Display output with date, time and duration.
@@ -428,6 +443,7 @@ Global flags:
   -E, --email           Force to send email with output.
   -h, --help            Display usage.
   -L, --log             Create log file with command output.
+  -M, --metadata        Display execution context metadata.
   -Q, --quiet           Silence output.
   -S, --simulate        Simulate execution (dry-run).
   -T, --timer           Display output with date, time and duration.
@@ -452,6 +468,7 @@ Global flags:
   -E, --email           Force to send email with output.
   -h, --help            Display usage.
   -L, --log             Create log file with command output.
+  -M, --metadata        Display execution context metadata.
   -Q, --quiet           Silence output.
   -S, --simulate        Simulate execution (dry-run).
   -T, --timer           Display output with date, time and duration.
@@ -480,6 +497,7 @@ Global flags:
   -E, --email           Force to send email with output.
   -h, --help            Display usage.
   -L, --log             Create log file with command output.
+  -M, --metadata        Display execution context metadata.
   -Q, --quiet           Silence output.
   -S, --simulate        Simulate execution (dry-run).
   -T, --timer           Display output with date, time and duration.

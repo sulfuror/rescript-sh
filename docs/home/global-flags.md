@@ -96,4 +96,4 @@ Duration: 0 seconds
 
 ---
 
-**[⇦ Commands & Options](home/commands-and-options)**
+**[⇦ Commands & Options](commands-and-options)**

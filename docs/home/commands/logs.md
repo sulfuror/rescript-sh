@@ -37,4 +37,4 @@ rescript my_repo logs --view my_repo-2026-07-10-100000.log
 rescript my_repo logs --remove all
 ```
 
-**[⇦ Commands](../commands-and-options)**
+**[⇦ Commands & Options](../commands-and-options)**

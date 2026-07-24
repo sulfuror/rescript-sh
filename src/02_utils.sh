@@ -63,7 +63,7 @@ function _send_email {
   if [[ -n "$EMAIL" ]] ; then
     if [[ "$(command -v mail)" ]] ; then
       if [[ "$int" = "false" ]] ; then
-        if [[ -e "$log" ]] ; then
+        if [[ -n "${log:-}" && -e "$log" ]] ; then
           logmessage="Logfile: $log"
           catlog=$(sed -E "s/$(printf '\033')\[([0-9]{1,2}(;[0-9]{1,2})?)?[mGK]//g" "$log")
         else

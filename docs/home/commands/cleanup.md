@@ -39,4 +39,4 @@ rescript my_repo cleanup --simulate
 rescript my_repo cleanup --next
 ```
 
-**[⇦ Commands](../commands-and-options)**
+**[⇦ Commands & Options](../commands-and-options)**
