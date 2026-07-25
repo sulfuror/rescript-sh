@@ -62,6 +62,7 @@ Configuration commands:
   editor                Change default text editor used by rescript.
   help                  Display rescript usage.
   install               Install rescript.
+  uninstall             Uninstall rescript.
   update                Check/install new rescript version.
   version               Display rescript version.
   

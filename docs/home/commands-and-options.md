@@ -22,8 +22,9 @@ Please see restic `help` and [documentation](https://restic.readthedocs.io/en/st
 2. **[editor](home/commands/editor-cmd)**: Change default text editor used by rescript.
 3. **[help](home/commands/help-cmd)**: Display rescript usage.
 4. **[install](home/commands/install-cmd)**: Install rescript.
-5. **[update](home/commands/update-cmd)**: Check/install new rescript version.
-6. **[version](home/commands/version-cmd)**: Display rescript version.
+5. **[uninstall](home/commands/uninstall-cmd)**: Uninstall rescript.
+6. **[update](home/commands/update-cmd)**: Check/install new rescript version.
+7. **[version](home/commands/version-cmd)**: Display rescript version.
 
 ### Repository Commands
 

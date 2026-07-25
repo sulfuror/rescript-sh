@@ -28,7 +28,7 @@ _rescript_completions() {
         fi
       done
     fi
-    local global_commands="all config editor help install status update version"
+    local global_commands="all config editor help install status uninstall update version"
     COMPREPLY=( $(compgen -W "${repos} ${global_commands}" -- "${cur}") )
     return 0
   fi
@@ -87,7 +87,7 @@ _rescript_completions() {
   fi
 
   if [[ $COMP_CWORD -eq 2 ]]; then
-    if [[ "$prev" == "config" || "$prev" == "status" || "$prev" == "install" || "$prev" == "update" || "$prev" == "editor" || "$prev" == "version" || "$prev" == "help" ]]; then
+    if [[ "$prev" == "config" || "$prev" == "status" || "$prev" == "install" || "$prev" == "uninstall" || "$prev" == "update" || "$prev" == "editor" || "$prev" == "version" || "$prev" == "help" ]]; then
       return 0
     else
       local repo_commands="backup cleanup diff env extract history info logs mounter next restorer search size snaps status umounter unlocker upgrade"

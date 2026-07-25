@@ -241,6 +241,24 @@ Global flags:
 EOF
 }
 
+function uninstall-help {
+cat <<EOF
+[uninstall] removes rescript and its autocompletion script.
+
+This command will prompt you to remove the binary from your PATH
+and delete the bash autocompletion feature. It will also ask if
+you wish to completely remove your configuration directory
+(~/.rescript).
+
+Usage:
+  rescript uninstall
+
+Global flags:
+  -h, --help            Display usage.
+
+EOF
+}
+
 function logs-help {
 cat <<EOF
 [logs] is for log files saved by rescript

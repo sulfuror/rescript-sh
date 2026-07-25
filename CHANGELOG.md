@@ -4,6 +4,14 @@
 
 ---
 
+### July 25, 2026
+
+#### ✨ Enhancements
+
+* **Uninstall Command:** Added a new `uninstall` command to easily remove the Rescript binary and autocompletion scripts from the system. It mirrors the interactive installation options (system-wide vs. user) and provides an option to completely remove the configuration directory (`~/.rescript`).
+
+---
+
 ### July 24, 2026
 
 #### ✨ Enhancements

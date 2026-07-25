@@ -282,6 +282,12 @@ case "${1:-}" in
     install
     exit
     ;;
+  uninstall)
+    _check_help_or_error "${1:-}" "${2:-}"
+    clear
+    uninstall
+    exit
+    ;;
   history)
     echo "You have not indicated any repo for [$1]..."
     echo ""
