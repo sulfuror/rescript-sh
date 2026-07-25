@@ -57,8 +57,9 @@ exec 1>&3 2>&4
 if [[ -f "$HOME/.rescript/config/global.conf" ]]; then
   WEBHOOK_URL=$(grep -E '^WEBHOOK_URL=' "$HOME/.rescript/config/global.conf" | head -n 1 | sed -e 's/^WEBHOOK_URL=//' -e 's/^"//' -e 's/"$//' -e "s/^'//" -e "s/'$//")
   if [[ -n "$WEBHOOK_URL" ]]; then
-    catlog=$(sed -E "s/$(printf '\033')\[([0-9]{1,2}(;[0-9]{1,2})?)?[mGK]//g" "$LOG_FILE" | tr -d '\r' | tail -c 1900 )
-    json_body=$(echo -e "$WEBHOOK_SUBJECT\n\`\`\`text\n$catlog\n\`\`\`" | awk '{gsub(/\\/, "\\\\"); gsub(/"/, "\\\""); gsub(/\t/, "\\t"); printf "%s\\n", $0}' | sed '$ s/\\n$//')
-    curl -s -H "Content-Type: application/json" -d "{\"content\": \"$json_body\"}" "$WEBHOOK_URL" > /dev/null
+    CLEAN_LOG="/tmp/rescript_tests_clean_$$.txt"
+    sed -E "s/$(printf '\033')\[([0-9]{1,2}(;[0-9]{1,2})?)?[mGK]//g" "$LOG_FILE" | tr -d '\r' > "$CLEAN_LOG"
+    curl -s -F "payload_json={\"content\": \"$WEBHOOK_SUBJECT\"}" -F "file=@$CLEAN_LOG" "$WEBHOOK_URL" > /dev/null
+    rm -f "$CLEAN_LOG"
   fi
 fi
