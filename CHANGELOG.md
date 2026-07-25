@@ -4,6 +4,22 @@
 
 ---
 
+### July 24, 2026
+
+#### ✨ Enhancements
+
+* **Simulate Flag Refactoring:** The `-S, --simulate` flag is no longer a global flag. To prevent confusion and ensure strict parsing, it has been restricted exclusively to destructive commands (`backup`, `cleanup`, `restorer`, and `automatic`).
+* **Logs Command UX:** Improved the visual output of the `logs` command. Log files are now sorted chronologically and displayed in a grid (column-based format) to save vertical space on the terminal.
+
+#### 🐞 Bug Fixes
+
+* **Install Command Crash:** Fixed an `unbound variable` error during installation caused by uninitialized flags when strict mode (`set -u`) is active.
+* **Info Command Host Filter:** Resolved a bug in the `info` command where the "All Snapshots" stats ignored the `-H, --host` flag. The host variable is now correctly propagated to all internal `restic stats` calls.
+* **Internal Parsers:** Rebuilt the internal argument parser for `info`, `size`, `logs`, and `env` to explicitly reject unknown flags natively instead of silently ignoring them.
+* **Stderr Suppression:** Removed the `2>/dev/null` suppression from `history` and `info`, ensuring that Restic's native password prompts and fatal flag errors are now correctly visible to the user instead of hanging silently.
+
+---
+
 ### July 23, 2026
 
 #### 🚀 Major Features

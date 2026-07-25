@@ -19,6 +19,7 @@ Command flags:
   -I, --info            Display stats for latest and all snapshots.
   -O, --skip-office     Temporarily exclude open (in-use) 'Office'
                         documents (.xlsx, .docx, .ods, odt, etc.).
+  -S, --simulate        Simulate execution (dry-run).
 
 Global flags:
   -D, --debug           Debug script.
@@ -27,7 +28,6 @@ Global flags:
   -L, --log             Create log file with command output.
   -M, --metadata        Display execution context metadata.
   -Q, --quiet           Silence output.
-  -S, --simulate        Simulate execution (dry-run).
   -T, --timer           Display output with date, time and duration.
 
 Make use of restic flags/options as follows:
@@ -51,6 +51,7 @@ Command flags:
 
   -C, --check           Check for errors in repository.
   -I, --info            Display stats for latest and all snapshots.
+  -S, --simulate        Simulate execution (dry-run).
       --reset           Remove "datefile"; it resets the dates for
                         the CLEAN option in your configuration file.
 
@@ -61,7 +62,6 @@ Global flags:
   -L, --log             Create log file with command output.
   -M, --metadata        Display execution context metadata.
   -Q, --quiet           Silence output.
-  -S, --simulate        Simulate execution (dry-run).
   -T, --timer           Display output with date, time and duration.
 
 Make use of restic flags/options as follows:
@@ -124,7 +124,6 @@ Global flags:
   -L, --log             Create log file with command output.
   -M, --metadata        Display execution context metadata.
   -Q, --quiet           Silence output.
-  -S, --simulate        Simulate execution (dry-run).
   -T, --timer           Display output with date, time and duration.
 
 Make use of restic flags/options as follows:
@@ -184,7 +183,6 @@ Global flags:
   -L, --log             Create log file with command output.
   -M, --metadata        Display execution context metadata.
   -Q, --quiet           Silence output.
-  -S, --simulate        Simulate execution (dry-run).
   -T, --timer           Display output with date, time and duration.
 
 Make use of restic flags/options as follows:
@@ -213,7 +211,6 @@ Global flags:
   -L, --log             Create log file with command output.
   -M, --metadata        Display execution context metadata.
   -Q, --quiet           Silence output.
-  -S, --simulate        Simulate execution (dry-run).
   -T, --timer           Display output with date, time and duration.
 
 EOF
@@ -286,7 +283,6 @@ Global flags:
   -L, --log             Create log file with command output.
   -M, --metadata        Display execution context metadata.
   -Q, --quiet           Silence output.
-  -S, --simulate        Simulate execution (dry-run).
   -T, --timer           Display output with date, time and duration.
 
 Make use of restic flags/options as follows:
@@ -318,6 +314,7 @@ Command flags:
   -Z, --snapshot ID     Indicate snapshot-ID to restore.
       --tag tagname     Only consider snapshots which include this
                         taglist for snapshot-ID [latest].
+  -S, --simulate        Simulate execution (dry-run).
 
 Global flags:
   -D, --debug           Debug script.
@@ -326,7 +323,6 @@ Global flags:
   -L, --log             Create log file with command output.
   -M, --metadata        Display execution context metadata.
   -Q, --quiet           Silence output.
-  -S, --simulate        Simulate execution (dry-run).
   -T, --timer           Display output with date, time and duration.
 
 EOF
@@ -350,7 +346,6 @@ Global flags:
   -L, --log             Create log file with command output.
   -M, --metadata        Display execution context metadata.
   -Q, --quiet           Silence output.
-  -S, --simulate        Simulate execution (dry-run).
   -T, --timer           Display output with date, time and duration.
 
 Make use of restic flags/options as follows:
@@ -377,7 +372,6 @@ Global flags:
   -L, --log             Create log file with command output.
   -M, --metadata        Display execution context metadata.
   -Q, --quiet           Silence output.
-  -S, --simulate        Simulate execution (dry-run).
   -T, --timer           Display output with date, time and duration.
 
 Make use of restic flags/options as follows:
@@ -406,7 +400,6 @@ Global flags:
   -L, --log             Create log file with command output.
   -M, --metadata        Display execution context metadata.
   -Q, --quiet           Silence output.
-  -S, --simulate        Simulate execution (dry-run).
   -T, --timer           Display output with date, time and duration.
 
 EOF
@@ -445,7 +438,6 @@ Global flags:
   -L, --log             Create log file with command output.
   -M, --metadata        Display execution context metadata.
   -Q, --quiet           Silence output.
-  -S, --simulate        Simulate execution (dry-run).
   -T, --timer           Display output with date, time and duration.
 
 EOF
@@ -470,7 +462,6 @@ Global flags:
   -L, --log             Create log file with command output.
   -M, --metadata        Display execution context metadata.
   -Q, --quiet           Silence output.
-  -S, --simulate        Simulate execution (dry-run).
   -T, --timer           Display output with date, time and duration.
 
 Make use of restic flags/options as follows:
@@ -499,7 +490,6 @@ Global flags:
   -L, --log             Create log file with command output.
   -M, --metadata        Display execution context metadata.
   -Q, --quiet           Silence output.
-  -S, --simulate        Simulate execution (dry-run).
   -T, --timer           Display output with date, time and duration.
 
 Make use of restic flags/options as follows:

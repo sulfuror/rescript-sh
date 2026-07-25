@@ -12,7 +12,6 @@ Rescript provides several global flags that alter the behavior of its execution.
 - **[-L, --log](#-l---log)**: Force creating a log file for the execution.
 - **[-M, --metadata](#-m---metadata)**: Print execution context metadata before running the command.
 - **[-Q, --quiet](#-q---quiet)**: Silence output completely.
-- **[-S, --simulate](#-s---simulate)**: Perform a dry-run without modifying any files.
 - **[-T, --timer](#-t---timer)**: Calculate and display the total duration of the command.
 
 ---
@@ -71,10 +70,6 @@ rescript my_repo env --metadata
 
 Silences all standard output from the command, making it completely invisible on your terminal.
 *Note: If combined with `--log`, the output will still be written to the log file even though it won't be printed to the screen.*
-
-### `-S, --simulate`
-
-Performs a safe dry-run of destructive commands like `backup` or `cleanup`. It prints exactly what internal `restic` command is about to be executed, allowing you to verify the arguments without actually pushing data or deleting anything.
 
 ### `-T, --timer`
 

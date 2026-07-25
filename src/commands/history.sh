@@ -16,7 +16,7 @@ function history {
   print_line "="
   
   debug_start
-  restic find -l "${rest[@]}" 2>/dev/null | awk -v path_len="$col_path" '
+  restic find -l "${rest[@]}" | awk -v path_len="$col_path" '
   {
     gsub(/\x1b\[[0-9;]*[a-zA-Z]/, "")
     gsub(/\r/, "")

@@ -75,7 +75,6 @@ Global flags:
   -L, --log             Create log file with command output.
   -M, --metadata        Display execution context metadata.
   -Q, --quiet           Silence output.
-  -S, --simulate        Run destructive operations in dry-run mode.
   -T, --timer           Display output with date, time and duration.
 
 Commands usage:

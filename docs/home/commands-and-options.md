@@ -61,7 +61,6 @@ Rescript features several global flags that can be mixed naturally with its own 
 4. **`-L, --log`**: Create a logfile for this specific manual run.
 5. **`-M, --metadata`**: Display execution context metadata.
 6. **`-Q, --quiet`**: silence output. If you use `--log` it will still log the output.
-7. **`-S, --simulate`**: Performs a dry-run of destructive commands like `backup` or `cleanup`, printing the exact restic command that would be run without actually modifying the repo.
 8. **`-T, --timer`**: display output with date, time and duration at the end of execution.
 
 Make use of `rescript` global flags with `restic` commands normally:
