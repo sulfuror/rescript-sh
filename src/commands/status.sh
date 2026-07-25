@@ -58,7 +58,7 @@ function global_status {
   print_line "="
   
   for repo in "${repos[@]}"; do
-    source "$config_dir/$repo.conf"
+    source_config "$config_dir/$repo.conf"
     export RESTIC_PASSWORD
     export RESTIC_PASSWORD_COMMAND
     

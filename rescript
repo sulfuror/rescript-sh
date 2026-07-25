@@ -96,6 +96,7 @@ Global flags:
   -M, --metadata        Display execution context metadata.
   -Q, --quiet           Silence output.
   -T, --timer           Display output with date, time and duration.
+  -W, --webhook         Force to send webhook notification with output.
 
 Commands usage:
   rescript help [command]
@@ -201,7 +202,7 @@ function _send_email {
   fi
   if [[ -n "$EMAIL" ]] ; then
     if [[ "$(command -v mail)" ]] ; then
-      if [[ "$int" = "false" ]] ; then
+      if [[ "$int" = "false" || "${force_email:-}" = "true" ]] ; then
         if [[ -n "${log:-}" && -e "$log" ]] ; then
           logmessage="Logfile: $log"
           catlog=$(sed -E "s/$(printf '\033')\[([0-9]{1,2}(;[0-9]{1,2})?)?[mGK]//g" "$log")
@@ -213,11 +214,9 @@ function _send_email {
         mail_err=$(mktemp)
         local mail_status=0
         if [[ "$time_flag" = "true" ]] ; then
-          echo -e "$logmessage\n\n$catlog" | mail -s "$subject" "$EMAIL" 2> "$mail_err"
-          mail_status=$?
+          echo -e "$logmessage\n\n$catlog" | mail -s "$subject" "$EMAIL" 2> "$mail_err" || mail_status=$?
         else
-          echo -e "Date: $(date +%a\ %b\ %d\ %Y\ %r)\nSystem: $(opsys)\nHostname: $rhost\nRepository Location: $dest\nRestic Version: $(restic version | awk '{print $2}')\n\n$logmessage\n$(print_line)\n$catlog\n$(print_line)\nEnd: $(date +%a\ %b\ %d\ %Y\ %r)\nDuration: $(duration)" | mail -s "$subject" "$EMAIL" 2> "$mail_err"
-          mail_status=$?
+          echo -e "Date: $(date +%a\ %b\ %d\ %Y\ %r)\nSystem: $(opsys)\nHostname: $rhost\nRepository Location: $dest\nRestic Version: $(restic version | awk '{print $2}')\n\n$logmessage\n$(print_line)\n$catlog\n$(print_line)\nEnd: $(date +%a\ %b\ %d\ %Y\ %r)\nDuration: $(duration)" | mail -s "$subject" "$EMAIL" 2> "$mail_err" || mail_status=$?
         fi
         if [[ $mail_status -ne 0 ]]; then
           echo -e "\n${c_yellow}WARNING: Rescript could not send the email. Make sure your system's mail agent (MTA) is installed and configured correctly.${c_reset}"
@@ -237,10 +236,20 @@ function _send_webhook {
       echo -e "${c_yellow}SIMULATE: Would send webhook to [$WEBHOOK_URL] with subject: [$subject]${c_reset}"
       return 0
     fi
-    if [[ "$(command -v curl)" ]] ; then
-      curl -s -X POST -H "Content-Type: application/json" -d "{\"content\": \"$subject\"}" "$WEBHOOK_URL" >/dev/null 2>&1
-    else
-      echo -e "${c_yellow}[rescript] can't send webhooks; install [curl] package to do so.${c_reset}"
+    if [[ "$int" = "false" || "${force_webhook:-}" = "true" ]] ; then
+      if [[ "$(command -v curl)" ]] ; then
+        if [[ -n "${log:-}" && -e "$log" ]] ; then
+          catlog=$(sed -E "s/$(printf '\033')\[([0-9]{1,2}(;[0-9]{1,2})?)?[mGK]//g" "$log" | tr -d '\r' | tail -c 1900 | sed -E -e 's/={60,}/============================================================================/g' -e 's/-{60,}/----------------------------------------------------------------------------/g' -e 's/^[ \t]+(Rescript Execution Context)/                          \1/')
+        elif [[ -n "${tmplog:-}" && -e "$tmplog" ]] ; then
+          catlog=$(sed -E "s/$(printf '\033')\[([0-9]{1,2}(;[0-9]{1,2})?)?[mGK]//g" "$tmplog" | tr -d '\r' | tail -c 1900 | sed -E -e 's/={60,}/============================================================================/g' -e 's/-{60,}/----------------------------------------------------------------------------/g' -e 's/^[ \t]+(Rescript Execution Context)/                          \1/')
+        else
+          catlog="No output captured."
+        fi
+        json_body=$(echo -e "**$subject**\n\`\`\`text\n$catlog\n\`\`\`" | awk '{gsub(/\\/, "\\\\"); gsub(/"/, "\\\""); gsub(/\t/, "\\t"); printf "%s\\n", $0}' | sed '$ s/\\n$//')
+        curl -s -X POST -H "Content-Type: application/json" -d "{\"content\": \"$json_body\"}" "$WEBHOOK_URL" >/dev/null 2>&1 || true
+      else
+        echo -e "${c_yellow}[rescript] can't send webhooks; install [curl] package to do so.${c_reset}"
+      fi
     fi
   fi
 }
@@ -328,16 +337,28 @@ function print_context {
 
 function job_done {
   cmd="${cmd:-backup}"
+  
+  if [[ ! "$cmd" =~ ^(automatic|backup|cleanup)$ && "${force_email:-}" != "true" && "${force_webhook:-}" != "true" ]]; then
+    return 0
+  fi
+
   if [[ "${CONFIRMATION_EMAIL:-}" = "y" || "${CONFIRMATION_EMAIL:-}" = "yes" ]] ; then
     _send_email "rescript: [$repo] $cmd finished successfully!"
   fi
-  if [[ -n "${WEBHOOK_URL:-}" ]] ; then
-    _send_webhook "rescript: [$repo] $cmd finished successfully!"
+  if [[ "${CONFIRMATION_WEBHOOK:-}" = "y" || "${CONFIRMATION_WEBHOOK:-}" = "yes" ]] ; then
+    if [[ -n "${WEBHOOK_URL:-}" ]] ; then
+      _send_webhook "rescript: [$repo] $cmd finished successfully on [$(hostname)]!"
+    fi
   fi
 }
 
 function report_errors {
   cmd="${cmd:-backup}"
+
+  if [[ ! "$cmd" =~ ^(automatic|backup|cleanup)$ && "${force_email:-}" != "true" && "${force_webhook:-}" != "true" ]]; then
+    return 0
+  fi
+
   if [[ -n "$error_message" ]] ; then
     if [[ "$ping_code" -gt "0" ]] ; then
       echo -e "${c_red}$error_message${c_reset}"
@@ -347,7 +368,7 @@ function report_errors {
       echo -e "${c_red}$error_message${c_reset}"
     fi
     _send_email "rescript: [$repo] $cmd failed!"
-    _send_webhook "rescript: [$repo] $cmd failed!"
+    _send_webhook "rescript: [$repo] $cmd failed on [$(hostname)]!"
   fi
 }
 
@@ -679,6 +700,19 @@ function _run_post_actions {
     print_line
     run_quietly statinfo
   fi
+}
+
+function source_config {
+  local conf_file="$1"
+  local bash_err
+  if ! bash_err=$(bash -n "$conf_file" 2>&1); then
+    echo -e "${c_red}FATAL ERROR: Rescript found a syntax error in your configuration file!${c_reset}"
+    echo -e "${c_yellow}File: $conf_file${c_reset}"
+    echo -e "${c_yellow}Details: $bash_err${c_reset}"
+    echo -e "${c_yellow}Please verify your configuration file for missing quotes, unmatched brackets, or invalid syntax.${c_reset}"
+    exit 2
+  fi
+  source "$conf_file"
 }
 function config_file {
 cat <<EOF
@@ -1321,6 +1355,7 @@ Global flags:
   -M, --metadata        Display execution context metadata.
   -Q, --quiet           Silence output.
   -T, --timer           Display output with date, time and duration.
+  -W, --webhook         Force to send webhook notification with output.
 
 Make use of restic flags/options as follows:
   rescript [repo_name] backup [flags] -- [restic_flags/options] ...
@@ -1355,6 +1390,7 @@ Global flags:
   -M, --metadata        Display execution context metadata.
   -Q, --quiet           Silence output.
   -T, --timer           Display output with date, time and duration.
+  -W, --webhook         Force to send webhook notification with output.
 
 Make use of restic flags/options as follows:
   rescript [repo_name] cleanup [flags] -- [restic_flags/options] ...
@@ -1376,6 +1412,7 @@ Usage:
 Global flags:
   -h, --help            Display usage.
   -T, --timer           Display output with date, time and duration.
+  -W, --webhook         Force to send webhook notification with output.
 EOF
 }
 
@@ -1417,6 +1454,7 @@ Global flags:
   -M, --metadata        Display execution context metadata.
   -Q, --quiet           Silence output.
   -T, --timer           Display output with date, time and duration.
+  -W, --webhook         Force to send webhook notification with output.
 
 Make use of restic flags/options as follows:
   rescript [repo_name] diff [flags] -- [restic_flags/options] ...
@@ -1476,6 +1514,7 @@ Global flags:
   -M, --metadata        Display execution context metadata.
   -Q, --quiet           Silence output.
   -T, --timer           Display output with date, time and duration.
+  -W, --webhook         Force to send webhook notification with output.
 
 Make use of restic flags/options as follows:
   rescript [repo_name] extract [snapshot_id] <file_path> -- [restic_flags/options] ...
@@ -1504,6 +1543,7 @@ Global flags:
   -M, --metadata        Display execution context metadata.
   -Q, --quiet           Silence output.
   -T, --timer           Display output with date, time and duration.
+  -W, --webhook         Force to send webhook notification with output.
 
 EOF
 } 
@@ -1594,6 +1634,7 @@ Global flags:
   -M, --metadata        Display execution context metadata.
   -Q, --quiet           Silence output.
   -T, --timer           Display output with date, time and duration.
+  -W, --webhook         Force to send webhook notification with output.
 
 Make use of restic flags/options as follows:
   rescript [repo_name] mounter [--background] -- [restic_flags/options] ...
@@ -1634,6 +1675,7 @@ Global flags:
   -M, --metadata        Display execution context metadata.
   -Q, --quiet           Silence output.
   -T, --timer           Display output with date, time and duration.
+  -W, --webhook         Force to send webhook notification with output.
 
 EOF
 }
@@ -1657,6 +1699,7 @@ Global flags:
   -M, --metadata        Display execution context metadata.
   -Q, --quiet           Silence output.
   -T, --timer           Display output with date, time and duration.
+  -W, --webhook         Force to send webhook notification with output.
 
 Make use of restic flags/options as follows:
   rescript [repo_name] search [flags] -- [restic_flags/options] ...
@@ -1683,6 +1726,7 @@ Global flags:
   -M, --metadata        Display execution context metadata.
   -Q, --quiet           Silence output.
   -T, --timer           Display output with date, time and duration.
+  -W, --webhook         Force to send webhook notification with output.
 
 Make use of restic flags/options as follows:
   rescript [repo_name] snaps [flags] -- [restic_flags/options] ...
@@ -1711,6 +1755,7 @@ Global flags:
   -M, --metadata        Display execution context metadata.
   -Q, --quiet           Silence output.
   -T, --timer           Display output with date, time and duration.
+  -W, --webhook         Force to send webhook notification with output.
 
 EOF
 }
@@ -1749,6 +1794,7 @@ Global flags:
   -M, --metadata        Display execution context metadata.
   -Q, --quiet           Silence output.
   -T, --timer           Display output with date, time and duration.
+  -W, --webhook         Force to send webhook notification with output.
 
 EOF
 }
@@ -1773,6 +1819,7 @@ Global flags:
   -M, --metadata        Display execution context metadata.
   -Q, --quiet           Silence output.
   -T, --timer           Display output with date, time and duration.
+  -W, --webhook         Force to send webhook notification with output.
 
 Make use of restic flags/options as follows:
   rescript [repo_name] size [snapshot_id] <path> -- [restic_flags/options] ...
@@ -1801,6 +1848,7 @@ Global flags:
   -M, --metadata        Display execution context metadata.
   -Q, --quiet           Silence output.
   -T, --timer           Display output with date, time and duration.
+  -W, --webhook         Force to send webhook notification with output.
 
 Make use of restic flags/options as follows:
   rescript [repo_name] history [flags] -- [restic_flags/options] ...
@@ -2319,7 +2367,7 @@ _rescript_completions() {
     return 0
   fi
   
-  if [[ "$prev" == "-W" || "$prev" == "--view" || "$prev" == "-R" || "$prev" == "--remove" ]]; then
+  if [[ "$prev" == "--view" || "$prev" == "-R" || "$prev" == "--remove" ]]; then
     local logfiles=""
     if [[ -d "$HOME/.rescript/logs" ]]; then
       for f in "$HOME/.rescript/logs"/*; do
@@ -2342,7 +2390,27 @@ _rescript_completions() {
     return 0
   fi
   
-  if [[ "$prev" == "-V" || "$prev" == "--var" ]]; then
+  if [[ "$prev" == "-V" ]]; then
+    # -V can be used for 'logs --view' or 'env/search --var'
+    if [[ "${COMP_LINE}" == *"logs "* || "${COMP_LINE}" == *"logs" ]]; then
+      local logfiles=""
+      if [[ -d "$HOME/.rescript/logs" ]]; then
+        for f in "$HOME/.rescript/logs"/*; do
+          if [[ -f "$f" ]]; then
+            logfiles="${logfiles} $(basename "$f")"
+          fi
+        done
+      fi
+      COMPREPLY=( $(compgen -W "${logfiles}" -- "${cur}") )
+      return 0
+    else
+      local vars="REPO_TARGET RESTIC_PASSWORD RESTIC_PASSWORD_COMMAND CLEAN KEEP_LAST KEEP_HOURLY KEEP_DAILY KEEP_WEEKLY KEEP_MONTHLY KEEP_YEARLY PRE_CMD POST_CMD NOTIFY WEBHOOK_URL CONFIRMATION_EMAIL EXCLUDE_FILE HOST BIONIC MAX_LOG LOG_RETENTION"
+      COMPREPLY=( $(compgen -W "${vars}" -- "${cur}") )
+      return 0
+    fi
+  fi
+
+  if [[ "$prev" == "--var" ]]; then
     local vars="REPO_TARGET RESTIC_PASSWORD RESTIC_PASSWORD_COMMAND CLEAN KEEP_LAST KEEP_HOURLY KEEP_DAILY KEEP_WEEKLY KEEP_MONTHLY KEEP_YEARLY PRE_CMD POST_CMD NOTIFY WEBHOOK_URL CONFIRMATION_EMAIL EXCLUDE_FILE HOST BIONIC MAX_LOG LOG_RETENTION"
     COMPREPLY=( $(compgen -W "${vars}" -- "${cur}") )
     return 0
@@ -2354,7 +2422,7 @@ _rescript_completions() {
   fi
 
   if [[ "$cur" == -* ]]; then
-    local all_flags="-C --check -D --debug -E --email -F --full -H --host -I --info -L --log -M --metadata -O --skip-office -P --path -Q --quiet -R --remove -S --simulate -T --tag --timer -U --cleanup -V --var -W --view -X --exclude -Z --snapshot -g --global -h --help -i --interactive --ignore-case --reset --wizard --version"
+    local all_flags="-C --check -D --debug -E --email -F --full -H --host -I --info -L --log -M --metadata -O --skip-office -P --path -Q --quiet -R --remove -S --simulate -T --tag --timer -U --cleanup -V --var --view -W --webhook -X --exclude -Z --snapshot -g --global -h --help -i --interactive --ignore-case --reset --wizard --version"
     COMPREPLY=( $(compgen -W "${all_flags}" -- "${cur}") )
     return 0
   fi
@@ -2902,7 +2970,7 @@ function global_status {
   print_line "="
   
   for repo in "${repos[@]}"; do
-    source "$config_dir/$repo.conf"
+    source_config "$config_dir/$repo.conf"
     export RESTIC_PASSWORD
     export RESTIC_PASSWORD_COMMAND
     
@@ -3084,16 +3152,16 @@ function unlocker {
   fi
 }
 function update {
-  if [[ ! $(command -v wget) ]] ; then
+  if [[ ! $(command -v curl) ]] ; then
     echo "***$(basename "$0") warning***"
-    echo "[wget] not found..."
+    echo "[curl] not found..."
     echo ""
-    echo "[$repo] works with [wget] to download the updated script."
-    echo "Please, install [wget] to proceed."
+    echo "[$repo] works with [curl] to download the updated script."
+    echo "Please, install [curl] to proceed."
     exit
   fi
 
-  wget -P "$tmp_dir" https://gitlab.com/sulfuror/rescript.sh/raw/master/rescript 2> /dev/null
+  curl -s -L "https://gitlab.com/sulfuror/rescript.sh/raw/master/rescript" -o "$tmp_dir/rescript" || true
   rescript_latest="$tmp_dir/rescript"
   trap 'rm -rf "$rescript_latest" 2> /dev/null' INT QUIT TERM EXIT
 
@@ -3286,7 +3354,7 @@ if [[ "${1:-}" == "all" ]]; then
 
   config_global="$HOME/.rescript/config/global.conf"
   if [[ -f "$config_global" ]]; then
-    source "$config_global"
+    source_config "$config_global"
   fi
   
   if [[ -n "${PRE_CMD:-}" ]] ; then
@@ -3528,9 +3596,9 @@ esac
 # Functions                                                      #
 # ============================================================== #
 if [[ -f "$config_global" ]]; then
-  source "$config_global"
+  source_config "$config_global"
 fi
-source "$config_repo"
+source_config "$config_repo"
 # Defaulting unset variables from config for strict mode
 export HOST="${HOST:-}"
 export CLEAN="${CLEAN:-}"
@@ -3647,11 +3715,12 @@ fi
 function _parse_standard_flags {
   case "$1" in
     -D|--debug) debug_flag="true" ; return 0 ;;
-    -E|--email) int="false" ; CONFIRMATION_EMAIL="y" ; return 0 ;;
+    -E|--email) force_email="true" ; CONFIRMATION_EMAIL="y" ; return 0 ;;
     -L|--log) log_flag="true" ; return 0 ;;
     -M|--metadata) context_flag="true" ; return 0 ;;
     -Q|--quiet) quiet_flag="true" ; return 0 ;;
     -T|--timer) time_flag="true" ; return 0 ;;
+    -W|--webhook) force_webhook="true" ; CONFIRMATION_WEBHOOK="y" ; return 0 ;;
     *) return 1 ;;
   esac
 }
@@ -3718,6 +3787,7 @@ case "$cmd" in
     ;;
   status)
     parse_generic_args status-help "$@"
+    logger
     run_quietly global_status "${rest[@]}"
     ;;
   backup)
@@ -3801,11 +3871,11 @@ case "$cmd" in
         -V) var_flag="${2:-}" ; shift ;;
         --var=*) var_flag="${1#*=}" ;;
         --var) var_flag="${2:-}" ; shift ;;
-        -*) rest+=( "$1" ) ;;
+        -*) echo "Invalid option [$1]..." ; echo "" ; env-help ; exit 1 ;;
       esac
       shift
     done
-    execute_with_metrics env_conf
+    execute_with_metrics run_quietly env_conf
     ;;
   -h|--help|help)
     usage
@@ -3847,7 +3917,7 @@ case "$cmd" in
       esac
       shift
     done
-    execute_with_metrics statinfo
+    execute_with_metrics run_quietly statinfo
     ;;
   size)
     shopt -u nocasematch
@@ -3859,7 +3929,7 @@ case "$cmd" in
         -H) host_flag="${2:-}" ; shift ;;
         --host=*) host_flag="${1#*=}" ;;
         --host) host_flag="${2:-}" ; shift ;;
-        -*) rest+=( "$1" ) ;;
+        -*) echo "Invalid option [$1]..." ; echo "" ; size-help ; exit 1 ;;
         *) rest+=( "$1" ) ;;
       esac
       shift
@@ -3870,7 +3940,7 @@ case "$cmd" in
     while [[ $# -gt 0 ]] ; do
       if _parse_standard_flags "$1" ; then shift ; continue ; fi
       case "$1" in
-        -W) catlogs="true" ; logfile="${2:-}" ; shift ;;
+        -V) catlogs="true" ; logfile="${2:-}" ; shift ;;
         --view=*) catlogs="true" ; logfile="${1#*=}" ;;
         --view) catlogs="true" ; logfile="${2:-}" ; shift ;;
         -S|--simulate) echo "[$1] is not a valid option..." ; echo "" ; logs-help ; exit 1 ;;
@@ -3878,16 +3948,16 @@ case "$cmd" in
         -R) removelogs="true" ; logfile="${2:-}" ; shift ;;
         --remove=*) removelogs="true" ; logfile="${1#*=}" ;;
         --remove) removelogs="true" ; logfile="${2:-}" ; shift ;;
-        -*) rest+=( "$1" ) ;;
-        *) rest+=( "$1" ) ;;
+        -*) echo "Invalid option [$1]..." ; echo "" ; logs-help ; exit 1 ;;
+        *) echo "Invalid argument [$1]..." ; echo "" ; logs-help ; exit 1 ;;
       esac
       shift
     done
-    execute_with_metrics logs
+    execute_with_metrics run_quietly logs
     ;;
   mounter|umounter)
     parse_generic_args "$cmd-help" "$@"
-    execute_with_metrics "$cmd"
+    execute_with_metrics run_quietly "$cmd"
     ;;
   restorer)
     shopt -u nocasematch

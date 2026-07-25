@@ -10,7 +10,7 @@ rescript [repo_name] logs [options]
 ```
 
 ### Flags
-- `-W, --view [logfile]`: Display the full output of a selected log file in the terminal.
+- `-V, --view [logfile]`: Display the full output of a selected log file in the terminal.
 - `-R, --remove [logfile]`: Delete a specific log file. (Use `all` instead of a filename to delete all logs for this repository).
 
 ### Examples

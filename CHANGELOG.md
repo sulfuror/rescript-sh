@@ -6,8 +6,19 @@
 
 ### July 25, 2026
 
+#### 🐛 Bugfixes
+
+* **Webhook Output:** Notifications via Webhook now accurately include the command execution log just like email notifications do.
+* **Webhook API Limits & Formatting:** Discord's strict 2000 character limits and invalid JSON errors caused by carriage returns (`\r`) in progress bars were silently blocking webhooks. These characters are now stripped, and the payload is dynamically capped at 1900 bytes to guarantee delivery. Long divider lines (`====`) are now shrunk to 76 characters specifically for webhook payloads so that Discord and Slack render them neatly as code blocks without ugly line wrapping or horizontal scrolling.
+* **Capture Read-Only Commands:** Commands like `status`, `info`, `logs`, `env`, `history`, and `search` now properly redirect their outputs to the temporary log file. If you run them with the `-W` or `-E` force flags, you will receive the actual output in your notification.
+* **Configuration Syntax Validation:** Configuration files are now pre-validated for syntax errors (like missing quotes) before being sourced. If an error is found, Rescript will gracefully exit with a detailed, colored fatal error message indicating the exact file and line number instead of crashing the shell.
+* **Flag Validation:** Internal commands like `logs`, `env`, and `size` now strictly validate and reject unknown or orphaned flags instead of silently ignoring them.
+* **Bash Autocomplete:** Fixed an issue where autocompletion for `-V` could fail silently in certain Bash environments due to regex syntax incompatibilities. The autocomplete logic now robustly parses the command line string to correctly identify the context between `logs` and `env`.
+
 #### ✨ Enhancements
 
+* **Updater Dependency:** The `update` command now uses `curl` instead of `wget`. This unifies the script dependencies since `curl` is already required for webhooks and comes pre-installed in almost all modern systems.
+* **Flag Standardization:** The global `--webhook` short flag was changed from `-w` to `-W`. Additionally, the `--view` short flag in the `logs` command was changed from `-W` to `-V` to maintain consistency and prevent conflicts.
 * **Uninstall Command:** Added a new `uninstall` command to easily remove the Rescript binary and autocompletion scripts from the system. It mirrors the interactive installation options (system-wide vs. user) and provides an option to completely remove the configuration directory (`~/.rescript`).
 
 ---

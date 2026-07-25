@@ -62,7 +62,7 @@ function _send_email {
   fi
   if [[ -n "$EMAIL" ]] ; then
     if [[ "$(command -v mail)" ]] ; then
-      if [[ "$int" = "false" ]] ; then
+      if [[ "$int" = "false" || "${force_email:-}" = "true" ]] ; then
         if [[ -n "${log:-}" && -e "$log" ]] ; then
           logmessage="Logfile: $log"
           catlog=$(sed -E "s/$(printf '\033')\[([0-9]{1,2}(;[0-9]{1,2})?)?[mGK]//g" "$log")
@@ -74,11 +74,9 @@ function _send_email {
         mail_err=$(mktemp)
         local mail_status=0
         if [[ "$time_flag" = "true" ]] ; then
-          echo -e "$logmessage\n\n$catlog" | mail -s "$subject" "$EMAIL" 2> "$mail_err"
-          mail_status=$?
+          echo -e "$logmessage\n\n$catlog" | mail -s "$subject" "$EMAIL" 2> "$mail_err" || mail_status=$?
         else
-          echo -e "Date: $(date +%a\ %b\ %d\ %Y\ %r)\nSystem: $(opsys)\nHostname: $rhost\nRepository Location: $dest\nRestic Version: $(restic version | awk '{print $2}')\n\n$logmessage\n$(print_line)\n$catlog\n$(print_line)\nEnd: $(date +%a\ %b\ %d\ %Y\ %r)\nDuration: $(duration)" | mail -s "$subject" "$EMAIL" 2> "$mail_err"
-          mail_status=$?
+          echo -e "Date: $(date +%a\ %b\ %d\ %Y\ %r)\nSystem: $(opsys)\nHostname: $rhost\nRepository Location: $dest\nRestic Version: $(restic version | awk '{print $2}')\n\n$logmessage\n$(print_line)\n$catlog\n$(print_line)\nEnd: $(date +%a\ %b\ %d\ %Y\ %r)\nDuration: $(duration)" | mail -s "$subject" "$EMAIL" 2> "$mail_err" || mail_status=$?
         fi
         if [[ $mail_status -ne 0 ]]; then
           echo -e "\n${c_yellow}WARNING: Rescript could not send the email. Make sure your system's mail agent (MTA) is installed and configured correctly.${c_reset}"
@@ -98,10 +96,20 @@ function _send_webhook {
       echo -e "${c_yellow}SIMULATE: Would send webhook to [$WEBHOOK_URL] with subject: [$subject]${c_reset}"
       return 0
     fi
-    if [[ "$(command -v curl)" ]] ; then
-      curl -s -X POST -H "Content-Type: application/json" -d "{\"content\": \"$subject\"}" "$WEBHOOK_URL" >/dev/null 2>&1
-    else
-      echo -e "${c_yellow}[rescript] can't send webhooks; install [curl] package to do so.${c_reset}"
+    if [[ "$int" = "false" || "${force_webhook:-}" = "true" ]] ; then
+      if [[ "$(command -v curl)" ]] ; then
+        if [[ -n "${log:-}" && -e "$log" ]] ; then
+          catlog=$(sed -E "s/$(printf '\033')\[([0-9]{1,2}(;[0-9]{1,2})?)?[mGK]//g" "$log" | tr -d '\r' | tail -c 1900 | sed -E -e 's/={60,}/============================================================================/g' -e 's/-{60,}/----------------------------------------------------------------------------/g' -e 's/^[ \t]+(Rescript Execution Context)/                          \1/')
+        elif [[ -n "${tmplog:-}" && -e "$tmplog" ]] ; then
+          catlog=$(sed -E "s/$(printf '\033')\[([0-9]{1,2}(;[0-9]{1,2})?)?[mGK]//g" "$tmplog" | tr -d '\r' | tail -c 1900 | sed -E -e 's/={60,}/============================================================================/g' -e 's/-{60,}/----------------------------------------------------------------------------/g' -e 's/^[ \t]+(Rescript Execution Context)/                          \1/')
+        else
+          catlog="No output captured."
+        fi
+        json_body=$(echo -e "**$subject**\n\`\`\`text\n$catlog\n\`\`\`" | awk '{gsub(/\\/, "\\\\"); gsub(/"/, "\\\""); gsub(/\t/, "\\t"); printf "%s\\n", $0}' | sed '$ s/\\n$//')
+        curl -s -X POST -H "Content-Type: application/json" -d "{\"content\": \"$json_body\"}" "$WEBHOOK_URL" >/dev/null 2>&1 || true
+      else
+        echo -e "${c_yellow}[rescript] can't send webhooks; install [curl] package to do so.${c_reset}"
+      fi
     fi
   fi
 }
@@ -189,16 +197,28 @@ function print_context {
 
 function job_done {
   cmd="${cmd:-backup}"
+  
+  if [[ ! "$cmd" =~ ^(automatic|backup|cleanup)$ && "${force_email:-}" != "true" && "${force_webhook:-}" != "true" ]]; then
+    return 0
+  fi
+
   if [[ "${CONFIRMATION_EMAIL:-}" = "y" || "${CONFIRMATION_EMAIL:-}" = "yes" ]] ; then
     _send_email "rescript: [$repo] $cmd finished successfully!"
   fi
-  if [[ -n "${WEBHOOK_URL:-}" ]] ; then
-    _send_webhook "rescript: [$repo] $cmd finished successfully!"
+  if [[ "${CONFIRMATION_WEBHOOK:-}" = "y" || "${CONFIRMATION_WEBHOOK:-}" = "yes" ]] ; then
+    if [[ -n "${WEBHOOK_URL:-}" ]] ; then
+      _send_webhook "rescript: [$repo] $cmd finished successfully on [$(hostname)]!"
+    fi
   fi
 }
 
 function report_errors {
   cmd="${cmd:-backup}"
+
+  if [[ ! "$cmd" =~ ^(automatic|backup|cleanup)$ && "${force_email:-}" != "true" && "${force_webhook:-}" != "true" ]]; then
+    return 0
+  fi
+
   if [[ -n "$error_message" ]] ; then
     if [[ "$ping_code" -gt "0" ]] ; then
       echo -e "${c_red}$error_message${c_reset}"
@@ -208,7 +228,7 @@ function report_errors {
       echo -e "${c_red}$error_message${c_reset}"
     fi
     _send_email "rescript: [$repo] $cmd failed!"
-    _send_webhook "rescript: [$repo] $cmd failed!"
+    _send_webhook "rescript: [$repo] $cmd failed on [$(hostname)]!"
   fi
 }
 
@@ -540,4 +560,17 @@ function _run_post_actions {
     print_line
     run_quietly statinfo
   fi
+}
+
+function source_config {
+  local conf_file="$1"
+  local bash_err
+  if ! bash_err=$(bash -n "$conf_file" 2>&1); then
+    echo -e "${c_red}FATAL ERROR: Rescript found a syntax error in your configuration file!${c_reset}"
+    echo -e "${c_yellow}File: $conf_file${c_reset}"
+    echo -e "${c_yellow}Details: $bash_err${c_reset}"
+    echo -e "${c_yellow}Please verify your configuration file for missing quotes, unmatched brackets, or invalid syntax.${c_reset}"
+    exit 2
+  fi
+  source "$conf_file"
 }

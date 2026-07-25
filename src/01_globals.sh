@@ -96,6 +96,7 @@ Global flags:
   -M, --metadata        Display execution context metadata.
   -Q, --quiet           Silence output.
   -T, --timer           Display output with date, time and duration.
+  -W, --webhook         Force to send webhook notification with output.
 
 Commands usage:
   rescript help [command]

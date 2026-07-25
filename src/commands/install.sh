@@ -46,7 +46,7 @@ _rescript_completions() {
     return 0
   fi
   
-  if [[ "$prev" == "-W" || "$prev" == "--view" || "$prev" == "-R" || "$prev" == "--remove" ]]; then
+  if [[ "$prev" == "--view" || "$prev" == "-R" || "$prev" == "--remove" ]]; then
     local logfiles=""
     if [[ -d "$HOME/.rescript/logs" ]]; then
       for f in "$HOME/.rescript/logs"/*; do
@@ -69,7 +69,27 @@ _rescript_completions() {
     return 0
   fi
   
-  if [[ "$prev" == "-V" || "$prev" == "--var" ]]; then
+  if [[ "$prev" == "-V" ]]; then
+    # -V can be used for 'logs --view' or 'env/search --var'
+    if [[ "${COMP_LINE}" == *"logs "* || "${COMP_LINE}" == *"logs" ]]; then
+      local logfiles=""
+      if [[ -d "$HOME/.rescript/logs" ]]; then
+        for f in "$HOME/.rescript/logs"/*; do
+          if [[ -f "$f" ]]; then
+            logfiles="${logfiles} $(basename "$f")"
+          fi
+        done
+      fi
+      COMPREPLY=( $(compgen -W "${logfiles}" -- "${cur}") )
+      return 0
+    else
+      local vars="REPO_TARGET RESTIC_PASSWORD RESTIC_PASSWORD_COMMAND CLEAN KEEP_LAST KEEP_HOURLY KEEP_DAILY KEEP_WEEKLY KEEP_MONTHLY KEEP_YEARLY PRE_CMD POST_CMD NOTIFY WEBHOOK_URL CONFIRMATION_EMAIL EXCLUDE_FILE HOST BIONIC MAX_LOG LOG_RETENTION"
+      COMPREPLY=( $(compgen -W "${vars}" -- "${cur}") )
+      return 0
+    fi
+  fi
+
+  if [[ "$prev" == "--var" ]]; then
     local vars="REPO_TARGET RESTIC_PASSWORD RESTIC_PASSWORD_COMMAND CLEAN KEEP_LAST KEEP_HOURLY KEEP_DAILY KEEP_WEEKLY KEEP_MONTHLY KEEP_YEARLY PRE_CMD POST_CMD NOTIFY WEBHOOK_URL CONFIRMATION_EMAIL EXCLUDE_FILE HOST BIONIC MAX_LOG LOG_RETENTION"
     COMPREPLY=( $(compgen -W "${vars}" -- "${cur}") )
     return 0
@@ -81,7 +101,7 @@ _rescript_completions() {
   fi
 
   if [[ "$cur" == -* ]]; then
-    local all_flags="-C --check -D --debug -E --email -F --full -H --host -I --info -L --log -M --metadata -O --skip-office -P --path -Q --quiet -R --remove -S --simulate -T --tag --timer -U --cleanup -V --var -W --view -X --exclude -Z --snapshot -g --global -h --help -i --interactive --ignore-case --reset --wizard --version"
+    local all_flags="-C --check -D --debug -E --email -F --full -H --host -I --info -L --log -M --metadata -O --skip-office -P --path -Q --quiet -R --remove -S --simulate -T --tag --timer -U --cleanup -V --var --view -W --webhook -X --exclude -Z --snapshot -g --global -h --help -i --interactive --ignore-case --reset --wizard --version"
     COMPREPLY=( $(compgen -W "${all_flags}" -- "${cur}") )
     return 0
   fi

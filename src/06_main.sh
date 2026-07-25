@@ -23,11 +23,12 @@ fi
 function _parse_standard_flags {
   case "$1" in
     -D|--debug) debug_flag="true" ; return 0 ;;
-    -E|--email) int="false" ; CONFIRMATION_EMAIL="y" ; return 0 ;;
+    -E|--email) force_email="true" ; CONFIRMATION_EMAIL="y" ; return 0 ;;
     -L|--log) log_flag="true" ; return 0 ;;
     -M|--metadata) context_flag="true" ; return 0 ;;
     -Q|--quiet) quiet_flag="true" ; return 0 ;;
     -T|--timer) time_flag="true" ; return 0 ;;
+    -W|--webhook) force_webhook="true" ; CONFIRMATION_WEBHOOK="y" ; return 0 ;;
     *) return 1 ;;
   esac
 }
@@ -94,6 +95,7 @@ case "$cmd" in
     ;;
   status)
     parse_generic_args status-help "$@"
+    logger
     run_quietly global_status "${rest[@]}"
     ;;
   backup)
@@ -177,11 +179,11 @@ case "$cmd" in
         -V) var_flag="${2:-}" ; shift ;;
         --var=*) var_flag="${1#*=}" ;;
         --var) var_flag="${2:-}" ; shift ;;
-        -*) rest+=( "$1" ) ;;
+        -*) echo "Invalid option [$1]..." ; echo "" ; env-help ; exit 1 ;;
       esac
       shift
     done
-    execute_with_metrics env_conf
+    execute_with_metrics run_quietly env_conf
     ;;
   -h|--help|help)
     usage
@@ -223,7 +225,7 @@ case "$cmd" in
       esac
       shift
     done
-    execute_with_metrics statinfo
+    execute_with_metrics run_quietly statinfo
     ;;
   size)
     shopt -u nocasematch
@@ -235,7 +237,7 @@ case "$cmd" in
         -H) host_flag="${2:-}" ; shift ;;
         --host=*) host_flag="${1#*=}" ;;
         --host) host_flag="${2:-}" ; shift ;;
-        -*) rest+=( "$1" ) ;;
+        -*) echo "Invalid option [$1]..." ; echo "" ; size-help ; exit 1 ;;
         *) rest+=( "$1" ) ;;
       esac
       shift
@@ -246,7 +248,7 @@ case "$cmd" in
     while [[ $# -gt 0 ]] ; do
       if _parse_standard_flags "$1" ; then shift ; continue ; fi
       case "$1" in
-        -W) catlogs="true" ; logfile="${2:-}" ; shift ;;
+        -V) catlogs="true" ; logfile="${2:-}" ; shift ;;
         --view=*) catlogs="true" ; logfile="${1#*=}" ;;
         --view) catlogs="true" ; logfile="${2:-}" ; shift ;;
         -S|--simulate) echo "[$1] is not a valid option..." ; echo "" ; logs-help ; exit 1 ;;
@@ -254,16 +256,16 @@ case "$cmd" in
         -R) removelogs="true" ; logfile="${2:-}" ; shift ;;
         --remove=*) removelogs="true" ; logfile="${1#*=}" ;;
         --remove) removelogs="true" ; logfile="${2:-}" ; shift ;;
-        -*) rest+=( "$1" ) ;;
-        *) rest+=( "$1" ) ;;
+        -*) echo "Invalid option [$1]..." ; echo "" ; logs-help ; exit 1 ;;
+        *) echo "Invalid argument [$1]..." ; echo "" ; logs-help ; exit 1 ;;
       esac
       shift
     done
-    execute_with_metrics logs
+    execute_with_metrics run_quietly logs
     ;;
   mounter|umounter)
     parse_generic_args "$cmd-help" "$@"
-    execute_with_metrics "$cmd"
+    execute_with_metrics run_quietly "$cmd"
     ;;
   restorer)
     shopt -u nocasematch

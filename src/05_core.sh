@@ -124,7 +124,7 @@ if [[ "${1:-}" == "all" ]]; then
 
   config_global="$HOME/.rescript/config/global.conf"
   if [[ -f "$config_global" ]]; then
-    source "$config_global"
+    source_config "$config_global"
   fi
   
   if [[ -n "${PRE_CMD:-}" ]] ; then
@@ -366,9 +366,9 @@ esac
 # Functions                                                      #
 # ============================================================== #
 if [[ -f "$config_global" ]]; then
-  source "$config_global"
+  source_config "$config_global"
 fi
-source "$config_repo"
+source_config "$config_repo"
 # Defaulting unset variables from config for strict mode
 export HOST="${HOST:-}"
 export CLEAN="${CLEAN:-}"

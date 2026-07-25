@@ -29,6 +29,7 @@ Global flags:
   -M, --metadata        Display execution context metadata.
   -Q, --quiet           Silence output.
   -T, --timer           Display output with date, time and duration.
+  -W, --webhook         Force to send webhook notification with output.
 
 Make use of restic flags/options as follows:
   rescript [repo_name] backup [flags] -- [restic_flags/options] ...
@@ -63,6 +64,7 @@ Global flags:
   -M, --metadata        Display execution context metadata.
   -Q, --quiet           Silence output.
   -T, --timer           Display output with date, time and duration.
+  -W, --webhook         Force to send webhook notification with output.
 
 Make use of restic flags/options as follows:
   rescript [repo_name] cleanup [flags] -- [restic_flags/options] ...
@@ -84,6 +86,7 @@ Usage:
 Global flags:
   -h, --help            Display usage.
   -T, --timer           Display output with date, time and duration.
+  -W, --webhook         Force to send webhook notification with output.
 EOF
 }
 
@@ -125,6 +128,7 @@ Global flags:
   -M, --metadata        Display execution context metadata.
   -Q, --quiet           Silence output.
   -T, --timer           Display output with date, time and duration.
+  -W, --webhook         Force to send webhook notification with output.
 
 Make use of restic flags/options as follows:
   rescript [repo_name] diff [flags] -- [restic_flags/options] ...
@@ -184,6 +188,7 @@ Global flags:
   -M, --metadata        Display execution context metadata.
   -Q, --quiet           Silence output.
   -T, --timer           Display output with date, time and duration.
+  -W, --webhook         Force to send webhook notification with output.
 
 Make use of restic flags/options as follows:
   rescript [repo_name] extract [snapshot_id] <file_path> -- [restic_flags/options] ...
@@ -212,6 +217,7 @@ Global flags:
   -M, --metadata        Display execution context metadata.
   -Q, --quiet           Silence output.
   -T, --timer           Display output with date, time and duration.
+  -W, --webhook         Force to send webhook notification with output.
 
 EOF
 } 
@@ -302,6 +308,7 @@ Global flags:
   -M, --metadata        Display execution context metadata.
   -Q, --quiet           Silence output.
   -T, --timer           Display output with date, time and duration.
+  -W, --webhook         Force to send webhook notification with output.
 
 Make use of restic flags/options as follows:
   rescript [repo_name] mounter [--background] -- [restic_flags/options] ...
@@ -342,6 +349,7 @@ Global flags:
   -M, --metadata        Display execution context metadata.
   -Q, --quiet           Silence output.
   -T, --timer           Display output with date, time and duration.
+  -W, --webhook         Force to send webhook notification with output.
 
 EOF
 }
@@ -365,6 +373,7 @@ Global flags:
   -M, --metadata        Display execution context metadata.
   -Q, --quiet           Silence output.
   -T, --timer           Display output with date, time and duration.
+  -W, --webhook         Force to send webhook notification with output.
 
 Make use of restic flags/options as follows:
   rescript [repo_name] search [flags] -- [restic_flags/options] ...
@@ -391,6 +400,7 @@ Global flags:
   -M, --metadata        Display execution context metadata.
   -Q, --quiet           Silence output.
   -T, --timer           Display output with date, time and duration.
+  -W, --webhook         Force to send webhook notification with output.
 
 Make use of restic flags/options as follows:
   rescript [repo_name] snaps [flags] -- [restic_flags/options] ...
@@ -419,6 +429,7 @@ Global flags:
   -M, --metadata        Display execution context metadata.
   -Q, --quiet           Silence output.
   -T, --timer           Display output with date, time and duration.
+  -W, --webhook         Force to send webhook notification with output.
 
 EOF
 }
@@ -457,6 +468,7 @@ Global flags:
   -M, --metadata        Display execution context metadata.
   -Q, --quiet           Silence output.
   -T, --timer           Display output with date, time and duration.
+  -W, --webhook         Force to send webhook notification with output.
 
 EOF
 }
@@ -481,6 +493,7 @@ Global flags:
   -M, --metadata        Display execution context metadata.
   -Q, --quiet           Silence output.
   -T, --timer           Display output with date, time and duration.
+  -W, --webhook         Force to send webhook notification with output.
 
 Make use of restic flags/options as follows:
   rescript [repo_name] size [snapshot_id] <path> -- [restic_flags/options] ...
@@ -509,6 +522,7 @@ Global flags:
   -M, --metadata        Display execution context metadata.
   -Q, --quiet           Silence output.
   -T, --timer           Display output with date, time and duration.
+  -W, --webhook         Force to send webhook notification with output.
 
 Make use of restic flags/options as follows:
   rescript [repo_name] history [flags] -- [restic_flags/options] ...

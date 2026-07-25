@@ -1,14 +1,14 @@
 function update {
-  if [[ ! $(command -v wget) ]] ; then
+  if [[ ! $(command -v curl) ]] ; then
     echo "***$(basename "$0") warning***"
-    echo "[wget] not found..."
+    echo "[curl] not found..."
     echo ""
-    echo "[$repo] works with [wget] to download the updated script."
-    echo "Please, install [wget] to proceed."
+    echo "[$repo] works with [curl] to download the updated script."
+    echo "Please, install [curl] to proceed."
     exit
   fi
 
-  wget -P "$tmp_dir" https://gitlab.com/sulfuror/rescript.sh/raw/master/rescript 2> /dev/null
+  curl -s -L "https://gitlab.com/sulfuror/rescript.sh/raw/master/rescript" -o "$tmp_dir/rescript" || true
   rescript_latest="$tmp_dir/rescript"
   trap 'rm -rf "$rescript_latest" 2> /dev/null' INT QUIT TERM EXIT
 

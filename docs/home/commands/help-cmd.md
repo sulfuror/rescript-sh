@@ -16,7 +16,7 @@ Name        : rescript
 Author      : Sulfuror, Copyright (c) 2018 <sulfuror@gmail.com>
 URL         : https://gitlab.com/sulfuror/rescript.sh
 License     : BSD 2-Clause License
-Version     : 6.0
+Version     : 6.1
 Description : rescript is a bash shell wrapper for restic
 
 Information about restic: https://restic.net
@@ -43,9 +43,10 @@ Configuration commands:
   editor                Change default text editor used by rescript.
   help                  Display rescript usage.
   install               Install rescript.
+  uninstall             Uninstall rescript.
   update                Check/install new rescript version.
   version               Display rescript version.
-
+  
 Commands:
   automatic             Run backup and cleanup policies sequentially.
   backup                Take a snapshot.
@@ -76,9 +77,11 @@ Global flags:
   -M, --metadata        Display execution context metadata.
   -Q, --quiet           Silence output.
   -T, --timer           Display output with date, time and duration.
+  -W, --webhook         Force to send webhook notification with output.
 
 Commands usage:
   rescript help [command]
+
 ```
 
 **[⇦ Commands & Options](../commands-and-options)**

@@ -13,6 +13,7 @@ Rescript provides several global flags that alter the behavior of its execution.
 - **[-M, --metadata](#-m---metadata)**: Print execution context metadata before running the command.
 - **[-Q, --quiet](#-q---quiet)**: Silence output completely.
 - **[-T, --timer](#-t---timer)**: Calculate and display the total duration of the command.
+- **[-W, --webhook](#-w---webhook)**: Force sending a webhook notification with the command output.
 
 ---
 
@@ -92,3 +93,8 @@ Duration: 0 seconds
 ---
 
 **[⇦ Commands & Options](commands-and-options)**
+
+### `-W, --webhook`
+
+Forces Rescript to send a webhook notification with the output of the command, regardless of the `CONFIRMATION_WEBHOOK` policy set in your configuration file. *Note: Requires a valid `WEBHOOK_URL` to be configured.*
+
