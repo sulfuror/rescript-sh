@@ -31,7 +31,7 @@ Please see restic `help` and [documentation](https://restic.readthedocs.io/en/st
 2. **[automatic](home/commands/automatic)**: Run backup and cleanup policies sequentially.
 3. **[backup](home/commands/backup)**: Take a snapshot using the values set in your configuration file.
 4. **[cleanup](home/commands/cleanup)**: Perform a forget according to retention policies, followed by a prune.
-5. **[diff](home/commands/diff)**: Automatically compare the two most recent snapshots.
+5. **[diff](home/commands/diff-cmd)**: Automatically compare the two most recent snapshots.
 6. **[env](home/commands/env)**: Display the exact variable values loaded from your configuration file.
 7. **[extract](home/commands/extract)**: Extract a single file or directory from a specific snapshot with a progress bar.
 8. **[history](home/commands/history)**: Display a detailed timeline of a specific file or folder across all snapshots.
