@@ -216,7 +216,7 @@ function job_done {
   fi
   if [[ "${CONFIRMATION_WEBHOOK:-}" = "y" || "${CONFIRMATION_WEBHOOK:-}" = "yes" ]] ; then
     if [[ -n "${WEBHOOK_URL:-}" ]] ; then
-      _send_webhook "rescript: [$repo] $cmd finished successfully on [$(hostname)]!"
+      _send_webhook "✅ rescript: [$repo] $cmd finished successfully on [$(hostname)]!"
     fi
   fi
 }
@@ -237,7 +237,7 @@ function report_errors {
       echo -e "${c_red}$error_message${c_reset}"
     fi
     _send_email "rescript: [$repo] $cmd failed!"
-    _send_webhook "rescript: [$repo] $cmd failed on [$(hostname)]!"
+    _send_webhook "❌ rescript: [$repo] $cmd failed on [$(hostname)]!"
   fi
 }
 
