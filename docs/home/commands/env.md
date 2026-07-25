@@ -36,4 +36,4 @@ rescript my_repo env KEEP_LAST
 14
 ```
 
-**[⇦ Commands](../commands-and-options)**
+**[⇦ Commands & Options](../commands-and-options)**

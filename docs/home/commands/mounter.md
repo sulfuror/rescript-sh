@@ -26,4 +26,4 @@ rescript my_repo mounter --background
 ```
 *This allows you to close the terminal while the repository remains mounted. Use the `umounter` command to unmount it safely.*
 
-**[⇦ Commands](../commands-and-options)**
+**[⇦ Commands & Options](../commands-and-options)**

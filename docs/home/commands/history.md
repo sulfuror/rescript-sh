@@ -30,4 +30,4 @@ No   | Snapshot   | Date                  | Size         | Path
 ```
 *(Notice how the output skips days where the file didn't change, only showing the distinct versions. You can now use the Snapshot ID to extract the exact version you need!)*
 
-**[⇦ Commands](../commands-and-options)**
+**[⇦ Commands & Options](../commands-and-options)**

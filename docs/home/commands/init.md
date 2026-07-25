@@ -18,4 +18,4 @@ the repository. Losing your password means that your data is
 irrecoverably lost.
 ```
 
-**[⇦ Commands](home/commands-and-options)**
+**[⇦ Commands & Options](../commands-and-options)**

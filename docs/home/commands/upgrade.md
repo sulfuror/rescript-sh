@@ -17,4 +17,4 @@ rescript my_repo upgrade
 ```
 *Note: This process cannot be undone. Ensure you are using a compatible Restic version.*
 
-**[⇦ Commands](../commands-and-options)**
+**[⇦ Commands & Options](../commands-and-options)**

@@ -29,4 +29,4 @@ ID        Time                 Host        Tags
 3 snapshots
 ```
 
-**[⇦ Commands](../commands-and-options)**
+**[⇦ Commands & Options](../commands-and-options)**

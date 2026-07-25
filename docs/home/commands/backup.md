@@ -33,4 +33,4 @@ rescript my_repo backup -S
 ```
 *Useful if you run this manually while actively working on spreadsheets or text documents.*
 
-**[⇦ Commands](../commands-and-options)**
+**[⇦ Commands & Options](../commands-and-options)**

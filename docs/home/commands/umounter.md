@@ -17,4 +17,4 @@ rescript my_repo umounter
 ```
 *If you mounted the repository with the `--background` flag, this command will safely terminate the process using the stored PID file and unmount the virtual filesystem.*
 
-**[⇦ Commands](../commands-and-options)**
+**[⇦ Commands & Options](../commands-and-options)**

@@ -21,4 +21,4 @@ rescript [repo_name] unlocker
 rescript my_repo unlocker
 ```
 
-**[⇦ Commands](../commands-and-options)**
+**[⇦ Commands & Options](../commands-and-options)**

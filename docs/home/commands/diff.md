@@ -36,4 +36,4 @@ Tree Blobs:  2 new,     2 removed
 ```
 *(Legend: `+` means a file was added, `-` means it was removed, and `M` means it was modified).*
 
-**[⇦ Commands](../commands-and-options)**
+**[⇦ Commands & Options](../commands-and-options)**

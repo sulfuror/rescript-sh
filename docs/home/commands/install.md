@@ -7,8 +7,12 @@ Additionally, this command will automatically configure Programmable Bash Autoco
 
 Usage:
 ```bash
-rescript install
+rescript install [flags]
+rescript install --autocomplete-only [system|user]
 ```
+
+### Command flags
+* `--autocomplete-only`: Install ONLY the bash autocompletion feature without reinstalling the rescript binary. It can optionally receive `system` or `user` to skip the interactive prompt.
 
 ### Example Output
 
@@ -26,4 +30,4 @@ Installation successful!
 Run [rescript config] to configure your repository.
 ```
 
-**[⇦ Commands](home/commands-and-options)**
+**[⇦ Commands & Options](../commands-and-options)**

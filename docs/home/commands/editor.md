@@ -28,4 +28,4 @@ rescript editor
 Select the Text Editor you want to use [ 1 - 9 ]: 
 ```
 
-**[⇦ Commands](home/commands-and-options)**
+**[⇦ Commands & Options](../commands-and-options)**

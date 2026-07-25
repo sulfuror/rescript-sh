@@ -61,4 +61,4 @@ Running Global POST_CMD... Done!
 rescript all cleanup -X remote_server
 ```
 
-**[⇦ Commands](../commands-and-options)**
+**[⇦ Commands & Options](../commands-and-options)**
