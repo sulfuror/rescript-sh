@@ -35,8 +35,18 @@ echo "=========================================================="
 if [ $modules_passed -eq $total_modules ]; then
   echo -e " ${c_green}All $total_modules test modules PASSED!${c_reset}"
   echo -e " The codebase is POSIX compliant and mathematically sound."
+  WEBHOOK_MSG="✅ **Rescript Universal Test Framework**\nAll $total_modules test modules PASSED! The codebase is POSIX compliant."
 else
   echo -e " ${c_red}Only $modules_passed out of $total_modules test modules PASSED.${c_reset}"
   echo -e " Please check the logs above for detailed failure information."
+  WEBHOOK_MSG="❌ **Rescript Universal Test Framework**\nCRITICAL FAILURE: Only $modules_passed out of $total_modules test modules PASSED. Check the logs."
 fi
 echo "=========================================================="
+
+# Send Webhook Notification if configured in global.conf
+if [[ -f "$HOME/.rescript/config/global.conf" ]]; then
+  WEBHOOK_URL=$(grep -E '^WEBHOOK_URL=' "$HOME/.rescript/config/global.conf" | head -n 1 | sed -e 's/^WEBHOOK_URL=//' -e 's/^"//' -e 's/"$//' -e "s/^'//" -e "s/'$//")
+  if [[ -n "$WEBHOOK_URL" ]]; then
+    curl -s -H "Content-Type: application/json" -d "{\"content\": \"$WEBHOOK_MSG\"}" "$WEBHOOK_URL" > /dev/null
+  fi
+fi
