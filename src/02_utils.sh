@@ -98,15 +98,24 @@ function _send_webhook {
     fi
     if [[ "$int" = "false" || "${force_webhook:-}" = "true" ]] ; then
       if [[ "$(command -v curl)" ]] ; then
+        local target_log=""
+        local attach_file=""
+        
         if [[ -n "${log:-}" && -e "$log" ]] ; then
-          catlog=$(sed -E "s/$(printf '\033')\[([0-9]{1,2}(;[0-9]{1,2})?)?[mGK]//g" "$log" | tr -d '\r' | tail -c 1900 | sed -E -e 's/={60,}/============================================================================/g' -e 's/-{60,}/----------------------------------------------------------------------------/g' -e 's/^[ \t]+(Rescript Execution Context)/                          \1/')
+          target_log="$log"
         elif [[ -n "${tmplog:-}" && -e "$tmplog" ]] ; then
-          catlog=$(sed -E "s/$(printf '\033')\[([0-9]{1,2}(;[0-9]{1,2})?)?[mGK]//g" "$tmplog" | tr -d '\r' | tail -c 1900 | sed -E -e 's/={60,}/============================================================================/g' -e 's/-{60,}/----------------------------------------------------------------------------/g' -e 's/^[ \t]+(Rescript Execution Context)/                          \1/')
-        else
-          catlog="No output captured."
+          target_log="$tmplog"
         fi
-        json_body=$(echo -e "**$subject**\n\`\`\`text\n$catlog\n\`\`\`" | awk '{gsub(/\\/, "\\\\"); gsub(/"/, "\\\""); gsub(/\t/, "\\t"); printf "%s\\n", $0}' | sed '$ s/\\n$//')
-        curl -s -X POST -H "Content-Type: application/json" -d "{\"content\": \"$json_body\"}" "$WEBHOOK_URL" >/dev/null 2>&1 || true
+        
+        if [[ -n "$target_log" ]]; then
+          attach_file="/tmp/rescript_webhook_$$.txt"
+          sed -E "s/$(printf '\033')\[([0-9]{1,2}(;[0-9]{1,2})?)?[mGK]//g" "$target_log" | tr -d '\r' | sed -E -e 's/={60,}/============================================================/g' -e 's/-{60,}/------------------------------------------------------------/g' -e 's/^[ \t]+(Rescript Execution Context)/                          \1/' > "$attach_file"
+          
+          curl -s -X POST -F "payload_json={\"content\": \"**$subject**\"}" -F "file=@$attach_file" "$WEBHOOK_URL" >/dev/null 2>&1 || true
+          rm -f "$attach_file"
+        else
+          curl -s -X POST -H "Content-Type: application/json" -d "{\"content\": \"**$subject**\n\`\`\`text\nNo output captured.\n\`\`\`\"}" "$WEBHOOK_URL" >/dev/null 2>&1 || true
+        fi
       else
         echo -e "${c_yellow}[rescript] can't send webhooks; install [curl] package to do so.${c_reset}"
       fi
