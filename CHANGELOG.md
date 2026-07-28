@@ -6,6 +6,18 @@
 
 ---
 
+### July 28, 2026
+
+#### 🐛 Bugfixes
+
+* **Grouped Snapshots Output:** Disabled custom table formatting in the `snaps` command when the `--group-by` flag is used, preventing graphical corruption and allowing `restic` to display grouped tables naturally.
+
+#### ✨ Enhancements
+
+* **Smart Updater:** The `update` command now dynamically queries the GitLab API to fetch and download the latest stable `Release` (e.g., `v6.1`) instead of blindly downloading the raw `master` branch. This guarantees users only receive officially published stable updates.
+
+---
+
 ### July 25, 2026
 
 #### 🐛 Bugfixes
