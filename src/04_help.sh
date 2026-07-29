@@ -190,8 +190,8 @@ Global flags:
   -T, --timer           Display output with date, time and duration.
   -W, --webhook         Force to send webhook notification with output.
 
-Make use of restic flags/options as follows:
-  rescript [repo_name] extract [snapshot_id] <file_path> -- [restic_flags/options] ...
+Make use of restic flags/options natively:
+  rescript [repo_name] extract [snapshot_id] [restic_flags] <file_path>
 
 EOF
 }

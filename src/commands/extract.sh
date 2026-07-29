@@ -6,17 +6,36 @@ function extract {
   fi
   
   local file=""
+  local snap_id=""
   local extract_rest=()
-  for (( i=${#rest[@]}-1; i>=0; i-- )); do
-    if [[ -z "$file" && "${rest[i]}" != -* ]]; then
-      file="${rest[i]}"
+  local args_done=false
+  
+  for arg in "${rest[@]}"; do
+    if [[ "$arg" == -* ]]; then
+      args_done=true
+      extract_rest+=( "$arg" )
+    elif [[ "$args_done" == false ]]; then
+      if [[ -z "$snap_id" ]]; then
+        snap_id="$arg"
+      elif [[ -z "$file" ]]; then
+        file="$arg"
+      else
+        extract_rest+=( "$arg" )
+      fi
     else
-      extract_rest=( "${rest[i]}" "${extract_rest[@]}" )
+      extract_rest+=( "$arg" )
     fi
   done
 
+  # Shift if only one positional argument was provided
+  if [[ -n "$snap_id" && -z "$file" ]]; then
+    file="$snap_id"
+    snap_id=""
+  fi
+
   if [[ -z "$file" ]] ; then
     echo "You must provide a file path to extract."
+    echo "Note: Positional arguments (snapshot ID and file path) must be placed BEFORE any restic flags."
     exit 1
   fi
   
@@ -29,22 +48,39 @@ function extract {
   echo "Extracting [$file] to [./$dest_name]..."
   
   local restic_args=()
-  if [[ ${#extract_rest[@]} -eq 0 ]] ; then
+  if [[ -z "$snap_id" ]] ; then
     echo "Auto-detecting latest snapshot for this file..."
-    local snap_id
-    snap_id=$(restic find "$file" 2>/dev/null | tr -d '\r' | sed 's/\x1B\[[0-9;]*[a-zA-Z]//g' | awk '/Found matching entries in snapshot/ { for(i=1;i<=NF;i++) if($i=="snapshot") snap=$(i+1) } END { print snap }')
+    
+    local has_host=false
+    for arg in "${extract_rest[@]}"; do
+      if [[ "$arg" == "--host" || "$arg" == "-H" ]]; then
+        has_host=true
+        break
+      fi
+    done
+    
+    local find_flags=()
+    if [[ "$has_host" == false ]]; then
+      find_flags+=( "--host" "$rhost" )
+    fi
+    find_flags+=( "${extract_rest[@]}" )
+    
+    debug_start
+    snap_id=$(run_restic_with_retry find "${find_flags[@]}" "$file" 2>/dev/null | tr -d '\r' | sed 's/\x1B\[[0-9;]*[a-zA-Z]//g' | awk '/Found matching entries in snapshot/ { for(i=1;i<=NF;i++) if($i=="snapshot") snap=$(i+1) } END { print snap }')
+    debug_stop
     if [[ -z "$snap_id" ]] ; then
       echo "Extraction failed. File [$file] not found in any snapshot."
       exit 1
     fi
-    restic_args=( "$snap_id" "$file" )
-  else
-    restic_args=( "${extract_rest[@]}" "$file" )
   fi
+  
+  restic_args=( "$snap_id" "$file" "${extract_rest[@]}" )
   
   local err_file="/tmp/rescript_extract_err_$$"
   (
-    restic dump "${restic_args[@]}" > "./$dest_name" 2> "$err_file"
+    debug_start
+    run_restic_with_retry dump "${restic_args[@]}" > "./$dest_name" 2> "$err_file"
+    debug_stop
   ) &
   local pid=$!
   local progress=0

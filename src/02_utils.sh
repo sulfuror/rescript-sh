@@ -257,7 +257,7 @@ function run_restic_with_retry {
     fi
     
     if [[ $attempt -lt $max_attempts ]]; then
-      echo -e "${c_yellow}Warning: restic failed with exit code $exit_code. Retrying in 30 seconds... (Attempt $attempt of $max_attempts)${c_reset}"
+      echo -e "${c_yellow}Warning: restic failed with exit code $exit_code. Retrying in 30 seconds... (Attempt $attempt of $max_attempts)${c_reset}" >&2
       sleep 30
     fi
     ((attempt++))

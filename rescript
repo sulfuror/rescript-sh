@@ -397,7 +397,7 @@ function run_restic_with_retry {
     fi
     
     if [[ $attempt -lt $max_attempts ]]; then
-      echo -e "${c_yellow}Warning: restic failed with exit code $exit_code. Retrying in 30 seconds... (Attempt $attempt of $max_attempts)${c_reset}"
+      echo -e "${c_yellow}Warning: restic failed with exit code $exit_code. Retrying in 30 seconds... (Attempt $attempt of $max_attempts)${c_reset}" >&2
       sleep 30
     fi
     ((attempt++))
@@ -1525,8 +1525,8 @@ Global flags:
   -T, --timer           Display output with date, time and duration.
   -W, --webhook         Force to send webhook notification with output.
 
-Make use of restic flags/options as follows:
-  rescript [repo_name] extract [snapshot_id] <file_path> -- [restic_flags/options] ...
+Make use of restic flags/options natively:
+  rescript [repo_name] extract [snapshot_id] [restic_flags] <file_path>
 
 EOF
 }
@@ -2045,9 +2045,9 @@ function backup {
   debug_start
   set_sim_flag "Backup"
   if [[ "$skip_flag" = "true" ]] ; then
-    run_restic_with_retry backup $sim_flag --verbose "${bu_opts[@]}" --exclude-file=<(find "$BACKUP_DIR" -iname ".~lock.*" 2> /dev/null | sed -e 's/.~lock.//g' | sed -e 's/#//g') --exclude=".~lock.*" "${rest[@]}" $BACKUP_DIR
+    run_restic_with_retry backup $sim_flag --verbose "${bu_opts[@]}" --exclude-file=<(find "$BACKUP_DIR" -iname ".~lock.*" 2> /dev/null | sed -e 's/.~lock.//g' | sed -e 's/#//g') --exclude=".~lock.*" "${rest[@]}" "$BACKUP_DIR"
   else
-    run_restic_with_retry backup $sim_flag --verbose "${bu_opts[@]}" "${rest[@]}" $BACKUP_DIR
+    run_restic_with_retry backup $sim_flag --verbose "${bu_opts[@]}" "${rest[@]}" "$BACKUP_DIR"
   fi
   check_restic_error $?
   debug_stop
@@ -2204,17 +2204,36 @@ function extract {
   fi
   
   local file=""
+  local snap_id=""
   local extract_rest=()
-  for (( i=${#rest[@]}-1; i>=0; i-- )); do
-    if [[ -z "$file" && "${rest[i]}" != -* ]]; then
-      file="${rest[i]}"
+  local args_done=false
+  
+  for arg in "${rest[@]}"; do
+    if [[ "$arg" == -* ]]; then
+      args_done=true
+      extract_rest+=( "$arg" )
+    elif [[ "$args_done" == false ]]; then
+      if [[ -z "$snap_id" ]]; then
+        snap_id="$arg"
+      elif [[ -z "$file" ]]; then
+        file="$arg"
+      else
+        extract_rest+=( "$arg" )
+      fi
     else
-      extract_rest=( "${rest[i]}" "${extract_rest[@]}" )
+      extract_rest+=( "$arg" )
     fi
   done
 
+  # Shift if only one positional argument was provided
+  if [[ -n "$snap_id" && -z "$file" ]]; then
+    file="$snap_id"
+    snap_id=""
+  fi
+
   if [[ -z "$file" ]] ; then
     echo "You must provide a file path to extract."
+    echo "Note: Positional arguments (snapshot ID and file path) must be placed BEFORE any restic flags."
     exit 1
   fi
   
@@ -2227,22 +2246,39 @@ function extract {
   echo "Extracting [$file] to [./$dest_name]..."
   
   local restic_args=()
-  if [[ ${#extract_rest[@]} -eq 0 ]] ; then
+  if [[ -z "$snap_id" ]] ; then
     echo "Auto-detecting latest snapshot for this file..."
-    local snap_id
-    snap_id=$(restic find "$file" 2>/dev/null | tr -d '\r' | sed 's/\x1B\[[0-9;]*[a-zA-Z]//g' | awk '/Found matching entries in snapshot/ { for(i=1;i<=NF;i++) if($i=="snapshot") snap=$(i+1) } END { print snap }')
+    
+    local has_host=false
+    for arg in "${extract_rest[@]}"; do
+      if [[ "$arg" == "--host" || "$arg" == "-H" ]]; then
+        has_host=true
+        break
+      fi
+    done
+    
+    local find_flags=()
+    if [[ "$has_host" == false ]]; then
+      find_flags+=( "--host" "$rhost" )
+    fi
+    find_flags+=( "${extract_rest[@]}" )
+    
+    debug_start
+    snap_id=$(run_restic_with_retry find "${find_flags[@]}" "$file" 2>/dev/null | tr -d '\r' | sed 's/\x1B\[[0-9;]*[a-zA-Z]//g' | awk '/Found matching entries in snapshot/ { for(i=1;i<=NF;i++) if($i=="snapshot") snap=$(i+1) } END { print snap }')
+    debug_stop
     if [[ -z "$snap_id" ]] ; then
       echo "Extraction failed. File [$file] not found in any snapshot."
       exit 1
     fi
-    restic_args=( "$snap_id" "$file" )
-  else
-    restic_args=( "${extract_rest[@]}" "$file" )
   fi
+  
+  restic_args=( "$snap_id" "$file" "${extract_rest[@]}" )
   
   local err_file="/tmp/rescript_extract_err_$$"
   (
-    restic dump "${restic_args[@]}" > "./$dest_name" 2> "$err_file"
+    debug_start
+    run_restic_with_retry dump "${restic_args[@]}" > "./$dest_name" 2> "$err_file"
+    debug_stop
   ) &
   local pid=$!
   local progress=0
@@ -2288,7 +2324,7 @@ function history {
   print_line "="
   
   debug_start
-  restic find -l "${rest[@]}" | awk -v path_len="$col_path" '
+  run_restic_with_retry find -l "${rest[@]}" | awk -v path_len="$col_path" '
   {
     gsub(/\x1b\[[0-9;]*[a-zA-Z]/, "")
     gsub(/\r/, "")
@@ -2325,7 +2361,7 @@ function history {
   debug_stop
   
   if [ "${PIPESTATUS[0]}" -ne 0 ]; then
-    echo "History search failed or no matches found."
+    echo "History search failed due to a repository or connection error."
   fi
 }
 function install_autocomplete {

@@ -11,6 +11,14 @@
 #### 🐛 Bugfixes
 
 * **Grouped Snapshots Output:** Disabled custom table formatting in the `snaps` command when the `--group-by` flag is used, preventing graphical corruption and allowing `restic` to display grouped tables naturally.
+* **Backup Path Spaces:** Fixed a bug in `backup` where paths containing spaces would fail due to missing quotes around `$BACKUP_DIR`, inadvertently breaking the temporary exclusion pipeline for Office files.
+* **Network Resilience Pipeline:** Fixed a bug where the `run_restic_with_retry` network wrapper would print warnings to standard output, corrupting data when piped. The warnings are now safely redirected to standard error.
+* **Extract & History Resilience:** Wrapped the core commands inside `extract` and `history` with the network resilience wrapper (`run_restic_with_retry`) to ensure they recover automatically from connection drops.
+* **Extract Cross-Host Downloads:** Added a `--host` filter to the snapshot auto-detection logic in the `extract` command. When a user extracts a file without specifying a snapshot ID, it now strictly searches for snapshots created by their current machine to prevent downloading files from other hosts in shared repositories.
+* **Extract Debug Tracing:** Fixed a bug in `extract` where the global `-D, --debug` flag was ignored. The core `restic find` and `restic dump` commands are now properly wrapped with `debug_start` and `debug_stop`, enabling precise execution tracing.
+* **Extract Flag Parsing Conflict:** Rewrote the internal argument parser for the `extract` command. Previously, the parser read arguments backwards, causing restic flag values (like `omv` in `--host omv`) to be mistakenly identified as the file path. The parser now enforces reading positional arguments (snapshot ID and file path) from left to right, guaranteeing flawless compatibility with all restic flags and their values.
+* **Extract Cross-Host Auto-Detection:** Refined the auto-detection logic in `extract`. While it still defaults to restricting searches to the current machine (`--host "$rhost"`) to prevent accidental cross-host downloads, it now intelligently recognizes if the user explicitly provided a `--host` or `-H` flag (e.g. `--host omv`) and respects it. Furthermore, all user flags (like `--tag`) are now passed into the auto-detection engine to find exactly the snapshot intended.
+
 
 #### ✨ Enhancements
 
