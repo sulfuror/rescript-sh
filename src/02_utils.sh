@@ -170,7 +170,7 @@ function print_context {
 
   case "$cmd" in
     backup|automatic)
-      printf "  ${c_white}%-15s${c_reset}: ${c_cyan}%s${c_reset}\n" "Backup Source" "$BACKUP_DIR"
+      printf "  ${c_white}%-15s${c_reset}: ${c_cyan}%s${c_reset}\n" "Backup Source" "${BACKUP_DIR[*]}"
       local excl_count
       excl_count=$(grep -E -v -c '(^#|^\s*$|^\s*\t*#)' "$excludes" 2>/dev/null || echo 0)
       if [[ "$excl_count" -gt 0 ]] ; then

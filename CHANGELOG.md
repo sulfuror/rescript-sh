@@ -23,6 +23,8 @@
 #### ✨ Enhancements
 
 * **Smart Updater:** The `update` command now dynamically queries the GitLab API to fetch and download the latest stable `Release` (e.g., `v6.1`) instead of blindly downloading the raw `master` branch. This guarantees users only receive officially published stable updates.
+* **Array-Based Backup Paths:** `BACKUP_DIR` now natively supports Bash array syntax in configuration files (e.g., `BACKUP_DIR=("/home/Documents" "/home/Pictures")`). This enables users to seamlessly back up multiple directories simultaneously while retaining bulletproof support for spaces in folder names.
+
 
 ---
 

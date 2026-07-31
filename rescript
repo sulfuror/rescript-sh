@@ -310,7 +310,7 @@ function print_context {
 
   case "$cmd" in
     backup|automatic)
-      printf "  ${c_white}%-15s${c_reset}: ${c_cyan}%s${c_reset}\n" "Backup Source" "$BACKUP_DIR"
+      printf "  ${c_white}%-15s${c_reset}: ${c_cyan}%s${c_reset}\n" "Backup Source" "${BACKUP_DIR[*]}"
       local excl_count
       excl_count=$(grep -E -v -c '(^#|^\s*$|^\s*\t*#)' "$excludes" 2>/dev/null || echo 0)
       if [[ "$excl_count" -gt 0 ]] ; then
@@ -2045,9 +2045,9 @@ function backup {
   debug_start
   set_sim_flag "Backup"
   if [[ "$skip_flag" = "true" ]] ; then
-    run_restic_with_retry backup $sim_flag --verbose "${bu_opts[@]}" --exclude-file=<(find "$BACKUP_DIR" -iname ".~lock.*" 2> /dev/null | sed -e 's/.~lock.//g' | sed -e 's/#//g') --exclude=".~lock.*" "${rest[@]}" "$BACKUP_DIR"
+    run_restic_with_retry backup $sim_flag --verbose "${bu_opts[@]}" --exclude-file=<(find "${BACKUP_DIR[@]}" -iname ".~lock.*" 2> /dev/null | sed -e 's/.~lock.//g' | sed -e 's/#//g') --exclude=".~lock.*" "${rest[@]}" "${BACKUP_DIR[@]}"
   else
-    run_restic_with_retry backup $sim_flag --verbose "${bu_opts[@]}" "${rest[@]}" "$BACKUP_DIR"
+    run_restic_with_retry backup $sim_flag --verbose "${bu_opts[@]}" "${rest[@]}" "${BACKUP_DIR[@]}"
   fi
   check_restic_error $?
   debug_stop
