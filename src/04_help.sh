@@ -32,7 +32,7 @@ Global flags:
   -W, --webhook         Force to send webhook notification with output.
 
 Make use of restic flags/options as follows:
-  rescript [repo_name] backup [flags] -- [restic_flags/options] ...
+  rescript [repo_name] backup [flags] [restic_flags/options] ...
 
 EOF
 }
@@ -67,7 +67,7 @@ Global flags:
   -W, --webhook         Force to send webhook notification with output.
 
 Make use of restic flags/options as follows:
-  rescript [repo_name] cleanup [flags] -- [restic_flags/options] ...
+  rescript [repo_name] cleanup [flags] [restic_flags/options] ...
 
 EOF
 }
@@ -131,7 +131,7 @@ Global flags:
   -W, --webhook         Force to send webhook notification with output.
 
 Make use of restic flags/options as follows:
-  rescript [repo_name] diff [flags] -- [restic_flags/options] ...
+  rescript [repo_name] diff [flags] [restic_flags/options] ...
 
 EOF
 }
@@ -176,6 +176,9 @@ cat <<EOF
 a snapshot directly to your current working directory.
 If no snapshot ID is provided, the script will automatically search for
 the latest snapshot containing that file.
+
+Note: You must provide the exact full path of the file as it was backed up,
+not just the filename.
 
 Usage:
   rescript [repo_name] extract [snapshot_id] <file_path>
@@ -275,7 +278,7 @@ OR
   rescript [repo_name] logs [flag] [logfile]
 
 Command flags:
-  -W, --view logfile    Display output of selected log file.
+  -V, --view logfile    Display output of selected log file.
   -R, --remove logfile  Remove all log files (use 'all' to remove
                         all logs related to the repository).
 
@@ -311,7 +314,7 @@ Global flags:
   -W, --webhook         Force to send webhook notification with output.
 
 Make use of restic flags/options as follows:
-  rescript [repo_name] mounter [--background] -- [restic_flags/options] ...
+  rescript [repo_name] mounter [--background] [restic_flags/options] ...
 
 EOF
 }
@@ -376,7 +379,7 @@ Global flags:
   -W, --webhook         Force to send webhook notification with output.
 
 Make use of restic flags/options as follows:
-  rescript [repo_name] search [flags] -- [restic_flags/options] ...
+  rescript [repo_name] search [flags] [restic_flags/options] ...
 
 EOF
 }
@@ -403,7 +406,7 @@ Global flags:
   -W, --webhook         Force to send webhook notification with output.
 
 Make use of restic flags/options as follows:
-  rescript [repo_name] snaps [flags] -- [restic_flags/options] ...
+  rescript [repo_name] snaps [flags] [restic_flags/options] ...
 
 EOF
 }
@@ -496,7 +499,7 @@ Global flags:
   -W, --webhook         Force to send webhook notification with output.
 
 Make use of restic flags/options as follows:
-  rescript [repo_name] size [snapshot_id] <path> -- [restic_flags/options] ...
+  rescript [repo_name] size [snapshot_id] <path> [restic_flags/options] ...
 
 EOF
 }
@@ -525,7 +528,7 @@ Global flags:
   -W, --webhook         Force to send webhook notification with output.
 
 Make use of restic flags/options as follows:
-  rescript [repo_name] history [flags] -- [restic_flags/options] ...
+  rescript [repo_name] history [flags] [restic_flags/options] ...
 
 EOF
 }
@@ -560,7 +563,7 @@ Usage:
 Command flags:
   -F, --full            Display a full dashboard including size and health.
                         Note: This takes significantly more time.
-  -X, --exclude         Exclude specific repositories (e.g. -X foo -X bar).
+  -X, --ignore-repo     Exclude specific repositories (e.g. -X foo -X bar).
 
 Global flags:
   -h, --help            Display usage.

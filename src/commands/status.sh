@@ -8,12 +8,12 @@ function global_status {
         full_mode="true"
         shift
         ;;
-      -X|--exclude)
+      -X|--ignore-repo)
         if [[ -n "${2:-}" ]]; then
           excluded_repos+=("$2")
           shift 2
         else
-          echo "Error: -X/--exclude requires a repository name."
+          echo "Error: -X/--ignore-repo requires a repository name."
           exit 1
         fi
         ;;
@@ -110,6 +110,7 @@ function global_status {
         echo "$size_str|$health_str" > "/tmp/rescript_status_$repo"
       ) &
       local pid=$!
+      trap 'kill "$pid" 2>/dev/null; rm -f "/tmp/rescript_status_$repo" 2>/dev/null; exit 130' INT
       
       local spin='-\|/'
       local i=0
@@ -135,16 +136,4 @@ function global_status {
     fi
   done
   print_line "="
-}
-function status-help {
-  echo "Usage: rescript status [-F|--full] [-X|--exclude <repo>]"
-  echo ""
-  echo "Prints a quick dashboard of all repositories showing snapshot count"
-  echo "and the date of the latest snapshot."
-  echo ""
-  echo "Flags:"
-  echo "  -F, --full         Calculates total size and runs a health check for each repo."
-  echo "                     (Warning: This can take a long time on large repositories)"
-  echo "  -X, --exclude      Excludes a specific repository from the dashboard output."
-  echo "                     Example: rescript status -X test"
 }

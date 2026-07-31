@@ -41,7 +41,7 @@ function extract {
   
   local dest_name
   dest_name="$(basename "$file")"
-  if [[ -d "./$dest_name" ]] ; then
+  if [[ -e "./$dest_name" ]] ; then
     dest_name="${dest_name}_extracted"
   fi
   
@@ -83,6 +83,7 @@ function extract {
     debug_stop
   ) &
   local pid=$!
+  trap 'kill "$pid" 2>/dev/null; rm -f "./$dest_name" "$err_file" 2>/dev/null; exit 130' INT
   local progress=0
   
   while kill -0 "$pid" 2>/dev/null; do

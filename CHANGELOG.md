@@ -6,6 +6,16 @@
 
 ---
 
+### July 31, 2026
+
+#### 🐛 Bugfixes
+
+* **Extract Safe Overwrite:** Replaced the directory collision check in the `extract` command with a universal existence check (`[[ -e ]]`). Extracting a file that already exists in the current directory will no longer silently overwrite the local file, but will instead automatically append `_extracted` to the destination name to prevent accidental data loss.
+* **Zombie Process Prevention:** Implemented a robust `SIGINT` trap (`Ctrl+C`) in both the `extract` and `status --full` commands. If a user forcibly aborts these commands while a background `restic dump` or `restic check` is running, the background tasks are now immediately terminated and all temporary files are properly cleaned up.
+* **Command Help Consistency:** Completely synchronized the internal command documentation and the public Wiki (`docs/`). Removed the deprecated `--` flag separator requirement from all help examples, fixed minor case-sensitivity typos in command flags, and unified the repository exclusion flag in the `status` command to `--ignore-repo` to perfectly match the `all` orchestrator.
+
+---
+
 ### July 28, 2026
 
 #### 🐛 Bugfixes
@@ -19,12 +29,10 @@
 * **Extract Flag Parsing Conflict:** Rewrote the internal argument parser for the `extract` command. Previously, the parser read arguments backwards, causing restic flag values (like `omv` in `--host omv`) to be mistakenly identified as the file path. The parser now enforces reading positional arguments (snapshot ID and file path) from left to right, guaranteeing flawless compatibility with all restic flags and their values.
 * **Extract Cross-Host Auto-Detection:** Refined the auto-detection logic in `extract`. While it still defaults to restricting searches to the current machine (`--host "$rhost"`) to prevent accidental cross-host downloads, it now intelligently recognizes if the user explicitly provided a `--host` or `-H` flag (e.g. `--host omv`) and respects it. Furthermore, all user flags (like `--tag`) are now passed into the auto-detection engine to find exactly the snapshot intended.
 
-
 #### ✨ Enhancements
 
 * **Smart Updater:** The `update` command now dynamically queries the GitLab API to fetch and download the latest stable `Release` (e.g., `v6.1`) instead of blindly downloading the raw `master` branch. This guarantees users only receive officially published stable updates.
 * **Array-Based Backup Paths:** `BACKUP_DIR` now natively supports Bash array syntax in configuration files (e.g., `BACKUP_DIR=("/home/Documents" "/home/Pictures")`). This enables users to seamlessly back up multiple directories simultaneously while retaining bulletproof support for spaces in folder names.
-
 
 ---
 

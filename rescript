@@ -1367,7 +1367,7 @@ Global flags:
   -W, --webhook         Force to send webhook notification with output.
 
 Make use of restic flags/options as follows:
-  rescript [repo_name] backup [flags] -- [restic_flags/options] ...
+  rescript [repo_name] backup [flags] [restic_flags/options] ...
 
 EOF
 }
@@ -1402,7 +1402,7 @@ Global flags:
   -W, --webhook         Force to send webhook notification with output.
 
 Make use of restic flags/options as follows:
-  rescript [repo_name] cleanup [flags] -- [restic_flags/options] ...
+  rescript [repo_name] cleanup [flags] [restic_flags/options] ...
 
 EOF
 }
@@ -1466,7 +1466,7 @@ Global flags:
   -W, --webhook         Force to send webhook notification with output.
 
 Make use of restic flags/options as follows:
-  rescript [repo_name] diff [flags] -- [restic_flags/options] ...
+  rescript [repo_name] diff [flags] [restic_flags/options] ...
 
 EOF
 }
@@ -1511,6 +1511,9 @@ cat <<EOF
 a snapshot directly to your current working directory.
 If no snapshot ID is provided, the script will automatically search for
 the latest snapshot containing that file.
+
+Note: You must provide the exact full path of the file as it was backed up,
+not just the filename.
 
 Usage:
   rescript [repo_name] extract [snapshot_id] <file_path>
@@ -1610,7 +1613,7 @@ OR
   rescript [repo_name] logs [flag] [logfile]
 
 Command flags:
-  -W, --view logfile    Display output of selected log file.
+  -V, --view logfile    Display output of selected log file.
   -R, --remove logfile  Remove all log files (use 'all' to remove
                         all logs related to the repository).
 
@@ -1646,7 +1649,7 @@ Global flags:
   -W, --webhook         Force to send webhook notification with output.
 
 Make use of restic flags/options as follows:
-  rescript [repo_name] mounter [--background] -- [restic_flags/options] ...
+  rescript [repo_name] mounter [--background] [restic_flags/options] ...
 
 EOF
 }
@@ -1711,7 +1714,7 @@ Global flags:
   -W, --webhook         Force to send webhook notification with output.
 
 Make use of restic flags/options as follows:
-  rescript [repo_name] search [flags] -- [restic_flags/options] ...
+  rescript [repo_name] search [flags] [restic_flags/options] ...
 
 EOF
 }
@@ -1738,7 +1741,7 @@ Global flags:
   -W, --webhook         Force to send webhook notification with output.
 
 Make use of restic flags/options as follows:
-  rescript [repo_name] snaps [flags] -- [restic_flags/options] ...
+  rescript [repo_name] snaps [flags] [restic_flags/options] ...
 
 EOF
 }
@@ -1831,7 +1834,7 @@ Global flags:
   -W, --webhook         Force to send webhook notification with output.
 
 Make use of restic flags/options as follows:
-  rescript [repo_name] size [snapshot_id] <path> -- [restic_flags/options] ...
+  rescript [repo_name] size [snapshot_id] <path> [restic_flags/options] ...
 
 EOF
 }
@@ -1860,7 +1863,7 @@ Global flags:
   -W, --webhook         Force to send webhook notification with output.
 
 Make use of restic flags/options as follows:
-  rescript [repo_name] history [flags] -- [restic_flags/options] ...
+  rescript [repo_name] history [flags] [restic_flags/options] ...
 
 EOF
 }
@@ -1895,7 +1898,7 @@ Usage:
 Command flags:
   -F, --full            Display a full dashboard including size and health.
                         Note: This takes significantly more time.
-  -X, --exclude         Exclude specific repositories (e.g. -X foo -X bar).
+  -X, --ignore-repo     Exclude specific repositories (e.g. -X foo -X bar).
 
 Global flags:
   -h, --help            Display usage.
@@ -2239,7 +2242,7 @@ function extract {
   
   local dest_name
   dest_name="$(basename "$file")"
-  if [[ -d "./$dest_name" ]] ; then
+  if [[ -e "./$dest_name" ]] ; then
     dest_name="${dest_name}_extracted"
   fi
   
@@ -2281,6 +2284,7 @@ function extract {
     debug_stop
   ) &
   local pid=$!
+  trap 'kill "$pid" 2>/dev/null; rm -f "./$dest_name" "$err_file" 2>/dev/null; exit 130' INT
   local progress=0
   
   while kill -0 "$pid" 2>/dev/null; do
@@ -2974,12 +2978,12 @@ function global_status {
         full_mode="true"
         shift
         ;;
-      -X|--exclude)
+      -X|--ignore-repo)
         if [[ -n "${2:-}" ]]; then
           excluded_repos+=("$2")
           shift 2
         else
-          echo "Error: -X/--exclude requires a repository name."
+          echo "Error: -X/--ignore-repo requires a repository name."
           exit 1
         fi
         ;;
@@ -3076,6 +3080,7 @@ function global_status {
         echo "$size_str|$health_str" > "/tmp/rescript_status_$repo"
       ) &
       local pid=$!
+      trap 'kill "$pid" 2>/dev/null; rm -f "/tmp/rescript_status_$repo" 2>/dev/null; exit 130' INT
       
       local spin='-\|/'
       local i=0
@@ -3101,18 +3106,6 @@ function global_status {
     fi
   done
   print_line "="
-}
-function status-help {
-  echo "Usage: rescript status [-F|--full] [-X|--exclude <repo>]"
-  echo ""
-  echo "Prints a quick dashboard of all repositories showing snapshot count"
-  echo "and the date of the latest snapshot."
-  echo ""
-  echo "Flags:"
-  echo "  -F, --full         Calculates total size and runs a health check for each repo."
-  echo "                     (Warning: This can take a long time on large repositories)"
-  echo "  -X, --exclude      Excludes a specific repository from the dashboard output."
-  echo "                     Example: rescript status -X test"
 }
 function umounter {
   rescript_lock
@@ -3505,7 +3498,7 @@ case "${1:-}" in
     ;;
   status)
     if [[ "${2:-}" == "-h" || "${2:-}" == "--help" ]]; then
-      status-help 2>/dev/null || echo "Usage: rescript status [-F|--full]"
+      status-help 2>/dev/null || echo "Usage: rescript status [-F|--full] [-X|--ignore-repo <repo>]"
       exit 0
     fi
     global_status "${@:2}"

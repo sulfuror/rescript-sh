@@ -211,7 +211,7 @@ case "${1:-}" in
     ;;
   status)
     if [[ "${2:-}" == "-h" || "${2:-}" == "--help" ]]; then
-      status-help 2>/dev/null || echo "Usage: rescript status [-F|--full]"
+      status-help 2>/dev/null || echo "Usage: rescript status [-F|--full] [-X|--ignore-repo <repo>]"
       exit 0
     fi
     global_status "${@:2}"
