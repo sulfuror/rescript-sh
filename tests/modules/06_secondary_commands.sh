@@ -25,10 +25,10 @@ eval "$RESCRIPT test backup -L > /dev/null 2>&1"
 LOG_FILE=$(ls -t "$TEST_ENV/.rescript/logs" | head -n 1)
 
 if [[ -n "$LOG_FILE" ]]; then
-  run_test "Command: logs -W (View Log)" "$RESCRIPT test logs -W $LOG_FILE"
+  run_test "Command: logs -V (View Log)" "$RESCRIPT test logs -V $LOG_FILE"
   run_test "Command: logs -R (Remove Log)" "$RESCRIPT test logs -R $LOG_FILE"
 else
-  echo -e "[${c_red}FAIL${c_reset}] (Could not generate log file to test -W and -R flags)"
+  echo -e "[${c_red}FAIL${c_reset}] (Could not generate log file to test -V and -R flags)"
 fi
 
 # Test Debug Flag (-D)

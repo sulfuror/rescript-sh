@@ -23,12 +23,12 @@ fi
 function _parse_standard_flags {
   case "$1" in
     -D|--debug) debug_flag="true" ; return 0 ;;
-    -E|--email) int="false" ; CONFIRMATION_EMAIL="y" ; return 0 ;;
+    -E|--email) force_email="true" ; CONFIRMATION_EMAIL="y" ; return 0 ;;
     -L|--log) log_flag="true" ; return 0 ;;
     -M|--metadata) context_flag="true" ; return 0 ;;
     -Q|--quiet) quiet_flag="true" ; return 0 ;;
-    -S|--simulate) simulate_flag="true" ; return 0 ;;
     -T|--timer) time_flag="true" ; return 0 ;;
+    -W|--webhook) force_webhook="true" ; CONFIRMATION_WEBHOOK="y" ; return 0 ;;
     *) return 1 ;;
   esac
 }
@@ -40,6 +40,12 @@ function parse_generic_args {
     if _parse_standard_flags "$1" ; then shift ; continue ; fi
     case "$1" in
       -h|--help) "$help_func" ; exit 0 ;;
+      -S|--simulate) 
+        echo "[$1] is not a valid option..."
+        echo ""
+        "$help_func"
+        exit 1
+        ;;
       --) shift ; rest+=( "$@" ) ; break ;;
       -*) rest+=( "$1" ) ;;
       *) rest+=( "$1" ) ;;
@@ -54,6 +60,7 @@ function run_quietly {
 
 function execute_with_metrics {
   logger
+  print_context
   time_start
   "$@"
   time_end
@@ -78,6 +85,7 @@ case "$cmd" in
     while [[ $# -gt 0 ]] ; do
       if _parse_standard_flags "$1" ; then shift ; continue ; fi
       case "$1" in
+        -S|--simulate) simulate_flag="true" ;;
         -h|--help|help) usage ; exit 0 ;;
         *) echo "Invalid option [$1]..." ; echo "" ; exit 1 ;;
       esac
@@ -87,6 +95,7 @@ case "$cmd" in
     ;;
   status)
     parse_generic_args status-help "$@"
+    logger
     run_quietly global_status "${rest[@]}"
     ;;
   backup)
@@ -96,6 +105,7 @@ case "$cmd" in
       case "$1" in
         -C|--check) check_flag="true" ;;
         -U|--cleanup) cleanup_flag="true" ;;
+        -S|--simulate) simulate_flag="true" ;;
 
         -h|--help ) backup-help ; exit 0 ;;
         -I|--info) info_flag="true"  ;;
@@ -126,6 +136,7 @@ case "$cmd" in
       if _parse_standard_flags "$1" ; then shift ; continue ; fi
       case "$1" in
         -C|--check) check_flag="true" ;;
+        -S|--simulate) simulate_flag="true" ;;
         -h|--help ) cleanup-help ; exit 0 ;;
         -I|--info) info_flag="true" ;;
 
@@ -163,15 +174,16 @@ case "$cmd" in
     while [[ $# -gt 0 ]] ; do
       if _parse_standard_flags "$1" ; then shift ; continue ; fi
       case "$1" in
+        -S|--simulate) echo "[$1] is not a valid option..." ; echo "" ; env-help ; exit 1 ;;
         -h|--help) env-help ; exit 0 ;;
         -V) var_flag="${2:-}" ; shift ;;
         --var=*) var_flag="${1#*=}" ;;
         --var) var_flag="${2:-}" ; shift ;;
-        -*) rest+=( "$1" ) ;;
+        -*) echo "Invalid option [$1]..." ; echo "" ; env-help ; exit 1 ;;
       esac
       shift
     done
-    execute_with_metrics env_conf
+    execute_with_metrics run_quietly env_conf
     ;;
   -h|--help|help)
     usage
@@ -204,23 +216,28 @@ case "$cmd" in
         -H) host_flag="${2:-}" ; shift ;;
         --host=*) host_flag="${1#*=}" ;;
         --host) host_flag="${2:-}" ; shift ;;
-        -*) rest+=( "$1" ) ;;
-        *) rest+=( "$1" ) ;;
+        *) 
+          echo "[$1] is not a valid option..."
+          echo ""
+          info-help
+          exit 1 
+          ;;
       esac
       shift
     done
-    execute_with_metrics statinfo
+    execute_with_metrics run_quietly statinfo
     ;;
   size)
     shopt -u nocasematch
     while [[ $# -gt 0 ]] ; do
       if _parse_standard_flags "$1" ; then shift ; continue ; fi
       case "$1" in
+        -S|--simulate) echo "[$1] is not a valid option..." ; echo "" ; size-help ; exit 1 ;;
         -h|--help) size-help ; exit 0 ;;
         -H) host_flag="${2:-}" ; shift ;;
         --host=*) host_flag="${1#*=}" ;;
         --host) host_flag="${2:-}" ; shift ;;
-        -*) rest+=( "$1" ) ;;
+        -*) echo "Invalid option [$1]..." ; echo "" ; size-help ; exit 1 ;;
         *) rest+=( "$1" ) ;;
       esac
       shift
@@ -231,27 +248,33 @@ case "$cmd" in
     while [[ $# -gt 0 ]] ; do
       if _parse_standard_flags "$1" ; then shift ; continue ; fi
       case "$1" in
-        -W) catlogs="true" ; logfile="${2:-}" ; shift ;;
+        -V) catlogs="true" ; logfile="${2:-}" ; shift ;;
         --view=*) catlogs="true" ; logfile="${1#*=}" ;;
         --view) catlogs="true" ; logfile="${2:-}" ; shift ;;
+        -S|--simulate) echo "[$1] is not a valid option..." ; echo "" ; logs-help ; exit 1 ;;
         -h|--help) logs-help ; exit 0 ;;
         -R) removelogs="true" ; logfile="${2:-}" ; shift ;;
         --remove=*) removelogs="true" ; logfile="${1#*=}" ;;
         --remove) removelogs="true" ; logfile="${2:-}" ; shift ;;
-        -*) rest+=( "$1" ) ;;
-        *) rest+=( "$1" ) ;;
+        -*) echo "Invalid option [$1]..." ; echo "" ; logs-help ; exit 1 ;;
+        *) echo "Invalid argument [$1]..." ; echo "" ; logs-help ; exit 1 ;;
       esac
       shift
     done
-    execute_with_metrics logs
+    execute_with_metrics run_quietly logs
     ;;
   mounter|umounter)
     parse_generic_args "$cmd-help" "$@"
-    execute_with_metrics "$cmd"
+    execute_with_metrics run_quietly "$cmd"
     ;;
   restorer)
     shopt -u nocasematch
-    if [[ ! "$1" ]] ; then
+    snap_flag=""
+    host_flag=""
+    path_flag=""
+    tag_flag=""
+    interactive_flag=""
+    if [[ ! "${1:-}" ]] ; then
       echo "You have not indicated any option..."
       echo ""
       restorer-help
@@ -270,10 +293,10 @@ case "$cmd" in
         -Z) snap_flag="${2:-}" ; shift ;;
         --snapshot=*) snap_flag="${1#*=}" ;;
         --snapshot) snap_flag="${2:-}" ; shift ;;
-        -T) tag_flag="${2:-}" ; shift ;;
         --tag=*) tag_flag="${1#*=}" ;;
         --tag) tag_flag="${2:-}" ; shift ;;
         -i|--interactive) interactive_flag="true" ;;
+        -S|--simulate) simulate_flag="true" ;;
         -*) 
           echo "[$1] is not a valid option..."
           echo ""
@@ -313,9 +336,13 @@ case "$cmd" in
     execute_with_metrics run_quietly upgrade_repo
     ;;
   *)
+    shopt -u nocasematch
     rest=("$cmd")
     for arg in "$@"; do
       if _parse_standard_flags "$arg" ; then continue ; fi
+      case "$arg" in
+        -S|--simulate) echo "[$arg] is not a valid option..." ; echo "" ; exit 1 ;;
+      esac
       rest+=("$arg")
     done
     cmd="${rest[0]}"

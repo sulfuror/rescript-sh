@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ============================================================== #
-version="6.0"
+version="6.1"
 set -euo pipefail
 # Initialize internal variables to prevent unbound variable errors
 context_flag=""
@@ -20,6 +20,7 @@ cmd=""
 exit_code=""
 latest_cmd=""
 context_printed=""
+log=""
 function hide_cursor {
   tput civis 2> /dev/null || true
 }
@@ -61,6 +62,7 @@ Configuration commands:
   editor                Change default text editor used by rescript.
   help                  Display rescript usage.
   install               Install rescript.
+  uninstall             Uninstall rescript.
   update                Check/install new rescript version.
   version               Display rescript version.
   
@@ -93,8 +95,8 @@ Global flags:
   -L, --log             Create log file with command output.
   -M, --metadata        Display execution context metadata.
   -Q, --quiet           Silence output.
-  -S, --simulate        Run destructive operations in dry-run mode.
   -T, --timer           Display output with date, time and duration.
+  -W, --webhook         Force to send webhook notification with output.
 
 Commands usage:
   rescript help [command]

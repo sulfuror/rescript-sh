@@ -7,24 +7,7 @@
 
 ## Installation
 
-### Dependencies
-1. `restic` >= 0.9.2
-2. `wget`
-
-You can install the script using the following commands:
-```bash
-git clone https://gitlab.com/sulfuror/rescript.sh.git
-cd rescript.sh
-chmod 700 rescript
-./rescript install
-```
-
-| Options | Installation Directory |
-| ------- | ---------------------- |
-| 1. System-wide | `/usr/bin` |
-| 2. For this user | `~/bin` or `~/.local/bin` |
-
-*(Note: If you choose option 2, make sure your `$PATH` includes `~/bin` or `~/.local/bin` in your `.profile`).*
+For complete installation instructions, dependencies, and configuration options, please refer to the **[Installation guide on the Wiki](https://gitlab.com/sulfuror/rescript.sh/-/wikis/home/installation)**.
 
 ## Key Features
 

@@ -62,8 +62,8 @@ function _send_email {
   fi
   if [[ -n "$EMAIL" ]] ; then
     if [[ "$(command -v mail)" ]] ; then
-      if [[ "$int" = "false" ]] ; then
-        if [[ -e "$log" ]] ; then
+      if [[ "$int" = "false" || "${force_email:-}" = "true" ]] ; then
+        if [[ -n "${log:-}" && -e "$log" ]] ; then
           logmessage="Logfile: $log"
           catlog=$(sed -E "s/$(printf '\033')\[([0-9]{1,2}(;[0-9]{1,2})?)?[mGK]//g" "$log")
         else
@@ -74,11 +74,9 @@ function _send_email {
         mail_err=$(mktemp)
         local mail_status=0
         if [[ "$time_flag" = "true" ]] ; then
-          echo -e "$logmessage\n\n$catlog" | mail -s "$subject" "$EMAIL" 2> "$mail_err"
-          mail_status=$?
+          echo -e "$logmessage\n\n$catlog" | mail -s "$subject" "$EMAIL" 2> "$mail_err" || mail_status=$?
         else
-          echo -e "Date: $(date +%a\ %b\ %d\ %Y\ %r)\nSystem: $(opsys)\nHostname: $rhost\nRepository Location: $dest\nRestic Version: $(restic version | awk '{print $2}')\n\n$logmessage\n$(print_line)\n$catlog\n$(print_line)\nEnd: $(date +%a\ %b\ %d\ %Y\ %r)\nDuration: $(duration)" | mail -s "$subject" "$EMAIL" 2> "$mail_err"
-          mail_status=$?
+          echo -e "Date: $(date +%a\ %b\ %d\ %Y\ %r)\nSystem: $(opsys)\nHostname: $rhost\nRepository Location: $dest\nRestic Version: $(restic version | awk '{print $2}')\n\n$logmessage\n$(print_line)\n$catlog\n$(print_line)\nEnd: $(date +%a\ %b\ %d\ %Y\ %r)\nDuration: $(duration)" | mail -s "$subject" "$EMAIL" 2> "$mail_err" || mail_status=$?
         fi
         if [[ $mail_status -ne 0 ]]; then
           echo -e "\n${c_yellow}WARNING: Rescript could not send the email. Make sure your system's mail agent (MTA) is installed and configured correctly.${c_reset}"
@@ -98,10 +96,29 @@ function _send_webhook {
       echo -e "${c_yellow}SIMULATE: Would send webhook to [$WEBHOOK_URL] with subject: [$subject]${c_reset}"
       return 0
     fi
-    if [[ "$(command -v curl)" ]] ; then
-      curl -s -X POST -H "Content-Type: application/json" -d "{\"content\": \"$subject\"}" "$WEBHOOK_URL" >/dev/null 2>&1
-    else
-      echo -e "${c_yellow}[rescript] can't send webhooks; install [curl] package to do so.${c_reset}"
+    if [[ "$int" = "false" || "${force_webhook:-}" = "true" ]] ; then
+      if [[ "$(command -v curl)" ]] ; then
+        local target_log=""
+        local attach_file=""
+        
+        if [[ -n "${log:-}" && -e "$log" ]] ; then
+          target_log="$log"
+        elif [[ -n "${tmplog:-}" && -e "$tmplog" ]] ; then
+          target_log="$tmplog"
+        fi
+        
+        if [[ -n "$target_log" ]]; then
+          attach_file="/tmp/rescript_webhook_$$.txt"
+          sed -E "s/$(printf '\033')\[([0-9]{1,2}(;[0-9]{1,2})?)?[mGK]//g" "$target_log" | tr -d '\r' | sed -E -e 's/={60,}/============================================================/g' -e 's/-{60,}/------------------------------------------------------------/g' -e 's/^[ \t]+(Rescript Execution Context)/                          \1/' > "$attach_file"
+          
+          curl -s -X POST -F "payload_json={\"content\": \"**$subject**\"}" -F "file=@$attach_file" "$WEBHOOK_URL" >/dev/null 2>&1 || true
+          rm -f "$attach_file"
+        else
+          curl -s -X POST -H "Content-Type: application/json" -d "{\"content\": \"**$subject**\n\`\`\`text\nNo output captured.\n\`\`\`\"}" "$WEBHOOK_URL" >/dev/null 2>&1 || true
+        fi
+      else
+        echo -e "${c_yellow}[rescript] can't send webhooks; install [curl] package to do so.${c_reset}"
+      fi
     fi
   fi
 }
@@ -153,7 +170,7 @@ function print_context {
 
   case "$cmd" in
     backup|automatic)
-      printf "  ${c_white}%-15s${c_reset}: ${c_cyan}%s${c_reset}\n" "Backup Source" "$BACKUP_DIR"
+      printf "  ${c_white}%-15s${c_reset}: ${c_cyan}%s${c_reset}\n" "Backup Source" "${BACKUP_DIR[*]}"
       local excl_count
       excl_count=$(grep -E -v -c '(^#|^\s*$|^\s*\t*#)' "$excludes" 2>/dev/null || echo 0)
       if [[ "$excl_count" -gt 0 ]] ; then
@@ -189,16 +206,28 @@ function print_context {
 
 function job_done {
   cmd="${cmd:-backup}"
+  
+  if [[ ! "$cmd" =~ ^(automatic|backup|cleanup)$ && "${force_email:-}" != "true" && "${force_webhook:-}" != "true" ]]; then
+    return 0
+  fi
+
   if [[ "${CONFIRMATION_EMAIL:-}" = "y" || "${CONFIRMATION_EMAIL:-}" = "yes" ]] ; then
     _send_email "rescript: [$repo] $cmd finished successfully!"
   fi
-  if [[ -n "${WEBHOOK_URL:-}" ]] ; then
-    _send_webhook "rescript: [$repo] $cmd finished successfully!"
+  if [[ "${CONFIRMATION_WEBHOOK:-}" = "y" || "${CONFIRMATION_WEBHOOK:-}" = "yes" ]] ; then
+    if [[ -n "${WEBHOOK_URL:-}" ]] ; then
+      _send_webhook "✅ rescript: [$repo] $cmd finished successfully on [$(hostname)]!"
+    fi
   fi
 }
 
 function report_errors {
   cmd="${cmd:-backup}"
+
+  if [[ ! "$cmd" =~ ^(automatic|backup|cleanup)$ && "${force_email:-}" != "true" && "${force_webhook:-}" != "true" ]]; then
+    return 0
+  fi
+
   if [[ -n "$error_message" ]] ; then
     if [[ "$ping_code" -gt "0" ]] ; then
       echo -e "${c_red}$error_message${c_reset}"
@@ -208,7 +237,7 @@ function report_errors {
       echo -e "${c_red}$error_message${c_reset}"
     fi
     _send_email "rescript: [$repo] $cmd failed!"
-    _send_webhook "rescript: [$repo] $cmd failed!"
+    _send_webhook "❌ rescript: [$repo] $cmd failed on [$(hostname)]!"
   fi
 }
 
@@ -228,7 +257,7 @@ function run_restic_with_retry {
     fi
     
     if [[ $attempt -lt $max_attempts ]]; then
-      echo -e "${c_yellow}Warning: restic failed with exit code $exit_code. Retrying in 30 seconds... (Attempt $attempt of $max_attempts)${c_reset}"
+      echo -e "${c_yellow}Warning: restic failed with exit code $exit_code. Retrying in 30 seconds... (Attempt $attempt of $max_attempts)${c_reset}" >&2
       sleep 30
     fi
     ((attempt++))
@@ -540,4 +569,17 @@ function _run_post_actions {
     print_line
     run_quietly statinfo
   fi
+}
+
+function source_config {
+  local conf_file="$1"
+  local bash_err
+  if ! bash_err=$(bash -n "$conf_file" 2>&1); then
+    echo -e "${c_red}FATAL ERROR: Rescript found a syntax error in your configuration file!${c_reset}"
+    echo -e "${c_yellow}File: $conf_file${c_reset}"
+    echo -e "${c_yellow}Details: $bash_err${c_reset}"
+    echo -e "${c_yellow}Please verify your configuration file for missing quotes, unmatched brackets, or invalid syntax.${c_reset}"
+    exit 2
+  fi
+  source "$conf_file"
 }

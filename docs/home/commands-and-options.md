@@ -6,7 +6,7 @@ There are three commands that will not work as restic usually work, and those ar
 1. **backup**: This command will run a backup according to the variables set before.
 2. **help**: This command will display `rescript` help.
 3. **version**: This command will display the current version of `rescript` you're using.
- 
+
 As far as I've tested, all other restic commands will run as using restic alone. For help
 with restic commands type:
 
@@ -18,12 +18,13 @@ Please see restic `help` and [documentation](https://restic.readthedocs.io/en/st
 
 ### Configuration Commands
 
-1. **[config](home/commands/config-cmd)**: Launch the interactive wizard or configure a repository/global settings.
-2. **[editor](home/commands/editor-cmd)**: Change default text editor used by rescript.
-3. **[help](home/commands/help-cmd)**: Display rescript usage.
-4. **[install](home/commands/install-cmd)**: Install rescript.
-5. **[update](home/commands/update-cmd)**: Check/install new rescript version.
-6. **[version](home/commands/version-cmd)**: Display rescript version.
+1. **[config](home/commands/config)**: Launch the interactive wizard or configure a repository/global settings.
+2. **[editor](home/commands/editor)**: Change default text editor used by rescript.
+3. **[help](home/commands/help)**: Display rescript usage.
+4. **[install](home/commands/install)**: Install rescript.
+5. **[uninstall](home/commands/uninstall)**: Uninstall rescript.
+6. **[update](home/commands/update)**: Check/install new rescript version.
+7. **[version](home/commands/version)**: Display rescript version.
 
 ### Repository Commands
 
@@ -61,9 +62,12 @@ Rescript features several global flags that can be mixed naturally with its own 
 4. **`-L, --log`**: Create a logfile for this specific manual run.
 5. **`-M, --metadata`**: Display execution context metadata.
 6. **`-Q, --quiet`**: silence output. If you use `--log` it will still log the output.
+7. **`-S, --simulate`**: Performs a dry-run of destructive commands like `backup` or `cleanup`, printing the exact restic command that would be run without actually modifying the repo.
 8. **`-T, --timer`**: display output with date, time and duration at the end of execution.
+9. **`-W, --webhook`**: force to send webhook notification with output.
 
 Make use of `rescript` global flags with `restic` commands normally:
+
 ```
 rescript [repo_name] [restic_command] -L -Q [restic_flags] ...
 ```

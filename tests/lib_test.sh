@@ -67,10 +67,12 @@ function cleanup_sandbox {
   if [[ -d "$TEST_ENV" ]]; then
     rm -rf "$TEST_ENV"
   fi
+  exit ${MODULE_FAILED:-0}
 }
 
 function start_test_module {
   local module_name="$1"
+  MODULE_FAILED=0
   echo "======================================"
   echo -e " ${c_yellow}Module:${c_reset} $module_name"
   echo "======================================"
@@ -96,8 +98,7 @@ function run_test {
     echo -e "${c_yellow}--- Output Log ---${c_reset}"
     cat "$TEST_ENV/out.log"
     echo -e "${c_yellow}------------------${c_reset}"
-    # Stop the module execution on failure if desired, or let it continue.
-    # For CI, we often want to let it continue to see all errors.
+    MODULE_FAILED=1
   fi
   return $exit_code
 }

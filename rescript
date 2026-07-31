@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ============================================================== #
-version="6.0"
+version="6.1"
 set -euo pipefail
 # Initialize internal variables to prevent unbound variable errors
 context_flag=""
@@ -20,6 +20,7 @@ cmd=""
 exit_code=""
 latest_cmd=""
 context_printed=""
+log=""
 function hide_cursor {
   tput civis 2> /dev/null || true
 }
@@ -61,6 +62,7 @@ Configuration commands:
   editor                Change default text editor used by rescript.
   help                  Display rescript usage.
   install               Install rescript.
+  uninstall             Uninstall rescript.
   update                Check/install new rescript version.
   version               Display rescript version.
   
@@ -93,8 +95,8 @@ Global flags:
   -L, --log             Create log file with command output.
   -M, --metadata        Display execution context metadata.
   -Q, --quiet           Silence output.
-  -S, --simulate        Run destructive operations in dry-run mode.
   -T, --timer           Display output with date, time and duration.
+  -W, --webhook         Force to send webhook notification with output.
 
 Commands usage:
   rescript help [command]
@@ -200,8 +202,8 @@ function _send_email {
   fi
   if [[ -n "$EMAIL" ]] ; then
     if [[ "$(command -v mail)" ]] ; then
-      if [[ "$int" = "false" ]] ; then
-        if [[ -e "$log" ]] ; then
+      if [[ "$int" = "false" || "${force_email:-}" = "true" ]] ; then
+        if [[ -n "${log:-}" && -e "$log" ]] ; then
           logmessage="Logfile: $log"
           catlog=$(sed -E "s/$(printf '\033')\[([0-9]{1,2}(;[0-9]{1,2})?)?[mGK]//g" "$log")
         else
@@ -212,11 +214,9 @@ function _send_email {
         mail_err=$(mktemp)
         local mail_status=0
         if [[ "$time_flag" = "true" ]] ; then
-          echo -e "$logmessage\n\n$catlog" | mail -s "$subject" "$EMAIL" 2> "$mail_err"
-          mail_status=$?
+          echo -e "$logmessage\n\n$catlog" | mail -s "$subject" "$EMAIL" 2> "$mail_err" || mail_status=$?
         else
-          echo -e "Date: $(date +%a\ %b\ %d\ %Y\ %r)\nSystem: $(opsys)\nHostname: $rhost\nRepository Location: $dest\nRestic Version: $(restic version | awk '{print $2}')\n\n$logmessage\n$(print_line)\n$catlog\n$(print_line)\nEnd: $(date +%a\ %b\ %d\ %Y\ %r)\nDuration: $(duration)" | mail -s "$subject" "$EMAIL" 2> "$mail_err"
-          mail_status=$?
+          echo -e "Date: $(date +%a\ %b\ %d\ %Y\ %r)\nSystem: $(opsys)\nHostname: $rhost\nRepository Location: $dest\nRestic Version: $(restic version | awk '{print $2}')\n\n$logmessage\n$(print_line)\n$catlog\n$(print_line)\nEnd: $(date +%a\ %b\ %d\ %Y\ %r)\nDuration: $(duration)" | mail -s "$subject" "$EMAIL" 2> "$mail_err" || mail_status=$?
         fi
         if [[ $mail_status -ne 0 ]]; then
           echo -e "\n${c_yellow}WARNING: Rescript could not send the email. Make sure your system's mail agent (MTA) is installed and configured correctly.${c_reset}"
@@ -236,10 +236,29 @@ function _send_webhook {
       echo -e "${c_yellow}SIMULATE: Would send webhook to [$WEBHOOK_URL] with subject: [$subject]${c_reset}"
       return 0
     fi
-    if [[ "$(command -v curl)" ]] ; then
-      curl -s -X POST -H "Content-Type: application/json" -d "{\"content\": \"$subject\"}" "$WEBHOOK_URL" >/dev/null 2>&1
-    else
-      echo -e "${c_yellow}[rescript] can't send webhooks; install [curl] package to do so.${c_reset}"
+    if [[ "$int" = "false" || "${force_webhook:-}" = "true" ]] ; then
+      if [[ "$(command -v curl)" ]] ; then
+        local target_log=""
+        local attach_file=""
+        
+        if [[ -n "${log:-}" && -e "$log" ]] ; then
+          target_log="$log"
+        elif [[ -n "${tmplog:-}" && -e "$tmplog" ]] ; then
+          target_log="$tmplog"
+        fi
+        
+        if [[ -n "$target_log" ]]; then
+          attach_file="/tmp/rescript_webhook_$$.txt"
+          sed -E "s/$(printf '\033')\[([0-9]{1,2}(;[0-9]{1,2})?)?[mGK]//g" "$target_log" | tr -d '\r' | sed -E -e 's/={60,}/============================================================/g' -e 's/-{60,}/------------------------------------------------------------/g' -e 's/^[ \t]+(Rescript Execution Context)/                          \1/' > "$attach_file"
+          
+          curl -s -X POST -F "payload_json={\"content\": \"**$subject**\"}" -F "file=@$attach_file" "$WEBHOOK_URL" >/dev/null 2>&1 || true
+          rm -f "$attach_file"
+        else
+          curl -s -X POST -H "Content-Type: application/json" -d "{\"content\": \"**$subject**\n\`\`\`text\nNo output captured.\n\`\`\`\"}" "$WEBHOOK_URL" >/dev/null 2>&1 || true
+        fi
+      else
+        echo -e "${c_yellow}[rescript] can't send webhooks; install [curl] package to do so.${c_reset}"
+      fi
     fi
   fi
 }
@@ -291,7 +310,7 @@ function print_context {
 
   case "$cmd" in
     backup|automatic)
-      printf "  ${c_white}%-15s${c_reset}: ${c_cyan}%s${c_reset}\n" "Backup Source" "$BACKUP_DIR"
+      printf "  ${c_white}%-15s${c_reset}: ${c_cyan}%s${c_reset}\n" "Backup Source" "${BACKUP_DIR[*]}"
       local excl_count
       excl_count=$(grep -E -v -c '(^#|^\s*$|^\s*\t*#)' "$excludes" 2>/dev/null || echo 0)
       if [[ "$excl_count" -gt 0 ]] ; then
@@ -327,16 +346,28 @@ function print_context {
 
 function job_done {
   cmd="${cmd:-backup}"
+  
+  if [[ ! "$cmd" =~ ^(automatic|backup|cleanup)$ && "${force_email:-}" != "true" && "${force_webhook:-}" != "true" ]]; then
+    return 0
+  fi
+
   if [[ "${CONFIRMATION_EMAIL:-}" = "y" || "${CONFIRMATION_EMAIL:-}" = "yes" ]] ; then
     _send_email "rescript: [$repo] $cmd finished successfully!"
   fi
-  if [[ -n "${WEBHOOK_URL:-}" ]] ; then
-    _send_webhook "rescript: [$repo] $cmd finished successfully!"
+  if [[ "${CONFIRMATION_WEBHOOK:-}" = "y" || "${CONFIRMATION_WEBHOOK:-}" = "yes" ]] ; then
+    if [[ -n "${WEBHOOK_URL:-}" ]] ; then
+      _send_webhook "✅ rescript: [$repo] $cmd finished successfully on [$(hostname)]!"
+    fi
   fi
 }
 
 function report_errors {
   cmd="${cmd:-backup}"
+
+  if [[ ! "$cmd" =~ ^(automatic|backup|cleanup)$ && "${force_email:-}" != "true" && "${force_webhook:-}" != "true" ]]; then
+    return 0
+  fi
+
   if [[ -n "$error_message" ]] ; then
     if [[ "$ping_code" -gt "0" ]] ; then
       echo -e "${c_red}$error_message${c_reset}"
@@ -346,7 +377,7 @@ function report_errors {
       echo -e "${c_red}$error_message${c_reset}"
     fi
     _send_email "rescript: [$repo] $cmd failed!"
-    _send_webhook "rescript: [$repo] $cmd failed!"
+    _send_webhook "❌ rescript: [$repo] $cmd failed on [$(hostname)]!"
   fi
 }
 
@@ -366,7 +397,7 @@ function run_restic_with_retry {
     fi
     
     if [[ $attempt -lt $max_attempts ]]; then
-      echo -e "${c_yellow}Warning: restic failed with exit code $exit_code. Retrying in 30 seconds... (Attempt $attempt of $max_attempts)${c_reset}"
+      echo -e "${c_yellow}Warning: restic failed with exit code $exit_code. Retrying in 30 seconds... (Attempt $attempt of $max_attempts)${c_reset}" >&2
       sleep 30
     fi
     ((attempt++))
@@ -678,6 +709,19 @@ function _run_post_actions {
     print_line
     run_quietly statinfo
   fi
+}
+
+function source_config {
+  local conf_file="$1"
+  local bash_err
+  if ! bash_err=$(bash -n "$conf_file" 2>&1); then
+    echo -e "${c_red}FATAL ERROR: Rescript found a syntax error in your configuration file!${c_reset}"
+    echo -e "${c_yellow}File: $conf_file${c_reset}"
+    echo -e "${c_yellow}Details: $bash_err${c_reset}"
+    echo -e "${c_yellow}Please verify your configuration file for missing quotes, unmatched brackets, or invalid syntax.${c_reset}"
+    exit 2
+  fi
+  source "$conf_file"
 }
 function config_file {
 cat <<EOF
@@ -1310,18 +1354,20 @@ Command flags:
   -I, --info            Display stats for latest and all snapshots.
   -O, --skip-office     Temporarily exclude open (in-use) 'Office'
                         documents (.xlsx, .docx, .ods, odt, etc.).
+  -S, --simulate        Simulate execution (dry-run).
 
 Global flags:
   -D, --debug           Debug script.
   -E, --email           Force to send email with output.
   -h, --help            Display usage.
   -L, --log             Create log file with command output.
+  -M, --metadata        Display execution context metadata.
   -Q, --quiet           Silence output.
-  -S, --simulate        Simulate execution (dry-run).
   -T, --timer           Display output with date, time and duration.
+  -W, --webhook         Force to send webhook notification with output.
 
 Make use of restic flags/options as follows:
-  rescript [repo_name] backup [flags] -- [restic_flags/options] ...
+  rescript [repo_name] backup [flags] [restic_flags/options] ...
 
 EOF
 }
@@ -1341,6 +1387,7 @@ Command flags:
 
   -C, --check           Check for errors in repository.
   -I, --info            Display stats for latest and all snapshots.
+  -S, --simulate        Simulate execution (dry-run).
       --reset           Remove "datefile"; it resets the dates for
                         the CLEAN option in your configuration file.
 
@@ -1349,12 +1396,13 @@ Global flags:
   -E, --email           Force to send email with output.
   -h, --help            Display usage.
   -L, --log             Create log file with command output.
+  -M, --metadata        Display execution context metadata.
   -Q, --quiet           Silence output.
-  -S, --simulate        Simulate execution (dry-run).
   -T, --timer           Display output with date, time and duration.
+  -W, --webhook         Force to send webhook notification with output.
 
 Make use of restic flags/options as follows:
-  rescript [repo_name] cleanup [flags] -- [restic_flags/options] ...
+  rescript [repo_name] cleanup [flags] [restic_flags/options] ...
 
 EOF
 }
@@ -1373,6 +1421,7 @@ Usage:
 Global flags:
   -h, --help            Display usage.
   -T, --timer           Display output with date, time and duration.
+  -W, --webhook         Force to send webhook notification with output.
 EOF
 }
 
@@ -1411,12 +1460,13 @@ Global flags:
   -E, --email           Force to send email with output.
   -h, --help            Display usage.
   -L, --log             Create log file with command output.
+  -M, --metadata        Display execution context metadata.
   -Q, --quiet           Silence output.
-  -S, --simulate        Simulate execution (dry-run).
   -T, --timer           Display output with date, time and duration.
+  -W, --webhook         Force to send webhook notification with output.
 
 Make use of restic flags/options as follows:
-  rescript [repo_name] diff [flags] -- [restic_flags/options] ...
+  rescript [repo_name] diff [flags] [restic_flags/options] ...
 
 EOF
 }
@@ -1462,6 +1512,9 @@ a snapshot directly to your current working directory.
 If no snapshot ID is provided, the script will automatically search for
 the latest snapshot containing that file.
 
+Note: You must provide the exact full path of the file as it was backed up,
+not just the filename.
+
 Usage:
   rescript [repo_name] extract [snapshot_id] <file_path>
 
@@ -1470,12 +1523,13 @@ Global flags:
   -E, --email           Force to send email with output.
   -h, --help            Display usage.
   -L, --log             Create log file with command output.
+  -M, --metadata        Display execution context metadata.
   -Q, --quiet           Silence output.
-  -S, --simulate        Simulate execution (dry-run).
   -T, --timer           Display output with date, time and duration.
+  -W, --webhook         Force to send webhook notification with output.
 
-Make use of restic flags/options as follows:
-  rescript [repo_name] extract [snapshot_id] <file_path> -- [restic_flags/options] ...
+Make use of restic flags/options natively:
+  rescript [repo_name] extract [snapshot_id] [restic_flags] <file_path>
 
 EOF
 }
@@ -1498,9 +1552,10 @@ Global flags:
   -E, --email           Force to send email with output.
   -h, --help            Display usage.
   -L, --log             Create log file with command output.
+  -M, --metadata        Display execution context metadata.
   -Q, --quiet           Silence output.
-  -S, --simulate        Simulate execution (dry-run).
   -T, --timer           Display output with date, time and duration.
+  -W, --webhook         Force to send webhook notification with output.
 
 EOF
 } 
@@ -1508,16 +1563,39 @@ EOF
 function install-help {
 cat <<EOF
 [install] is to simply copy the script to your PATH directory
-inside your HOME. If there is no PATH in your HOME then rescript
-will ask you if you want to create one. If the answer is yes then
-it will create a [/bin] directory inside your [./local] directory.
-If the answer is no then it will exit. If you don't want to use
-rescript from your PATH then remember to use it indicating the
-complete path where the script is located; if you have set another
-location for your PATH then just copy the script and put it there.
+inside your HOME and install the bash autocompletion feature.
+If there is no PATH in your HOME then rescript will ask you if you 
+want to create one. If the answer is yes then it will create a [/bin] 
+directory inside your [./local] directory. If the answer is no then it 
+will exit. If you don't want to use rescript from your PATH then remember 
+to use it indicating the complete path where the script is located.
 
 Usage:
-  rescript install
+  rescript install [flags]
+  rescript install --autocomplete-only [system|user]
+
+Command flags:
+  --autocomplete-only   Install ONLY the bash autocompletion feature
+                        without reinstalling the rescript binary.
+                        It can optionally receive 'system' or 'user'.
+
+Global flags:
+  -h, --help            Display usage.
+
+EOF
+}
+
+function uninstall-help {
+cat <<EOF
+[uninstall] removes rescript and its autocompletion script.
+
+This command will prompt you to remove the binary from your PATH
+and delete the bash autocompletion feature. It will also ask if
+you wish to completely remove your configuration directory
+(~/.rescript).
+
+Usage:
+  rescript uninstall
 
 Global flags:
   -h, --help            Display usage.
@@ -1535,7 +1613,7 @@ OR
   rescript [repo_name] logs [flag] [logfile]
 
 Command flags:
-  -W, --view logfile    Display output of selected log file.
+  -V, --view logfile    Display output of selected log file.
   -R, --remove logfile  Remove all log files (use 'all' to remove
                         all logs related to the repository).
 
@@ -1565,12 +1643,13 @@ Global flags:
   -E, --email           Force to send email with output.
   -h, --help            Display usage.
   -L, --log             Create log file with command output.
+  -M, --metadata        Display execution context metadata.
   -Q, --quiet           Silence output.
-  -S, --simulate        Simulate execution (dry-run).
   -T, --timer           Display output with date, time and duration.
+  -W, --webhook         Force to send webhook notification with output.
 
 Make use of restic flags/options as follows:
-  rescript [repo_name] mounter [--background] -- [restic_flags/options] ...
+  rescript [repo_name] mounter [--background] [restic_flags/options] ...
 
 EOF
 }
@@ -1587,7 +1666,7 @@ be named with a unique name so it will not conflict with your
 existing directories.
 
 Usage:
-  rescript [repo_name] restorer [flags] [host|path|snapshot ID|tag]
+  rescript [repo_name] restorer [flags] [snapshot ID]
 
 Command flags:
   -i, --interactive     Fetch a list of snapshots and present an interactive menu to choose from.
@@ -1596,17 +1675,19 @@ Command flags:
   -P, --path path       Only consider snapshots which include
                         this [absolute] path for snapshot-ID [latest].
   -Z, --snapshot ID     Indicate snapshot-ID to restore.
-  -T, --tag tagname     Only consider snapshots which include this
+      --tag tagname     Only consider snapshots which include this
                         taglist for snapshot-ID [latest].
+  -S, --simulate        Simulate execution (dry-run).
 
 Global flags:
   -D, --debug           Debug script.
   -E, --email           Force to send email with output.
   -h, --help            Display usage.
   -L, --log             Create log file with command output.
+  -M, --metadata        Display execution context metadata.
   -Q, --quiet           Silence output.
-  -S, --simulate        Simulate execution (dry-run).
   -T, --timer           Display output with date, time and duration.
+  -W, --webhook         Force to send webhook notification with output.
 
 EOF
 }
@@ -1627,12 +1708,13 @@ Global flags:
   -E, --email           Force to send email with output.
   -h, --help            Display usage.
   -L, --log             Create log file with command output.
+  -M, --metadata        Display execution context metadata.
   -Q, --quiet           Silence output.
-  -S, --simulate        Simulate execution (dry-run).
   -T, --timer           Display output with date, time and duration.
+  -W, --webhook         Force to send webhook notification with output.
 
 Make use of restic flags/options as follows:
-  rescript [repo_name] search [flags] -- [restic_flags/options] ...
+  rescript [repo_name] search [flags] [restic_flags/options] ...
 
 EOF
 }
@@ -1653,12 +1735,13 @@ Global flags:
   -E, --email           Force to send email with output.
   -h, --help            Display usage.
   -L, --log             Create log file with command output.
+  -M, --metadata        Display execution context metadata.
   -Q, --quiet           Silence output.
-  -S, --simulate        Simulate execution (dry-run).
   -T, --timer           Display output with date, time and duration.
+  -W, --webhook         Force to send webhook notification with output.
 
 Make use of restic flags/options as follows:
-  rescript [repo_name] snaps [flags] -- [restic_flags/options] ...
+  rescript [repo_name] snaps [flags] [restic_flags/options] ...
 
 EOF
 }
@@ -1681,9 +1764,10 @@ Global flags:
   -E, --email           Force to send email with output.
   -h, --help            Display usage.
   -L, --log             Create log file with command output.
+  -M, --metadata        Display execution context metadata.
   -Q, --quiet           Silence output.
-  -S, --simulate        Simulate execution (dry-run).
   -T, --timer           Display output with date, time and duration.
+  -W, --webhook         Force to send webhook notification with output.
 
 EOF
 }
@@ -1719,9 +1803,10 @@ Global flags:
   -E, --email           Force to send email with output.
   -h, --help            Display usage.
   -L, --log             Create log file with command output.
+  -M, --metadata        Display execution context metadata.
   -Q, --quiet           Silence output.
-  -S, --simulate        Simulate execution (dry-run).
   -T, --timer           Display output with date, time and duration.
+  -W, --webhook         Force to send webhook notification with output.
 
 EOF
 }
@@ -1743,12 +1828,13 @@ Global flags:
   -E, --email           Force to send email with output.
   -h, --help            Display usage.
   -L, --log             Create log file with command output.
+  -M, --metadata        Display execution context metadata.
   -Q, --quiet           Silence output.
-  -S, --simulate        Simulate execution (dry-run).
   -T, --timer           Display output with date, time and duration.
+  -W, --webhook         Force to send webhook notification with output.
 
 Make use of restic flags/options as follows:
-  rescript [repo_name] size [snapshot_id] <path> -- [restic_flags/options] ...
+  rescript [repo_name] size [snapshot_id] <path> [restic_flags/options] ...
 
 EOF
 }
@@ -1771,12 +1857,13 @@ Global flags:
   -E, --email           Force to send email with output.
   -h, --help            Display usage.
   -L, --log             Create log file with command output.
+  -M, --metadata        Display execution context metadata.
   -Q, --quiet           Silence output.
-  -S, --simulate        Simulate execution (dry-run).
   -T, --timer           Display output with date, time and duration.
+  -W, --webhook         Force to send webhook notification with output.
 
 Make use of restic flags/options as follows:
-  rescript [repo_name] history [flags] -- [restic_flags/options] ...
+  rescript [repo_name] history [flags] [restic_flags/options] ...
 
 EOF
 }
@@ -1811,7 +1898,7 @@ Usage:
 Command flags:
   -F, --full            Display a full dashboard including size and health.
                         Note: This takes significantly more time.
-  -X, --exclude         Exclude specific repositories (e.g. -X foo -X bar).
+  -X, --ignore-repo     Exclude specific repositories (e.g. -X foo -X bar).
 
 Global flags:
   -h, --help            Display usage.
@@ -1961,9 +2048,9 @@ function backup {
   debug_start
   set_sim_flag "Backup"
   if [[ "$skip_flag" = "true" ]] ; then
-    run_restic_with_retry backup $sim_flag --verbose "${bu_opts[@]}" --exclude-file=<(find "$BACKUP_DIR" -iname ".~lock.*" 2> /dev/null | sed -e 's/.~lock.//g' | sed -e 's/#//g') --exclude=".~lock.*" "${rest[@]}" $BACKUP_DIR
+    run_restic_with_retry backup $sim_flag --verbose "${bu_opts[@]}" --exclude-file=<(find "${BACKUP_DIR[@]}" -iname ".~lock.*" 2> /dev/null | sed -e 's/.~lock.//g' | sed -e 's/#//g') --exclude=".~lock.*" "${rest[@]}" "${BACKUP_DIR[@]}"
   else
-    run_restic_with_retry backup $sim_flag --verbose "${bu_opts[@]}" "${rest[@]}" $BACKUP_DIR
+    run_restic_with_retry backup $sim_flag --verbose "${bu_opts[@]}" "${rest[@]}" "${BACKUP_DIR[@]}"
   fi
   check_restic_error $?
   debug_stop
@@ -2072,7 +2159,7 @@ function env_conf {
 
   if [[ "${var_flag:-}" ]] ; then
     upper_var=$(echo "${var_flag:-}" | tr '[:lower:]' '[:upper:]')
-    search=$(grep "^[[:space:]]*${upper_var}=" "$config_repo" || true)
+    search=$(grep -E "^[[:space:]]*[A-Z0-9_]*${upper_var}[A-Z0-9_]*=" "$config_repo" || true)
     if [[ -z "$search" ]] ; then
       echo "There is no var named [$var_flag]..."
       echo ""
@@ -2087,7 +2174,11 @@ function env_conf {
         if (length($1) == 0) next;
         key = $1
         sub(/^[^=]*=/, "", $0)
-        printf "  %s%-25s%s : %s%s%s\n", cw, key, cr, cc, $0, cr
+        val = $0
+        if ((key ~ /PASSWORD/ || key ~ /KEY/) && val != "\"\"" && val != "") {
+          val = "\"********\""
+        }
+        printf "  %s%-25s%s : %s%s%s\n", cw, key, cr, cc, val, cr
       }'
     fi
   else
@@ -2099,7 +2190,11 @@ function env_conf {
       if (length($1) == 0) next;
       key = $1
       sub(/^[^=]*=/, "", $0)
-      printf "  %s%-25s%s : %s%s%s\n", cw, key, cr, cc, $0, cr
+      val = $0
+      if ((key ~ /PASSWORD/ || key ~ /KEY/) && val != "\"\"" && val != "") {
+        val = "\"********\""
+      }
+      printf "  %s%-25s%s : %s%s%s\n", cw, key, cr, cc, val, cr
     }'
   fi
 }
@@ -2112,47 +2207,84 @@ function extract {
   fi
   
   local file=""
+  local snap_id=""
   local extract_rest=()
-  for (( i=${#rest[@]}-1; i>=0; i-- )); do
-    if [[ -z "$file" && "${rest[i]}" != -* ]]; then
-      file="${rest[i]}"
+  local args_done=false
+  
+  for arg in "${rest[@]}"; do
+    if [[ "$arg" == -* ]]; then
+      args_done=true
+      extract_rest+=( "$arg" )
+    elif [[ "$args_done" == false ]]; then
+      if [[ -z "$snap_id" ]]; then
+        snap_id="$arg"
+      elif [[ -z "$file" ]]; then
+        file="$arg"
+      else
+        extract_rest+=( "$arg" )
+      fi
     else
-      extract_rest=( "${rest[i]}" "${extract_rest[@]}" )
+      extract_rest+=( "$arg" )
     fi
   done
 
+  # Shift if only one positional argument was provided
+  if [[ -n "$snap_id" && -z "$file" ]]; then
+    file="$snap_id"
+    snap_id=""
+  fi
+
   if [[ -z "$file" ]] ; then
     echo "You must provide a file path to extract."
+    echo "Note: Positional arguments (snapshot ID and file path) must be placed BEFORE any restic flags."
     exit 1
   fi
   
   local dest_name
   dest_name="$(basename "$file")"
-  if [[ -d "./$dest_name" ]] ; then
+  if [[ -e "./$dest_name" ]] ; then
     dest_name="${dest_name}_extracted"
   fi
   
   echo "Extracting [$file] to [./$dest_name]..."
   
   local restic_args=()
-  if [[ ${#extract_rest[@]} -eq 0 ]] ; then
+  if [[ -z "$snap_id" ]] ; then
     echo "Auto-detecting latest snapshot for this file..."
-    local snap_id
-    snap_id=$(restic find "$file" 2>/dev/null | tr -d '\r' | sed 's/\x1B\[[0-9;]*[a-zA-Z]//g' | awk '/Found matching entries in snapshot/ { for(i=1;i<=NF;i++) if($i=="snapshot") snap=$(i+1) } END { print snap }')
+    
+    local has_host=false
+    for arg in "${extract_rest[@]}"; do
+      if [[ "$arg" == "--host" || "$arg" == "-H" ]]; then
+        has_host=true
+        break
+      fi
+    done
+    
+    local find_flags=()
+    if [[ "$has_host" == false ]]; then
+      find_flags+=( "--host" "$rhost" )
+    fi
+    find_flags+=( "${extract_rest[@]}" )
+    
+    debug_start
+    snap_id=$(run_restic_with_retry find "${find_flags[@]}" "$file" 2>/dev/null | tr -d '\r' | sed 's/\x1B\[[0-9;]*[a-zA-Z]//g' | awk '/Found matching entries in snapshot/ { for(i=1;i<=NF;i++) if($i=="snapshot") snap=$(i+1) } END { print snap }')
+    debug_stop
     if [[ -z "$snap_id" ]] ; then
       echo "Extraction failed. File [$file] not found in any snapshot."
       exit 1
     fi
-    restic_args=( "$snap_id" "$file" )
-  else
-    restic_args=( "${extract_rest[@]}" "$file" )
   fi
+  
+  restic_args=( "$snap_id" "$file" "${extract_rest[@]}" )
   
   local err_file="/tmp/rescript_extract_err_$$"
   (
-    restic dump "${restic_args[@]}" > "./$dest_name" 2> "$err_file"
+    debug_start
+    run_restic_with_retry dump "${restic_args[@]}" > "./$dest_name" 2> "$err_file"
+    debug_stop
   ) &
   local pid=$!
+  trap 'kill "$pid" 2>/dev/null; rm -f "./$dest_name" "$err_file" 2>/dev/null; exit 130' INT
   local progress=0
   
   while kill -0 "$pid" 2>/dev/null; do
@@ -2196,7 +2328,7 @@ function history {
   print_line "="
   
   debug_start
-  restic find -l "${rest[@]}" 2>/dev/null | awk -v path_len="$col_path" '
+  run_restic_with_retry find -l "${rest[@]}" | awk -v path_len="$col_path" '
   {
     gsub(/\x1b\[[0-9;]*[a-zA-Z]/, "")
     gsub(/\r/, "")
@@ -2233,7 +2365,7 @@ function history {
   debug_stop
   
   if [ "${PIPESTATUS[0]}" -ne 0 ]; then
-    echo "History search failed or no matches found."
+    echo "History search failed due to a repository or connection error."
   fi
 }
 function install_autocomplete {
@@ -2266,7 +2398,7 @@ _rescript_completions() {
         fi
       done
     fi
-    local global_commands="all config editor help install status update version"
+    local global_commands="all config editor help install status uninstall update version"
     COMPREPLY=( $(compgen -W "${repos} ${global_commands}" -- "${cur}") )
     return 0
   fi
@@ -2284,7 +2416,7 @@ _rescript_completions() {
     return 0
   fi
   
-  if [[ "$prev" == "-W" || "$prev" == "--view" || "$prev" == "-R" || "$prev" == "--remove" ]]; then
+  if [[ "$prev" == "--view" || "$prev" == "-R" || "$prev" == "--remove" ]]; then
     local logfiles=""
     if [[ -d "$HOME/.rescript/logs" ]]; then
       for f in "$HOME/.rescript/logs"/*; do
@@ -2307,7 +2439,27 @@ _rescript_completions() {
     return 0
   fi
   
-  if [[ "$prev" == "-V" || "$prev" == "--var" ]]; then
+  if [[ "$prev" == "-V" ]]; then
+    # -V can be used for 'logs --view' or 'env/search --var'
+    if [[ "${COMP_LINE}" == *"logs "* || "${COMP_LINE}" == *"logs" ]]; then
+      local logfiles=""
+      if [[ -d "$HOME/.rescript/logs" ]]; then
+        for f in "$HOME/.rescript/logs"/*; do
+          if [[ -f "$f" ]]; then
+            logfiles="${logfiles} $(basename "$f")"
+          fi
+        done
+      fi
+      COMPREPLY=( $(compgen -W "${logfiles}" -- "${cur}") )
+      return 0
+    else
+      local vars="REPO_TARGET RESTIC_PASSWORD RESTIC_PASSWORD_COMMAND CLEAN KEEP_LAST KEEP_HOURLY KEEP_DAILY KEEP_WEEKLY KEEP_MONTHLY KEEP_YEARLY PRE_CMD POST_CMD NOTIFY WEBHOOK_URL CONFIRMATION_EMAIL EXCLUDE_FILE HOST BIONIC MAX_LOG LOG_RETENTION"
+      COMPREPLY=( $(compgen -W "${vars}" -- "${cur}") )
+      return 0
+    fi
+  fi
+
+  if [[ "$prev" == "--var" ]]; then
     local vars="REPO_TARGET RESTIC_PASSWORD RESTIC_PASSWORD_COMMAND CLEAN KEEP_LAST KEEP_HOURLY KEEP_DAILY KEEP_WEEKLY KEEP_MONTHLY KEEP_YEARLY PRE_CMD POST_CMD NOTIFY WEBHOOK_URL CONFIRMATION_EMAIL EXCLUDE_FILE HOST BIONIC MAX_LOG LOG_RETENTION"
     COMPREPLY=( $(compgen -W "${vars}" -- "${cur}") )
     return 0
@@ -2319,13 +2471,13 @@ _rescript_completions() {
   fi
 
   if [[ "$cur" == -* ]]; then
-    local all_flags="-C --check -D --debug -E --email -F --full -H --host -I --info -L --log -M --metadata -O --skip-office -P --path -Q --quiet -R --remove -S --simulate -T --tag --timer -U --cleanup -V --var -W --view -X --exclude -Z --snapshot -g --global -h --help -i --interactive --ignore-case --reset --wizard --version"
+    local all_flags="-C --check -D --debug -E --email -F --full -H --host -I --info -L --log -M --metadata -O --skip-office -P --path -Q --quiet -R --remove -S --simulate -T --tag --timer -U --cleanup -V --var --view -W --webhook -X --exclude -Z --snapshot -g --global -h --help -i --interactive --ignore-case --reset --wizard --version"
     COMPREPLY=( $(compgen -W "${all_flags}" -- "${cur}") )
     return 0
   fi
 
   if [[ $COMP_CWORD -eq 2 ]]; then
-    if [[ "$prev" == "config" || "$prev" == "status" || "$prev" == "install" || "$prev" == "update" || "$prev" == "editor" || "$prev" == "version" || "$prev" == "help" ]]; then
+    if [[ "$prev" == "config" || "$prev" == "status" || "$prev" == "install" || "$prev" == "uninstall" || "$prev" == "update" || "$prev" == "editor" || "$prev" == "version" || "$prev" == "help" ]]; then
       return 0
     else
       local repo_commands="backup cleanup diff env extract history info logs mounter next restorer search size snaps status umounter unlocker upgrade"
@@ -2336,11 +2488,45 @@ _rescript_completions() {
 }
 complete -F _rescript_completions rescript
 EOF
-    echo -e " \033[1;32m*\033[0m Bash autocompletion installed."
+    echo -e " \033[1;32m*\033[0m Bash autocompletion installed at: \033[1;37m$target_file\033[0m"
   fi
 }
 
 function install {
+  if [[ "${1:-}" == "--autocomplete-only" ]]; then
+    local target="${2:-}"
+    if [[ -z "$target" ]]; then
+      echo "$ui_line_eq"
+      echo "  Autocomplete Installation   "
+      echo "$ui_line_eq"
+      echo " [1] System-wide              "
+      echo " [2] For this user            "
+      echo "$ui_line_eq"
+      read -rp "Select an option [ 1 - 2 ]: " target_opt
+      case "$target_opt" in
+        1|system) target="system" ;;
+        2|user) target="user" ;;
+        *) echo "No valid action indicated; exiting..."; exit 1 ;;
+      esac
+    fi
+
+    if [[ "$target" == "system" ]]; then
+      if [[ "$(whoami)" != "root" ]]; then
+        echo "You must be [root] for system-wide installation. e.g.:"
+        echo "  sudo rescript install --autocomplete-only system"
+        exit 1
+      fi
+      if [[ "$unix_name" = "Darwin" ]] ; then
+        install_autocomplete "/usr/local/etc/bash_completion.d"
+      else
+        install_autocomplete "/etc/bash_completion.d"
+      fi
+    else
+      install_autocomplete "$HOME/.local/share/bash-completion/completions"
+    fi
+    exit 0
+  fi
+
   echo "$ui_line_eq"
   echo "     Installation     "
   echo "$ui_line_eq"
@@ -2348,7 +2534,7 @@ function install {
   echo " [2] For this user    "
   echo " [3] Exit             "
   echo "$ui_line_eq"
-  read -rp "Select an option and press Enter [ 1 - 4 ]: " installation
+  read -rp "Select an option and press Enter [ 1 - 3 ]: " installation
   case "$installation" in
     1|system)
       chmod 755 "$(basename "$0")"
@@ -2422,7 +2608,7 @@ function logs {
       print_line "="
       echo -e "${c_white}Log Files for Context:${c_reset} ${c_cyan}$repo${c_reset}"
       print_line "="
-      find "$logs_dir" -maxdepth 1 -type f -name "*$repo*" -exec basename {} \;
+      find "$logs_dir" -maxdepth 1 -type f -name "*$repo*" -exec basename {} \; | sort | column
       print_line "-"
       echo -e "${c_cyan}Total log files: $log_count${c_reset}"
       echo -e "${c_blue}Your logs are saved at $logs_dir${c_reset}"
@@ -2671,11 +2857,19 @@ function size {
     exit 1
   fi
   
+  local host_args=()
+  if [[ "$snapshot_id" == "latest" ]]; then
+    host_args=("--host" "$target_host")
+    echo -e "${c_white}Target Host:${c_reset} ${c_cyan}${target_host}${c_reset}\n"
+  else
+    echo -e "${c_white}Snapshot ID:${c_reset} ${c_cyan}${snapshot_id}${c_reset}\n"
+  fi
+  
   print_progress "Calculating total size" 50
   debug_start
 
   local total_size
-  total_size=$(restic ls -l --recursive --host "$target_host" "$snapshot_id" "${rest[@]}" 2>/dev/null | awk '
+  total_size=$(restic ls -l --recursive "${host_args[@]}" "$snapshot_id" "${rest[@]}" 2>/dev/null | awk '
     /^[-dcbp](r|-)[w|-](x|-)(r|-)[w|-](x|-)(r|-)[w|-](x|-)/ { sum += $4 }
     END {
       if (sum >= 1024^3) printf "%.2f GB\n", sum / (1024^3)
@@ -2683,7 +2877,7 @@ function size {
       else if (sum >= 1024) printf "%.2f KB\n", sum / 1024
       else printf "%d B\n", sum
     }
-  ')
+  ' || true)
   debug_stop
   print_progress "Calculating total size" 100
   echo -ne '\n'
@@ -2701,8 +2895,17 @@ function snaps {
   fi
   rescript_lock
   debug_start
-  restic snapshots --compact "${rest[@]}" | awk -v w="$cols" -v cw="${c_white}" -v cr="${c_reset}" -v cg="${c_gray}" '
+  local group_by=0
+  for arg in "${rest[@]}"; do
+    if [[ "$arg" == "--group-by" || "$arg" == "--group-by="* ]]; then
+      group_by=1
+      break
+    fi
+  done
+
+  restic snapshots --compact "${rest[@]}" | awk -v w="$cols" -v cw="${c_white}" -v cr="${c_reset}" -v cg="${c_gray}" -v gb="$group_by" '
     { gsub(/\r/, "") }
+    gb == 1 { print; next }
     /^-+$/ {
       count++
       if (count == 1) {
@@ -2731,25 +2934,25 @@ function snaps {
 function statinfo {
   local target_host="${host_flag:-$rhost}"
   debug_start
-  latest_host_stat=$(restic stats --host "$target_host" latest 2>/dev/null | awk -F': ' '/Total Size/{print $2}')
+  latest_host_stat=$(restic stats --host "$target_host" latest | awk -F': ' '/Total Size/{print $2}')
   debug_stop
   check_restic_error $?
   print_progress "Calculating repo stats" 25
   
   debug_start
-  host_stat=$(restic stats --mode raw-data --host "$target_host" latest 2>/dev/null | awk -F': ' '/Total Size/{print $2}')
+  host_stat=$(restic stats --mode raw-data --host "$target_host" latest | awk -F': ' '/Total Size/{print $2}')
   debug_stop
   check_restic_error $?
   print_progress "Calculating repo stats" 50
   
   debug_start
-  stat_restore_size=$(restic stats 2>/dev/null | awk -F': ' '/Total Size/{print $2}')
+  stat_restore_size=$(restic stats --host "$target_host" | awk -F': ' '/Total Size/{print $2}')
   debug_stop
   check_restic_error $?
   print_progress "Calculating repo stats" 75
   
   debug_start
-  stat_raw_data=$(restic stats --mode raw-data 2>/dev/null | awk -F': ' '/Total Size/{print $2}')
+  stat_raw_data=$(restic stats --mode raw-data --host "$target_host" | awk -F': ' '/Total Size/{print $2}')
   debug_stop
   check_restic_error $?
   print_progress "Calculating repo stats" 100
@@ -2775,12 +2978,12 @@ function global_status {
         full_mode="true"
         shift
         ;;
-      -X|--exclude)
+      -X|--ignore-repo)
         if [[ -n "${2:-}" ]]; then
           excluded_repos+=("$2")
           shift 2
         else
-          echo "Error: -X/--exclude requires a repository name."
+          echo "Error: -X/--ignore-repo requires a repository name."
           exit 1
         fi
         ;;
@@ -2825,7 +3028,7 @@ function global_status {
   print_line "="
   
   for repo in "${repos[@]}"; do
-    source "$config_dir/$repo.conf"
+    source_config "$config_dir/$repo.conf"
     export RESTIC_PASSWORD
     export RESTIC_PASSWORD_COMMAND
     
@@ -2877,6 +3080,7 @@ function global_status {
         echo "$size_str|$health_str" > "/tmp/rescript_status_$repo"
       ) &
       local pid=$!
+      trap 'kill "$pid" 2>/dev/null; rm -f "/tmp/rescript_status_$repo" 2>/dev/null; exit 130' INT
       
       local spin='-\|/'
       local i=0
@@ -2902,18 +3106,6 @@ function global_status {
     fi
   done
   print_line "="
-}
-function status-help {
-  echo "Usage: rescript status [-F|--full] [-X|--exclude <repo>]"
-  echo ""
-  echo "Prints a quick dashboard of all repositories showing snapshot count"
-  echo "and the date of the latest snapshot."
-  echo ""
-  echo "Flags:"
-  echo "  -F, --full         Calculates total size and runs a health check for each repo."
-  echo "                     (Warning: This can take a long time on large repositories)"
-  echo "  -X, --exclude      Excludes a specific repository from the dashboard output."
-  echo "                     Example: rescript status -X test"
 }
 function umounter {
   rescript_lock
@@ -2950,6 +3142,54 @@ function umounter {
   exit 0
 }
 
+function uninstall {
+  echo "$ui_line_eq"
+  echo "     Uninstallation   "
+  echo "$ui_line_eq"
+  echo " [1] System-wide (Requires root) "
+  echo " [2] For this user    "
+  echo " [3] Exit             "
+  echo "$ui_line_eq"
+  read -rp "Select an option and press Enter [ 1 - 3 ]: " uninstallation
+  case "$uninstallation" in
+    1|system)
+      if [[ "$(whoami)" = "root" ]] ; then
+        if [[ -f "/usr/local/bin/rescript" ]]; then rm -f "/usr/local/bin/rescript"; fi
+        if [[ -f "/usr/bin/rescript" ]]; then rm -f "/usr/bin/rescript"; fi
+        if [[ -f "/usr/local/etc/bash_completion.d/rescript" ]]; then rm -f "/usr/local/etc/bash_completion.d/rescript"; fi
+        if [[ -f "/etc/bash_completion.d/rescript" ]]; then rm -f "/etc/bash_completion.d/rescript"; fi
+        echo "System-wide uninstallation successful!"
+      else
+        echo "You must be [root] for system-wide uninstallation. e.g.:"
+        echo "  sudo rescript uninstall"
+        echo ""
+        echo "Nothing done; exiting..."
+        exit 1
+      fi
+      ;;
+    2|user)
+      if [[ -f "$HOME/bin/rescript" ]]; then rm -f "$HOME/bin/rescript"; fi
+      if [[ -f "$HOME/.local/bin/rescript" ]]; then rm -f "$HOME/.local/bin/rescript"; fi
+      if [[ -f "$HOME/.local/share/bash-completion/completions/rescript" ]]; then rm -f "$HOME/.local/share/bash-completion/completions/rescript"; fi
+      echo "User uninstallation successful!"
+      ;;
+    3|exit) echo "Exiting..." ; exit 0 ;;
+    *) clear ; echo "No valid action indicated..." ; uninstall ;;
+  esac
+
+  echo ""
+  read -rp "Do you also wish to delete your configurations and logs in [$HOME/.rescript]? (y/N): " ans_clean
+  case ${ans_clean,,} in
+    y|yes)
+      rm -rf "$HOME/.rescript"
+      echo "Configuration directory removed."
+      ;;
+    *)
+      echo "Configurations kept."
+      ;;
+  esac
+  exit 0
+}
 function unlocker {
   if [[ ! -e "$lock" ]]; then
     echo -e "${c_cyan}No locks found...${c_reset}"
@@ -2959,16 +3199,26 @@ function unlocker {
   fi
 }
 function update {
-  if [[ ! $(command -v wget) ]] ; then
+  if [[ ! $(command -v curl) ]] ; then
     echo "***$(basename "$0") warning***"
-    echo "[wget] not found..."
+    echo "[curl] not found..."
     echo ""
-    echo "[$repo] works with [wget] to download the updated script."
-    echo "Please, install [wget] to proceed."
+    echo "[$repo] works with [curl] to download the updated script."
+    echo "Please, install [curl] to proceed."
     exit
   fi
 
-  wget -P "$tmp_dir" https://gitlab.com/sulfuror/rescript.sh/raw/master/rescript 2> /dev/null
+  echo "Checking for the latest official release..."
+  local latest_release
+  latest_release=$(curl -s "https://gitlab.com/api/v4/projects/sulfuror%2Frescript.sh/releases" | grep -o '"tag_name":"[^"]*' | head -n 1 | cut -d'"' -f4)
+  
+  if [[ -z "$latest_release" ]]; then
+    echo -e "\n${c_red}Failed to fetch the latest release from GitLab.${c_reset}"
+    echo "Check your internet connection or the repository status."
+    exit 1
+  fi
+
+  curl -s -L "https://gitlab.com/sulfuror/rescript.sh/raw/${latest_release}/rescript" -o "$tmp_dir/rescript" || true
   rescript_latest="$tmp_dir/rescript"
   trap 'rm -rf "$rescript_latest" 2> /dev/null' INT QUIT TERM EXIT
 
@@ -2989,6 +3239,10 @@ function update {
           if [[ "$(whoami)" = "root" ]] ; then
             mv "$rescript_latest" "$(command -v rescript)"
             echo "Rescript have been updated to the latest version!"
+            read -rp "Do you want to install/update the bash autocomplete feature? (y/N): " ans_auto
+            if [[ "$ans_auto" =~ ^[Yy] ]]; then
+              "$(command -v rescript)" install --autocomplete-only
+            fi
           else
             echo "Rescript is located at $(command -v rescript)."
             echo "To update in this location you need to run [update] again as [root]:"
@@ -3002,6 +3256,10 @@ function update {
           chmod 700 "$rescript_latest"
           mv "$rescript_latest" "$(command -v rescript)"
           echo "Rescript have been updated to the latest version!"
+          read -rp "Do you want to install/update the bash autocomplete feature? (y/N): " ans_auto
+          if [[ "$ans_auto" =~ ^[Yy] ]]; then
+            "$(command -v rescript)" install --autocomplete-only
+          fi
         fi
         ;;
       *)
@@ -3153,7 +3411,7 @@ if [[ "${1:-}" == "all" ]]; then
 
   config_global="$HOME/.rescript/config/global.conf"
   if [[ -f "$config_global" ]]; then
-    source "$config_global"
+    source_config "$config_global"
   fi
   
   if [[ -n "${PRE_CMD:-}" ]] ; then
@@ -3240,7 +3498,7 @@ case "${1:-}" in
     ;;
   status)
     if [[ "${2:-}" == "-h" || "${2:-}" == "--help" ]]; then
-      status-help 2>/dev/null || echo "Usage: rescript status [-F|--full]"
+      status-help 2>/dev/null || echo "Usage: rescript status [-F|--full] [-X|--ignore-repo <repo>]"
       exit 0
     fi
     global_status "${@:2}"
@@ -3302,9 +3560,19 @@ case "${1:-}" in
     esac
     ;;
   install)
+    if [[ "${2:-}" == "--autocomplete-only" ]]; then
+      install "${2:-}" "${3:-}"
+      exit
+    fi
     _check_help_or_error "${1:-}" "${2:-}"
     clear
     install
+    exit
+    ;;
+  uninstall)
+    _check_help_or_error "${1:-}" "${2:-}"
+    clear
+    uninstall
     exit
     ;;
   history)
@@ -3385,9 +3653,9 @@ esac
 # Functions                                                      #
 # ============================================================== #
 if [[ -f "$config_global" ]]; then
-  source "$config_global"
+  source_config "$config_global"
 fi
-source "$config_repo"
+source_config "$config_repo"
 # Defaulting unset variables from config for strict mode
 export HOST="${HOST:-}"
 export CLEAN="${CLEAN:-}"
@@ -3404,7 +3672,7 @@ export SHOW_STATS="${SHOW_STATS:-}"
 export CONFIRMATION_EMAIL="${CONFIRMATION_EMAIL:-}"
 export DESTINATION="${DESTINATION:-}"
 
-export RESTIC_REPOSITORY="$RESTIC_REPO"
+export RESTIC_REPOSITORY="${RESTIC_REPO:-}"
 export B2_ACCOUNT_ID="${B2_ID:-}"
 export B2_ACCOUNT_KEY="${B2_KEY:-}"
 export AWS_ACCESS_KEY_ID="${AWS_ID:-}"
@@ -3426,14 +3694,14 @@ case "${2:-}" in
   init) restic init ; exit 0 ;;
 esac
 
-case "$RESTIC_REPO" in
+case "${RESTIC_REPO:-}" in
   sftp*) ping_target=${RESTIC_REPO#sftp*@} ; ping_target=${ping_target%:*} ; ping -c 1 "$ping_target" > /dev/null || true ; ping_code="$?" ;;
   rclone*) ping_target=${RESTIC_REPO#rclone:} ; rclone about "$ping_target" > /dev/null || true ; ping_code="$?" ;;
   /*) dir "$RESTIC_REPO" 2>/dev/null 1>/dev/null || true ; ping_code="$?" ;;
 esac
 
 if [[ "$ping_code" -gt "0" ]] ; then
-  error_message="Cannot access to: $RESTIC_REPO \nPlease check your connection. If your repository is not \ninitializated run [rescript $repo init]."
+  error_message="Cannot access to: ${RESTIC_REPO:-} \nPlease check your connection. If your repository is not \ninitializated run [rescript $repo init]."
   report_errors
   exit "$ping_code"
 fi
@@ -3441,7 +3709,7 @@ fi
 if [[ -n "${DESTINATION:-}" ]] ; then
   dest=$DESTINATION
 else
-  dest=$RESTIC_REPO
+  dest=${RESTIC_REPO:-}
 fi
 
 if [[ -n "${HOST:-}" ]] ; then
@@ -3504,12 +3772,12 @@ fi
 function _parse_standard_flags {
   case "$1" in
     -D|--debug) debug_flag="true" ; return 0 ;;
-    -E|--email) int="false" ; CONFIRMATION_EMAIL="y" ; return 0 ;;
+    -E|--email) force_email="true" ; CONFIRMATION_EMAIL="y" ; return 0 ;;
     -L|--log) log_flag="true" ; return 0 ;;
     -M|--metadata) context_flag="true" ; return 0 ;;
     -Q|--quiet) quiet_flag="true" ; return 0 ;;
-    -S|--simulate) simulate_flag="true" ; return 0 ;;
     -T|--timer) time_flag="true" ; return 0 ;;
+    -W|--webhook) force_webhook="true" ; CONFIRMATION_WEBHOOK="y" ; return 0 ;;
     *) return 1 ;;
   esac
 }
@@ -3521,6 +3789,12 @@ function parse_generic_args {
     if _parse_standard_flags "$1" ; then shift ; continue ; fi
     case "$1" in
       -h|--help) "$help_func" ; exit 0 ;;
+      -S|--simulate) 
+        echo "[$1] is not a valid option..."
+        echo ""
+        "$help_func"
+        exit 1
+        ;;
       --) shift ; rest+=( "$@" ) ; break ;;
       -*) rest+=( "$1" ) ;;
       *) rest+=( "$1" ) ;;
@@ -3535,6 +3809,7 @@ function run_quietly {
 
 function execute_with_metrics {
   logger
+  print_context
   time_start
   "$@"
   time_end
@@ -3559,6 +3834,7 @@ case "$cmd" in
     while [[ $# -gt 0 ]] ; do
       if _parse_standard_flags "$1" ; then shift ; continue ; fi
       case "$1" in
+        -S|--simulate) simulate_flag="true" ;;
         -h|--help|help) usage ; exit 0 ;;
         *) echo "Invalid option [$1]..." ; echo "" ; exit 1 ;;
       esac
@@ -3568,6 +3844,7 @@ case "$cmd" in
     ;;
   status)
     parse_generic_args status-help "$@"
+    logger
     run_quietly global_status "${rest[@]}"
     ;;
   backup)
@@ -3577,6 +3854,7 @@ case "$cmd" in
       case "$1" in
         -C|--check) check_flag="true" ;;
         -U|--cleanup) cleanup_flag="true" ;;
+        -S|--simulate) simulate_flag="true" ;;
 
         -h|--help ) backup-help ; exit 0 ;;
         -I|--info) info_flag="true"  ;;
@@ -3607,6 +3885,7 @@ case "$cmd" in
       if _parse_standard_flags "$1" ; then shift ; continue ; fi
       case "$1" in
         -C|--check) check_flag="true" ;;
+        -S|--simulate) simulate_flag="true" ;;
         -h|--help ) cleanup-help ; exit 0 ;;
         -I|--info) info_flag="true" ;;
 
@@ -3644,15 +3923,16 @@ case "$cmd" in
     while [[ $# -gt 0 ]] ; do
       if _parse_standard_flags "$1" ; then shift ; continue ; fi
       case "$1" in
+        -S|--simulate) echo "[$1] is not a valid option..." ; echo "" ; env-help ; exit 1 ;;
         -h|--help) env-help ; exit 0 ;;
         -V) var_flag="${2:-}" ; shift ;;
         --var=*) var_flag="${1#*=}" ;;
         --var) var_flag="${2:-}" ; shift ;;
-        -*) rest+=( "$1" ) ;;
+        -*) echo "Invalid option [$1]..." ; echo "" ; env-help ; exit 1 ;;
       esac
       shift
     done
-    execute_with_metrics env_conf
+    execute_with_metrics run_quietly env_conf
     ;;
   -h|--help|help)
     usage
@@ -3685,23 +3965,28 @@ case "$cmd" in
         -H) host_flag="${2:-}" ; shift ;;
         --host=*) host_flag="${1#*=}" ;;
         --host) host_flag="${2:-}" ; shift ;;
-        -*) rest+=( "$1" ) ;;
-        *) rest+=( "$1" ) ;;
+        *) 
+          echo "[$1] is not a valid option..."
+          echo ""
+          info-help
+          exit 1 
+          ;;
       esac
       shift
     done
-    execute_with_metrics statinfo
+    execute_with_metrics run_quietly statinfo
     ;;
   size)
     shopt -u nocasematch
     while [[ $# -gt 0 ]] ; do
       if _parse_standard_flags "$1" ; then shift ; continue ; fi
       case "$1" in
+        -S|--simulate) echo "[$1] is not a valid option..." ; echo "" ; size-help ; exit 1 ;;
         -h|--help) size-help ; exit 0 ;;
         -H) host_flag="${2:-}" ; shift ;;
         --host=*) host_flag="${1#*=}" ;;
         --host) host_flag="${2:-}" ; shift ;;
-        -*) rest+=( "$1" ) ;;
+        -*) echo "Invalid option [$1]..." ; echo "" ; size-help ; exit 1 ;;
         *) rest+=( "$1" ) ;;
       esac
       shift
@@ -3712,27 +3997,33 @@ case "$cmd" in
     while [[ $# -gt 0 ]] ; do
       if _parse_standard_flags "$1" ; then shift ; continue ; fi
       case "$1" in
-        -W) catlogs="true" ; logfile="${2:-}" ; shift ;;
+        -V) catlogs="true" ; logfile="${2:-}" ; shift ;;
         --view=*) catlogs="true" ; logfile="${1#*=}" ;;
         --view) catlogs="true" ; logfile="${2:-}" ; shift ;;
+        -S|--simulate) echo "[$1] is not a valid option..." ; echo "" ; logs-help ; exit 1 ;;
         -h|--help) logs-help ; exit 0 ;;
         -R) removelogs="true" ; logfile="${2:-}" ; shift ;;
         --remove=*) removelogs="true" ; logfile="${1#*=}" ;;
         --remove) removelogs="true" ; logfile="${2:-}" ; shift ;;
-        -*) rest+=( "$1" ) ;;
-        *) rest+=( "$1" ) ;;
+        -*) echo "Invalid option [$1]..." ; echo "" ; logs-help ; exit 1 ;;
+        *) echo "Invalid argument [$1]..." ; echo "" ; logs-help ; exit 1 ;;
       esac
       shift
     done
-    execute_with_metrics logs
+    execute_with_metrics run_quietly logs
     ;;
   mounter|umounter)
     parse_generic_args "$cmd-help" "$@"
-    execute_with_metrics "$cmd"
+    execute_with_metrics run_quietly "$cmd"
     ;;
   restorer)
     shopt -u nocasematch
-    if [[ ! "$1" ]] ; then
+    snap_flag=""
+    host_flag=""
+    path_flag=""
+    tag_flag=""
+    interactive_flag=""
+    if [[ ! "${1:-}" ]] ; then
       echo "You have not indicated any option..."
       echo ""
       restorer-help
@@ -3751,10 +4042,10 @@ case "$cmd" in
         -Z) snap_flag="${2:-}" ; shift ;;
         --snapshot=*) snap_flag="${1#*=}" ;;
         --snapshot) snap_flag="${2:-}" ; shift ;;
-        -T) tag_flag="${2:-}" ; shift ;;
         --tag=*) tag_flag="${1#*=}" ;;
         --tag) tag_flag="${2:-}" ; shift ;;
         -i|--interactive) interactive_flag="true" ;;
+        -S|--simulate) simulate_flag="true" ;;
         -*) 
           echo "[$1] is not a valid option..."
           echo ""
@@ -3794,9 +4085,13 @@ case "$cmd" in
     execute_with_metrics run_quietly upgrade_repo
     ;;
   *)
+    shopt -u nocasematch
     rest=("$cmd")
     for arg in "$@"; do
       if _parse_standard_flags "$arg" ; then continue ; fi
+      case "$arg" in
+        -S|--simulate) echo "[$arg] is not a valid option..." ; echo "" ; exit 1 ;;
+      esac
       rest+=("$arg")
     done
     cmd="${rest[0]}"

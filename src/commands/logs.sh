@@ -6,7 +6,7 @@ function logs {
       print_line "="
       echo -e "${c_white}Log Files for Context:${c_reset} ${c_cyan}$repo${c_reset}"
       print_line "="
-      find "$logs_dir" -maxdepth 1 -type f -name "*$repo*" -exec basename {} \;
+      find "$logs_dir" -maxdepth 1 -type f -name "*$repo*" -exec basename {} \; | sort | column
       print_line "-"
       echo -e "${c_cyan}Total log files: $log_count${c_reset}"
       echo -e "${c_blue}Your logs are saved at $logs_dir${c_reset}"

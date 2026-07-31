@@ -124,7 +124,7 @@ if [[ "${1:-}" == "all" ]]; then
 
   config_global="$HOME/.rescript/config/global.conf"
   if [[ -f "$config_global" ]]; then
-    source "$config_global"
+    source_config "$config_global"
   fi
   
   if [[ -n "${PRE_CMD:-}" ]] ; then
@@ -211,7 +211,7 @@ case "${1:-}" in
     ;;
   status)
     if [[ "${2:-}" == "-h" || "${2:-}" == "--help" ]]; then
-      status-help 2>/dev/null || echo "Usage: rescript status [-F|--full]"
+      status-help 2>/dev/null || echo "Usage: rescript status [-F|--full] [-X|--ignore-repo <repo>]"
       exit 0
     fi
     global_status "${@:2}"
@@ -273,9 +273,19 @@ case "${1:-}" in
     esac
     ;;
   install)
+    if [[ "${2:-}" == "--autocomplete-only" ]]; then
+      install "${2:-}" "${3:-}"
+      exit
+    fi
     _check_help_or_error "${1:-}" "${2:-}"
     clear
     install
+    exit
+    ;;
+  uninstall)
+    _check_help_or_error "${1:-}" "${2:-}"
+    clear
+    uninstall
     exit
     ;;
   history)
@@ -356,9 +366,9 @@ esac
 # Functions                                                      #
 # ============================================================== #
 if [[ -f "$config_global" ]]; then
-  source "$config_global"
+  source_config "$config_global"
 fi
-source "$config_repo"
+source_config "$config_repo"
 # Defaulting unset variables from config for strict mode
 export HOST="${HOST:-}"
 export CLEAN="${CLEAN:-}"
@@ -375,7 +385,7 @@ export SHOW_STATS="${SHOW_STATS:-}"
 export CONFIRMATION_EMAIL="${CONFIRMATION_EMAIL:-}"
 export DESTINATION="${DESTINATION:-}"
 
-export RESTIC_REPOSITORY="$RESTIC_REPO"
+export RESTIC_REPOSITORY="${RESTIC_REPO:-}"
 export B2_ACCOUNT_ID="${B2_ID:-}"
 export B2_ACCOUNT_KEY="${B2_KEY:-}"
 export AWS_ACCESS_KEY_ID="${AWS_ID:-}"
@@ -397,14 +407,14 @@ case "${2:-}" in
   init) restic init ; exit 0 ;;
 esac
 
-case "$RESTIC_REPO" in
+case "${RESTIC_REPO:-}" in
   sftp*) ping_target=${RESTIC_REPO#sftp*@} ; ping_target=${ping_target%:*} ; ping -c 1 "$ping_target" > /dev/null || true ; ping_code="$?" ;;
   rclone*) ping_target=${RESTIC_REPO#rclone:} ; rclone about "$ping_target" > /dev/null || true ; ping_code="$?" ;;
   /*) dir "$RESTIC_REPO" 2>/dev/null 1>/dev/null || true ; ping_code="$?" ;;
 esac
 
 if [[ "$ping_code" -gt "0" ]] ; then
-  error_message="Cannot access to: $RESTIC_REPO \nPlease check your connection. If your repository is not \ninitializated run [rescript $repo init]."
+  error_message="Cannot access to: ${RESTIC_REPO:-} \nPlease check your connection. If your repository is not \ninitializated run [rescript $repo init]."
   report_errors
   exit "$ping_code"
 fi
@@ -412,7 +422,7 @@ fi
 if [[ -n "${DESTINATION:-}" ]] ; then
   dest=$DESTINATION
 else
-  dest=$RESTIC_REPO
+  dest=${RESTIC_REPO:-}
 fi
 
 if [[ -n "${HOST:-}" ]] ; then

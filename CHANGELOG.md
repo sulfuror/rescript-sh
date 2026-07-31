@@ -1,5 +1,99 @@
 # Rescript Changelog
 
+---
+
+## v6.1
+
+---
+
+### July 31, 2026
+
+#### 🐛 Bugfixes
+
+* **Extract Safe Overwrite:** Replaced the directory collision check in the `extract` command with a universal existence check (`[[ -e ]]`). Extracting a file that already exists in the current directory will no longer silently overwrite the local file, but will instead automatically append `_extracted` to the destination name to prevent accidental data loss.
+* **Zombie Process Prevention:** Implemented a robust `SIGINT` trap (`Ctrl+C`) in both the `extract` and `status --full` commands. If a user forcibly aborts these commands while a background `restic dump` or `restic check` is running, the background tasks are now immediately terminated and all temporary files are properly cleaned up.
+* **Command Help Consistency:** Completely synchronized the internal command documentation and the public Wiki (`docs/`). Removed the deprecated `--` flag separator requirement from all help examples, fixed minor case-sensitivity typos in command flags, and unified the repository exclusion flag in the `status` command to `--ignore-repo` to perfectly match the `all` orchestrator.
+
+---
+
+### July 28, 2026
+
+#### 🐛 Bugfixes
+
+* **Grouped Snapshots Output:** Disabled custom table formatting in the `snaps` command when the `--group-by` flag is used, preventing graphical corruption and allowing `restic` to display grouped tables naturally.
+* **Backup Path Spaces:** Fixed a bug in `backup` where paths containing spaces would fail due to missing quotes around `$BACKUP_DIR`, inadvertently breaking the temporary exclusion pipeline for Office files.
+* **Network Resilience Pipeline:** Fixed a bug where the `run_restic_with_retry` network wrapper would print warnings to standard output, corrupting data when piped. The warnings are now safely redirected to standard error.
+* **Extract & History Resilience:** Wrapped the core commands inside `extract` and `history` with the network resilience wrapper (`run_restic_with_retry`) to ensure they recover automatically from connection drops.
+* **Extract Cross-Host Downloads:** Added a `--host` filter to the snapshot auto-detection logic in the `extract` command. When a user extracts a file without specifying a snapshot ID, it now strictly searches for snapshots created by their current machine to prevent downloading files from other hosts in shared repositories.
+* **Extract Debug Tracing:** Fixed a bug in `extract` where the global `-D, --debug` flag was ignored. The core `restic find` and `restic dump` commands are now properly wrapped with `debug_start` and `debug_stop`, enabling precise execution tracing.
+* **Extract Flag Parsing Conflict:** Rewrote the internal argument parser for the `extract` command. Previously, the parser read arguments backwards, causing restic flag values (like `omv` in `--host omv`) to be mistakenly identified as the file path. The parser now enforces reading positional arguments (snapshot ID and file path) from left to right, guaranteeing flawless compatibility with all restic flags and their values.
+* **Extract Cross-Host Auto-Detection:** Refined the auto-detection logic in `extract`. While it still defaults to restricting searches to the current machine (`--host "$rhost"`) to prevent accidental cross-host downloads, it now intelligently recognizes if the user explicitly provided a `--host` or `-H` flag (e.g. `--host omv`) and respects it. Furthermore, all user flags (like `--tag`) are now passed into the auto-detection engine to find exactly the snapshot intended.
+
+#### ✨ Enhancements
+
+* **Smart Updater:** The `update` command now dynamically queries the GitLab API to fetch and download the latest stable `Release` (e.g., `v6.1`) instead of blindly downloading the raw `master` branch. This guarantees users only receive officially published stable updates.
+* **Array-Based Backup Paths:** `BACKUP_DIR` now natively supports Bash array syntax in configuration files (e.g., `BACKUP_DIR=("/home/Documents" "/home/Pictures")`). This enables users to seamlessly back up multiple directories simultaneously while retaining bulletproof support for spaces in folder names.
+
+---
+
+### July 25, 2026
+
+#### 🐛 Bugfixes
+
+* **Webhook Output:** Notifications via Webhook now accurately include the command execution log just like email notifications do.
+* **Webhook API Limits & Formatting:** Discord's strict 2000 character limits and invalid JSON errors caused by carriage returns (`\r`) in progress bars were silently blocking webhooks. These characters are now stripped, and the full un-truncated log is now uploaded as a `.txt` file attachment via `multipart/form-data` to bypass size limits entirely and guarantee full delivery. Long divider lines (`====`) are still shrunk to 76 characters specifically for webhook payloads so that Discord and Slack render them neatly inside the attached files.
+* **Capture Read-Only Commands:** Commands like `status`, `info`, `logs`, `env`, `history`, and `search` now properly redirect their outputs to the temporary log file. If you run them with the `-W` or `-E` force flags, you will receive the actual output in your notification.
+* **Configuration Syntax Validation:** Configuration files are now pre-validated for syntax errors (like missing quotes) before being sourced. If an error is found, Rescript will gracefully exit with a detailed, colored fatal error message indicating the exact file and line number instead of crashing the shell.
+* **Flag Validation:** Internal commands like `logs`, `env`, and `size` now strictly validate and reject unknown or orphaned flags instead of silently ignoring them.
+* **Bash Autocomplete:** Fixed an issue where autocompletion for `-V` could fail silently in certain Bash environments due to regex syntax incompatibilities. The autocomplete logic now robustly parses the command line string to correctly identify the context between `logs` and `env`.
+
+#### ✨ Enhancements
+
+* **Updater Dependency:** The `update` command now uses `curl` instead of `wget`. This unifies the script dependencies since `curl` is already required for webhooks and comes pre-installed in almost all modern systems.
+* **Flag Standardization:** The global `--webhook` short flag was changed from `-w` to `-W`. Additionally, the `--view` short flag in the `logs` command was changed from `-W` to `-V` to maintain consistency and prevent conflicts.
+* **Uninstall Command:** Added a new `uninstall` command to easily remove the Rescript binary and autocompletion scripts from the system. It mirrors the interactive installation options (system-wide vs. user) and provides an option to completely remove the configuration directory (`~/.rescript`).
+
+---
+
+### July 24, 2026
+
+#### ✨ Enhancements
+
+* **Simulate Flag Refactoring:** The `-S, --simulate` flag is no longer a global flag. To prevent confusion and ensure strict parsing, it has been restricted exclusively to destructive commands (`backup`, `cleanup`, `restorer`, and `automatic`).
+* **Logs Command UX:** Improved the visual output of the `logs` command. Log files are now sorted chronologically and displayed in a grid (column-based format) to save vertical space on the terminal.
+
+#### 🐞 Bug Fixes
+
+* **Install Command Crash:** Fixed an `unbound variable` error during installation caused by uninitialized flags when strict mode (`set -u`) is active.
+* **Info Command Host Filter:** Resolved a bug in the `info` command where the "All Snapshots" stats ignored the `-H, --host` flag. The host variable is now correctly propagated to all internal `restic stats` calls.
+* **Internal Parsers:** Rebuilt the internal argument parser for `info`, `size`, `logs`, and `env` to explicitly reject unknown flags natively instead of silently ignoring them.
+* **Stderr Suppression:** Removed the `2>/dev/null` suppression from `history` and `info`, ensuring that Restic's native password prompts and fatal flag errors are now correctly visible to the user instead of hanging silently.
+
+---
+
+### July 23, 2026
+
+#### 🚀 Major Features
+
+* **Autocompletion Customization:** The `install` command now supports a `--autocomplete-only [system|user]` flag to install or update the Bash autocompletion script without reinstalling the binary. The `update` command now intelligently prompts you to update autocompletion after fetching a new version.
+* **Global Metadata Context:** The `-M, --metadata` flag is now fully integrated as a global flag across all rescript commands, automatically prepending the detailed Execution Context block to the standard output.
+* **Enhanced Size Command:** The `size` command was refactored to support querying specific snapshots using `rescript [repo] size [snapshot-ID] <path>`. The `-H, --host` flag behavior was refined to strictly filter snapshots only when querying `latest`.
+
+#### 🐞 Bug Fixes
+
+* **Strict Mode Vulnerabilities (set -u):** Resolved several silent crashes caused by uninitialized variables across the codebase after enforcing Bash strict mode.
+* **Restorer Internal Conflict:** Fixed a critical bug in the `restorer` command where its `-T` shortcut for tags was being swallowed by the global `--timer` flag. The shortflag was removed to strictly enforce `--tag`, flawlessly aligning with Restic's native syntax and eliminating conflicts.
+* **Automated Tests Stability:** The test suite (`07_strict_mode_edge_cases.sh`) was sanitized to avoid using arbitrary `ls` and `find` commands, which previously caused automated test loops to stall indefinitely.
+
+#### 📖 Documentation
+
+* **Wiki Link Sanitization:** Conducted a massive overhaul of the Wiki documentation to fix widespread 404 broken links. All relative paths were sanitized to strip the conflicting `home/` prefixes that broke GitLab Wiki's internal routing.
+* **Command Helps Synced:** Performed a comprehensive audit of all `src/04_help.sh` menus and `docs/` markdown files to ensure 100% parity with the internal bash flag parser in `06_main.sh`.
+
+---
+
+*End of changelog for version 6.1*
+
 ## v6.0
 
 ---

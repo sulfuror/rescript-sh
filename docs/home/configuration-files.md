@@ -69,7 +69,7 @@ These variables are optional because the script will still work if you don't wan
    the document is closed. This prevents storage of potentially damaged files in your repository because
    if you are editing a document while a backup is running, restic will save the document but with the possibility
    that the document will not be fully functional when restored.
-* `WEBHOOK_URL=""`: (v6.0+) Put a Discord, Slack, or other webhook URL to receive Push Notifications automatically upon job completion or failure.
+* `WEBHOOK_URL=""`: (v6.0+) Put a Discord, Slack, or other webhook URL to receive Push Notifications upon job completion or failure. Note: Success notifications will only be sent if `CONFIRMATION_WEBHOOK` is set or the `-W` flag is passed. Failures are always reported.
 * `EMAIL=""`: put your email address in case you want `rescript` to send you an email if anything fails.
    This will only work if you use `rescript` with a cron job. If you just use it from your terminal, it will
    not send any emails because, well, that's not necessary since you can see what it is doing. Besides, `rescript` will
@@ -78,6 +78,7 @@ These variables are optional because the script will still work if you don't wan
    setup `nullmailer` using [this tutorial](https://christopherbaek.wordpress.com/2016/05/22/nullmailer-send-mail/), which is even easier than `ssmtp`; be aware
    that `ssmtp` seems not to work with Debian 10 (buster). If you don't want to receive any email, just leave this variable empty.
 * `CONFIRMATION_EMAIL=""`: set to "yes" to receive email with output when job finished successfully.
+* `CONFIRMATION_WEBHOOK=""`: set to "yes" to receive a webhook notification when job finished successfully.
 * `EXCLUDE_FILE="yes"`: set "yes" to use the exclude file generated for backups (by default is set to yes; if blank it will read the exclusion file for previous versions compatibility).
 * `EXCLUDE_CACHE="yes"`: set "yes" to use `--exclude-cache` flag for backups (by default is set to yes; if blank it will exclude cache for previous versions compatibility).
 * `ONE_FILE_SYSTEM=""`: set to "yes" to use `--one-file-system` flag for backups.

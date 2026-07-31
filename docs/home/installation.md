@@ -1,26 +1,29 @@
 ---
 title: Installation
 ---
-### Dependencies:
+### Dependencies
+
 1. restic >= 0.9.2
-2. wget
 
-You can install the script using the following commands:
+You can install the script using the following steps:
 
-```
-~$ git clone https://gitlab.com/sulfuror/rescript.sh.git
-~$ cd rescript.sh
+1. Download the latest source code (`.zip` or `.tar.gz`) from the [Releases page](https://gitlab.com/sulfuror/rescript.sh/-/releases).
+2. Extract the downloaded archive and open a terminal inside the extracted directory.
+3. Run the installer:
+
+```bash
 ~$ chmod 700 rescript
 ~$ ./rescript install
 ```
+
 |Options | Installation Directory |
 | -----  |  --------------------  |
 |1. System-wide | `/usr/bin` |
 |2. For this user | `~/bin` or `~/.local/bin` |
 
 > [!NOTE]
-> Running `rescript install` will automatically generate and install **native Bash Autocompletion** for both the system or the local user, enabling you to use `TAB` to auto-complete your repositories, commands, and flags. 
-> 
+> Running `rescript install` will automatically generate and install **native Bash Autocompletion** for both the system or the local user, enabling you to use `TAB` to auto-complete your repositories, commands, and flags.
+>
 > *If you install it locally (Option 2) and your system does not automatically detect the completion, you can enable it manually by adding the following line to your `~/.bashrc` or `~/.profile`:*
 > `[[ -f ~/.local/share/bash-completion/completions/rescript ]] && source ~/.local/share/bash-completion/completions/rescript`
 
@@ -37,6 +40,7 @@ if [ -d "$HOME/.local/bin" ] ; then
     PATH="$HOME/.local/bin:$PATH"
 fi
 ```
+
 If you don't have these lines in your `.profile` then just copy those and paste it
 at the end. Once everything is set, if it's not working properly don't panic, maybe the `~/.local/bin`
 wasn't there and the script created it and you only need to restart your session, or log out and login, or reboot

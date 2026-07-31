@@ -4,8 +4,17 @@ function snaps {
   fi
   rescript_lock
   debug_start
-  restic snapshots --compact "${rest[@]}" | awk -v w="$cols" -v cw="${c_white}" -v cr="${c_reset}" -v cg="${c_gray}" '
+  local group_by=0
+  for arg in "${rest[@]}"; do
+    if [[ "$arg" == "--group-by" || "$arg" == "--group-by="* ]]; then
+      group_by=1
+      break
+    fi
+  done
+
+  restic snapshots --compact "${rest[@]}" | awk -v w="$cols" -v cw="${c_white}" -v cr="${c_reset}" -v cg="${c_gray}" -v gb="$group_by" '
     { gsub(/\r/, "") }
+    gb == 1 { print; next }
     /^-+$/ {
       count++
       if (count == 1) {

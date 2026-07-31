@@ -19,18 +19,20 @@ Command flags:
   -I, --info            Display stats for latest and all snapshots.
   -O, --skip-office     Temporarily exclude open (in-use) 'Office'
                         documents (.xlsx, .docx, .ods, odt, etc.).
+  -S, --simulate        Simulate execution (dry-run).
 
 Global flags:
   -D, --debug           Debug script.
   -E, --email           Force to send email with output.
   -h, --help            Display usage.
   -L, --log             Create log file with command output.
+  -M, --metadata        Display execution context metadata.
   -Q, --quiet           Silence output.
-  -S, --simulate        Simulate execution (dry-run).
   -T, --timer           Display output with date, time and duration.
+  -W, --webhook         Force to send webhook notification with output.
 
 Make use of restic flags/options as follows:
-  rescript [repo_name] backup [flags] -- [restic_flags/options] ...
+  rescript [repo_name] backup [flags] [restic_flags/options] ...
 
 EOF
 }
@@ -50,6 +52,7 @@ Command flags:
 
   -C, --check           Check for errors in repository.
   -I, --info            Display stats for latest and all snapshots.
+  -S, --simulate        Simulate execution (dry-run).
       --reset           Remove "datefile"; it resets the dates for
                         the CLEAN option in your configuration file.
 
@@ -58,12 +61,13 @@ Global flags:
   -E, --email           Force to send email with output.
   -h, --help            Display usage.
   -L, --log             Create log file with command output.
+  -M, --metadata        Display execution context metadata.
   -Q, --quiet           Silence output.
-  -S, --simulate        Simulate execution (dry-run).
   -T, --timer           Display output with date, time and duration.
+  -W, --webhook         Force to send webhook notification with output.
 
 Make use of restic flags/options as follows:
-  rescript [repo_name] cleanup [flags] -- [restic_flags/options] ...
+  rescript [repo_name] cleanup [flags] [restic_flags/options] ...
 
 EOF
 }
@@ -82,6 +86,7 @@ Usage:
 Global flags:
   -h, --help            Display usage.
   -T, --timer           Display output with date, time and duration.
+  -W, --webhook         Force to send webhook notification with output.
 EOF
 }
 
@@ -120,12 +125,13 @@ Global flags:
   -E, --email           Force to send email with output.
   -h, --help            Display usage.
   -L, --log             Create log file with command output.
+  -M, --metadata        Display execution context metadata.
   -Q, --quiet           Silence output.
-  -S, --simulate        Simulate execution (dry-run).
   -T, --timer           Display output with date, time and duration.
+  -W, --webhook         Force to send webhook notification with output.
 
 Make use of restic flags/options as follows:
-  rescript [repo_name] diff [flags] -- [restic_flags/options] ...
+  rescript [repo_name] diff [flags] [restic_flags/options] ...
 
 EOF
 }
@@ -171,6 +177,9 @@ a snapshot directly to your current working directory.
 If no snapshot ID is provided, the script will automatically search for
 the latest snapshot containing that file.
 
+Note: You must provide the exact full path of the file as it was backed up,
+not just the filename.
+
 Usage:
   rescript [repo_name] extract [snapshot_id] <file_path>
 
@@ -179,12 +188,13 @@ Global flags:
   -E, --email           Force to send email with output.
   -h, --help            Display usage.
   -L, --log             Create log file with command output.
+  -M, --metadata        Display execution context metadata.
   -Q, --quiet           Silence output.
-  -S, --simulate        Simulate execution (dry-run).
   -T, --timer           Display output with date, time and duration.
+  -W, --webhook         Force to send webhook notification with output.
 
-Make use of restic flags/options as follows:
-  rescript [repo_name] extract [snapshot_id] <file_path> -- [restic_flags/options] ...
+Make use of restic flags/options natively:
+  rescript [repo_name] extract [snapshot_id] [restic_flags] <file_path>
 
 EOF
 }
@@ -207,9 +217,10 @@ Global flags:
   -E, --email           Force to send email with output.
   -h, --help            Display usage.
   -L, --log             Create log file with command output.
+  -M, --metadata        Display execution context metadata.
   -Q, --quiet           Silence output.
-  -S, --simulate        Simulate execution (dry-run).
   -T, --timer           Display output with date, time and duration.
+  -W, --webhook         Force to send webhook notification with output.
 
 EOF
 } 
@@ -217,16 +228,39 @@ EOF
 function install-help {
 cat <<EOF
 [install] is to simply copy the script to your PATH directory
-inside your HOME. If there is no PATH in your HOME then rescript
-will ask you if you want to create one. If the answer is yes then
-it will create a [/bin] directory inside your [./local] directory.
-If the answer is no then it will exit. If you don't want to use
-rescript from your PATH then remember to use it indicating the
-complete path where the script is located; if you have set another
-location for your PATH then just copy the script and put it there.
+inside your HOME and install the bash autocompletion feature.
+If there is no PATH in your HOME then rescript will ask you if you 
+want to create one. If the answer is yes then it will create a [/bin] 
+directory inside your [./local] directory. If the answer is no then it 
+will exit. If you don't want to use rescript from your PATH then remember 
+to use it indicating the complete path where the script is located.
 
 Usage:
-  rescript install
+  rescript install [flags]
+  rescript install --autocomplete-only [system|user]
+
+Command flags:
+  --autocomplete-only   Install ONLY the bash autocompletion feature
+                        without reinstalling the rescript binary.
+                        It can optionally receive 'system' or 'user'.
+
+Global flags:
+  -h, --help            Display usage.
+
+EOF
+}
+
+function uninstall-help {
+cat <<EOF
+[uninstall] removes rescript and its autocompletion script.
+
+This command will prompt you to remove the binary from your PATH
+and delete the bash autocompletion feature. It will also ask if
+you wish to completely remove your configuration directory
+(~/.rescript).
+
+Usage:
+  rescript uninstall
 
 Global flags:
   -h, --help            Display usage.
@@ -244,7 +278,7 @@ OR
   rescript [repo_name] logs [flag] [logfile]
 
 Command flags:
-  -W, --view logfile    Display output of selected log file.
+  -V, --view logfile    Display output of selected log file.
   -R, --remove logfile  Remove all log files (use 'all' to remove
                         all logs related to the repository).
 
@@ -274,12 +308,13 @@ Global flags:
   -E, --email           Force to send email with output.
   -h, --help            Display usage.
   -L, --log             Create log file with command output.
+  -M, --metadata        Display execution context metadata.
   -Q, --quiet           Silence output.
-  -S, --simulate        Simulate execution (dry-run).
   -T, --timer           Display output with date, time and duration.
+  -W, --webhook         Force to send webhook notification with output.
 
 Make use of restic flags/options as follows:
-  rescript [repo_name] mounter [--background] -- [restic_flags/options] ...
+  rescript [repo_name] mounter [--background] [restic_flags/options] ...
 
 EOF
 }
@@ -296,7 +331,7 @@ be named with a unique name so it will not conflict with your
 existing directories.
 
 Usage:
-  rescript [repo_name] restorer [flags] [host|path|snapshot ID|tag]
+  rescript [repo_name] restorer [flags] [snapshot ID]
 
 Command flags:
   -i, --interactive     Fetch a list of snapshots and present an interactive menu to choose from.
@@ -305,17 +340,19 @@ Command flags:
   -P, --path path       Only consider snapshots which include
                         this [absolute] path for snapshot-ID [latest].
   -Z, --snapshot ID     Indicate snapshot-ID to restore.
-  -T, --tag tagname     Only consider snapshots which include this
+      --tag tagname     Only consider snapshots which include this
                         taglist for snapshot-ID [latest].
+  -S, --simulate        Simulate execution (dry-run).
 
 Global flags:
   -D, --debug           Debug script.
   -E, --email           Force to send email with output.
   -h, --help            Display usage.
   -L, --log             Create log file with command output.
+  -M, --metadata        Display execution context metadata.
   -Q, --quiet           Silence output.
-  -S, --simulate        Simulate execution (dry-run).
   -T, --timer           Display output with date, time and duration.
+  -W, --webhook         Force to send webhook notification with output.
 
 EOF
 }
@@ -336,12 +373,13 @@ Global flags:
   -E, --email           Force to send email with output.
   -h, --help            Display usage.
   -L, --log             Create log file with command output.
+  -M, --metadata        Display execution context metadata.
   -Q, --quiet           Silence output.
-  -S, --simulate        Simulate execution (dry-run).
   -T, --timer           Display output with date, time and duration.
+  -W, --webhook         Force to send webhook notification with output.
 
 Make use of restic flags/options as follows:
-  rescript [repo_name] search [flags] -- [restic_flags/options] ...
+  rescript [repo_name] search [flags] [restic_flags/options] ...
 
 EOF
 }
@@ -362,12 +400,13 @@ Global flags:
   -E, --email           Force to send email with output.
   -h, --help            Display usage.
   -L, --log             Create log file with command output.
+  -M, --metadata        Display execution context metadata.
   -Q, --quiet           Silence output.
-  -S, --simulate        Simulate execution (dry-run).
   -T, --timer           Display output with date, time and duration.
+  -W, --webhook         Force to send webhook notification with output.
 
 Make use of restic flags/options as follows:
-  rescript [repo_name] snaps [flags] -- [restic_flags/options] ...
+  rescript [repo_name] snaps [flags] [restic_flags/options] ...
 
 EOF
 }
@@ -390,9 +429,10 @@ Global flags:
   -E, --email           Force to send email with output.
   -h, --help            Display usage.
   -L, --log             Create log file with command output.
+  -M, --metadata        Display execution context metadata.
   -Q, --quiet           Silence output.
-  -S, --simulate        Simulate execution (dry-run).
   -T, --timer           Display output with date, time and duration.
+  -W, --webhook         Force to send webhook notification with output.
 
 EOF
 }
@@ -428,9 +468,10 @@ Global flags:
   -E, --email           Force to send email with output.
   -h, --help            Display usage.
   -L, --log             Create log file with command output.
+  -M, --metadata        Display execution context metadata.
   -Q, --quiet           Silence output.
-  -S, --simulate        Simulate execution (dry-run).
   -T, --timer           Display output with date, time and duration.
+  -W, --webhook         Force to send webhook notification with output.
 
 EOF
 }
@@ -452,12 +493,13 @@ Global flags:
   -E, --email           Force to send email with output.
   -h, --help            Display usage.
   -L, --log             Create log file with command output.
+  -M, --metadata        Display execution context metadata.
   -Q, --quiet           Silence output.
-  -S, --simulate        Simulate execution (dry-run).
   -T, --timer           Display output with date, time and duration.
+  -W, --webhook         Force to send webhook notification with output.
 
 Make use of restic flags/options as follows:
-  rescript [repo_name] size [snapshot_id] <path> -- [restic_flags/options] ...
+  rescript [repo_name] size [snapshot_id] <path> [restic_flags/options] ...
 
 EOF
 }
@@ -480,12 +522,13 @@ Global flags:
   -E, --email           Force to send email with output.
   -h, --help            Display usage.
   -L, --log             Create log file with command output.
+  -M, --metadata        Display execution context metadata.
   -Q, --quiet           Silence output.
-  -S, --simulate        Simulate execution (dry-run).
   -T, --timer           Display output with date, time and duration.
+  -W, --webhook         Force to send webhook notification with output.
 
 Make use of restic flags/options as follows:
-  rescript [repo_name] history [flags] -- [restic_flags/options] ...
+  rescript [repo_name] history [flags] [restic_flags/options] ...
 
 EOF
 }
@@ -520,7 +563,7 @@ Usage:
 Command flags:
   -F, --full            Display a full dashboard including size and health.
                         Note: This takes significantly more time.
-  -X, --exclude         Exclude specific repositories (e.g. -X foo -X bar).
+  -X, --ignore-repo     Exclude specific repositories (e.g. -X foo -X bar).
 
 Global flags:
   -h, --help            Display usage.

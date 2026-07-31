@@ -1,14 +1,24 @@
 function update {
-  if [[ ! $(command -v wget) ]] ; then
+  if [[ ! $(command -v curl) ]] ; then
     echo "***$(basename "$0") warning***"
-    echo "[wget] not found..."
+    echo "[curl] not found..."
     echo ""
-    echo "[$repo] works with [wget] to download the updated script."
-    echo "Please, install [wget] to proceed."
+    echo "[$repo] works with [curl] to download the updated script."
+    echo "Please, install [curl] to proceed."
     exit
   fi
 
-  wget -P "$tmp_dir" https://gitlab.com/sulfuror/rescript.sh/raw/master/rescript 2> /dev/null
+  echo "Checking for the latest official release..."
+  local latest_release
+  latest_release=$(curl -s "https://gitlab.com/api/v4/projects/sulfuror%2Frescript.sh/releases" | grep -o '"tag_name":"[^"]*' | head -n 1 | cut -d'"' -f4)
+  
+  if [[ -z "$latest_release" ]]; then
+    echo -e "\n${c_red}Failed to fetch the latest release from GitLab.${c_reset}"
+    echo "Check your internet connection or the repository status."
+    exit 1
+  fi
+
+  curl -s -L "https://gitlab.com/sulfuror/rescript.sh/raw/${latest_release}/rescript" -o "$tmp_dir/rescript" || true
   rescript_latest="$tmp_dir/rescript"
   trap 'rm -rf "$rescript_latest" 2> /dev/null' INT QUIT TERM EXIT
 
@@ -29,6 +39,10 @@ function update {
           if [[ "$(whoami)" = "root" ]] ; then
             mv "$rescript_latest" "$(command -v rescript)"
             echo "Rescript have been updated to the latest version!"
+            read -rp "Do you want to install/update the bash autocomplete feature? (y/N): " ans_auto
+            if [[ "$ans_auto" =~ ^[Yy] ]]; then
+              "$(command -v rescript)" install --autocomplete-only
+            fi
           else
             echo "Rescript is located at $(command -v rescript)."
             echo "To update in this location you need to run [update] again as [root]:"
@@ -42,6 +56,10 @@ function update {
           chmod 700 "$rescript_latest"
           mv "$rescript_latest" "$(command -v rescript)"
           echo "Rescript have been updated to the latest version!"
+          read -rp "Do you want to install/update the bash autocomplete feature? (y/N): " ans_auto
+          if [[ "$ans_auto" =~ ^[Yy] ]]; then
+            "$(command -v rescript)" install --autocomplete-only
+          fi
         fi
         ;;
       *)

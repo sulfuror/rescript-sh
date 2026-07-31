@@ -16,7 +16,7 @@ function history {
   print_line "="
   
   debug_start
-  restic find -l "${rest[@]}" 2>/dev/null | awk -v path_len="$col_path" '
+  run_restic_with_retry find -l "${rest[@]}" | awk -v path_len="$col_path" '
   {
     gsub(/\x1b\[[0-9;]*[a-zA-Z]/, "")
     gsub(/\r/, "")
@@ -53,6 +53,6 @@ function history {
   debug_stop
   
   if [ "${PIPESTATUS[0]}" -ne 0 ]; then
-    echo "History search failed or no matches found."
+    echo "History search failed due to a repository or connection error."
   fi
 }

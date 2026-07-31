@@ -9,6 +9,8 @@ The `extract` command restores a single file or directory from a specific snapsh
 rescript [repo_name] extract [snapshot-ID] [path/in/snapshot]
 ```
 
+> **Note:** You must provide the exact full absolute path of the file as it was backed up, not just the filename.
+
 ### Examples
 
 **Extract a single document from a specific snapshot ID to your current directory:**

@@ -11,8 +11,7 @@ rescript [repo_name] cleanup [flags] [options]
 
 ### Flags
 - `-C, --check`: check for errors in the repository after cleaning.
-- `-i, --info`: display stats for snapshots after cleanup.
-- `-n, --next`: display the next scheduled `cleanup` based on the `datefile`.
+- `-I, --info`: display stats for snapshots after cleanup.
 - `--reset`: remove "datefile"; resets the timers for the `CLEAN` policy.
 
 ### Examples
@@ -34,9 +33,5 @@ rescript my_repo cleanup --simulate
 ```
 *Highly recommended before making permanent changes to ensure your policies are correct without actually deleting data.*
 
-**Check when the next automatic cleanup is scheduled:**
-```bash
-rescript my_repo cleanup --next
-```
 
 **[⇦ Commands & Options](../commands-and-options)**

@@ -28,7 +28,7 @@ _rescript_completions() {
         fi
       done
     fi
-    local global_commands="all config editor help install status update version"
+    local global_commands="all config editor help install status uninstall update version"
     COMPREPLY=( $(compgen -W "${repos} ${global_commands}" -- "${cur}") )
     return 0
   fi
@@ -46,7 +46,7 @@ _rescript_completions() {
     return 0
   fi
   
-  if [[ "$prev" == "-W" || "$prev" == "--view" || "$prev" == "-R" || "$prev" == "--remove" ]]; then
+  if [[ "$prev" == "--view" || "$prev" == "-R" || "$prev" == "--remove" ]]; then
     local logfiles=""
     if [[ -d "$HOME/.rescript/logs" ]]; then
       for f in "$HOME/.rescript/logs"/*; do
@@ -69,7 +69,27 @@ _rescript_completions() {
     return 0
   fi
   
-  if [[ "$prev" == "-V" || "$prev" == "--var" ]]; then
+  if [[ "$prev" == "-V" ]]; then
+    # -V can be used for 'logs --view' or 'env/search --var'
+    if [[ "${COMP_LINE}" == *"logs "* || "${COMP_LINE}" == *"logs" ]]; then
+      local logfiles=""
+      if [[ -d "$HOME/.rescript/logs" ]]; then
+        for f in "$HOME/.rescript/logs"/*; do
+          if [[ -f "$f" ]]; then
+            logfiles="${logfiles} $(basename "$f")"
+          fi
+        done
+      fi
+      COMPREPLY=( $(compgen -W "${logfiles}" -- "${cur}") )
+      return 0
+    else
+      local vars="REPO_TARGET RESTIC_PASSWORD RESTIC_PASSWORD_COMMAND CLEAN KEEP_LAST KEEP_HOURLY KEEP_DAILY KEEP_WEEKLY KEEP_MONTHLY KEEP_YEARLY PRE_CMD POST_CMD NOTIFY WEBHOOK_URL CONFIRMATION_EMAIL EXCLUDE_FILE HOST BIONIC MAX_LOG LOG_RETENTION"
+      COMPREPLY=( $(compgen -W "${vars}" -- "${cur}") )
+      return 0
+    fi
+  fi
+
+  if [[ "$prev" == "--var" ]]; then
     local vars="REPO_TARGET RESTIC_PASSWORD RESTIC_PASSWORD_COMMAND CLEAN KEEP_LAST KEEP_HOURLY KEEP_DAILY KEEP_WEEKLY KEEP_MONTHLY KEEP_YEARLY PRE_CMD POST_CMD NOTIFY WEBHOOK_URL CONFIRMATION_EMAIL EXCLUDE_FILE HOST BIONIC MAX_LOG LOG_RETENTION"
     COMPREPLY=( $(compgen -W "${vars}" -- "${cur}") )
     return 0
@@ -81,13 +101,13 @@ _rescript_completions() {
   fi
 
   if [[ "$cur" == -* ]]; then
-    local all_flags="-C --check -D --debug -E --email -F --full -H --host -I --info -L --log -M --metadata -O --skip-office -P --path -Q --quiet -R --remove -S --simulate -T --tag --timer -U --cleanup -V --var -W --view -X --exclude -Z --snapshot -g --global -h --help -i --interactive --ignore-case --reset --wizard --version"
+    local all_flags="-C --check -D --debug -E --email -F --full -H --host -I --info -L --log -M --metadata -O --skip-office -P --path -Q --quiet -R --remove -S --simulate -T --tag --timer -U --cleanup -V --var --view -W --webhook -X --exclude -Z --snapshot -g --global -h --help -i --interactive --ignore-case --reset --wizard --version"
     COMPREPLY=( $(compgen -W "${all_flags}" -- "${cur}") )
     return 0
   fi
 
   if [[ $COMP_CWORD -eq 2 ]]; then
-    if [[ "$prev" == "config" || "$prev" == "status" || "$prev" == "install" || "$prev" == "update" || "$prev" == "editor" || "$prev" == "version" || "$prev" == "help" ]]; then
+    if [[ "$prev" == "config" || "$prev" == "status" || "$prev" == "install" || "$prev" == "uninstall" || "$prev" == "update" || "$prev" == "editor" || "$prev" == "version" || "$prev" == "help" ]]; then
       return 0
     else
       local repo_commands="backup cleanup diff env extract history info logs mounter next restorer search size snaps status umounter unlocker upgrade"
@@ -98,11 +118,45 @@ _rescript_completions() {
 }
 complete -F _rescript_completions rescript
 EOF
-    echo -e " \033[1;32m*\033[0m Bash autocompletion installed."
+    echo -e " \033[1;32m*\033[0m Bash autocompletion installed at: \033[1;37m$target_file\033[0m"
   fi
 }
 
 function install {
+  if [[ "${1:-}" == "--autocomplete-only" ]]; then
+    local target="${2:-}"
+    if [[ -z "$target" ]]; then
+      echo "$ui_line_eq"
+      echo "  Autocomplete Installation   "
+      echo "$ui_line_eq"
+      echo " [1] System-wide              "
+      echo " [2] For this user            "
+      echo "$ui_line_eq"
+      read -rp "Select an option [ 1 - 2 ]: " target_opt
+      case "$target_opt" in
+        1|system) target="system" ;;
+        2|user) target="user" ;;
+        *) echo "No valid action indicated; exiting..."; exit 1 ;;
+      esac
+    fi
+
+    if [[ "$target" == "system" ]]; then
+      if [[ "$(whoami)" != "root" ]]; then
+        echo "You must be [root] for system-wide installation. e.g.:"
+        echo "  sudo rescript install --autocomplete-only system"
+        exit 1
+      fi
+      if [[ "$unix_name" = "Darwin" ]] ; then
+        install_autocomplete "/usr/local/etc/bash_completion.d"
+      else
+        install_autocomplete "/etc/bash_completion.d"
+      fi
+    else
+      install_autocomplete "$HOME/.local/share/bash-completion/completions"
+    fi
+    exit 0
+  fi
+
   echo "$ui_line_eq"
   echo "     Installation     "
   echo "$ui_line_eq"
@@ -110,7 +164,7 @@ function install {
   echo " [2] For this user    "
   echo " [3] Exit             "
   echo "$ui_line_eq"
-  read -rp "Select an option and press Enter [ 1 - 4 ]: " installation
+  read -rp "Select an option and press Enter [ 1 - 3 ]: " installation
   case "$installation" in
     1|system)
       chmod 755 "$(basename "$0")"
