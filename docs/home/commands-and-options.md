@@ -18,13 +18,13 @@ Please see restic `help` and [documentation](https://restic.readthedocs.io/en/st
 
 ### Configuration Commands
 
-1. **[config](home/commands/config)**: Launch the interactive wizard or configure a repository/global settings.
-2. **[editor](home/commands/editor)**: Change default text editor used by rescript.
-3. **[help](home/commands/help)**: Display rescript usage.
-4. **[install](home/commands/install)**: Install rescript.
-5. **[uninstall](home/commands/uninstall)**: Uninstall rescript.
-6. **[update](home/commands/update)**: Check/install new rescript version.
-7. **[version](home/commands/version)**: Display rescript version.
+1. **[config](home/commands/config-cmd)**: Launch the interactive wizard or configure a repository/global settings.
+2. **[editor](home/commands/editor-cmd)**: Change default text editor used by rescript.
+3. **[help](home/commands/help-cmd)**: Display rescript usage.
+4. **[install](home/commands/install-cmd)**: Install rescript.
+5. **[uninstall](home/commands/uninstall-cmd)**: Uninstall rescript.
+6. **[update](home/commands/update-cmd)**: Check/install new rescript version.
+7. **[version](home/commands/version-cmd)**: Display rescript version.
 
 ### Repository Commands
 
