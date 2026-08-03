@@ -1,5 +1,11 @@
 # Rescript - POSIX-compliant Bash shell wrapper for Restic
 
+> [!CAUTION]
+> **PROJECT MOVED TO GITHUB**
+> This GitLab repository is no longer maintained. The project has been completely migrated to GitHub. 
+> Please visit the new repository for the latest updates, releases, and documentation:
+> 👉 **[https://github.com/sulfuror/rescript-sh](https://github.com/sulfuror/rescript-sh)**
+
 `rescript` is a POSIX-compliant Bash shell wrapper for [Restic](https://restic.net/) that makes it easy to configure repositories and work with them. The script was made for GNU/Linux systems but it may also work on MacOS and FreeBSD.
 
 > [!WARNING] DISCLAIMER / USE AT YOUR OWN RISK
