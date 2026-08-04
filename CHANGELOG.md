@@ -1,5 +1,18 @@
 # Rescript Changelog
 
+## [Unreleased]
+
+### Pending Release
+
+#### 🛠️ Refactoring & Architecture
+
+* **Commands Restructure:** Completely modularized the internal architecture. Every Rescript command (including `config`, `editor`, and `init`) now has its own strictly dedicated file inside `src/commands/`.
+* **Core Cleanup:** Migrated internal utilities out of the commands directory into `02_utils.sh` to ensure `src/commands/` exclusively hosts user-accessible CLI actions.
+* **Standardization:** Unified headers and file numbering across the entire `src/` directory to improve codebase navigation and build logic readability.
+* **Docs & Comments:** Polished internal file comments and eliminated legacy code artifacts to accurately reflect the new 100% modular structure.
+
+---
+
 ## v7.0.0
 
 ### August 3, 2026
