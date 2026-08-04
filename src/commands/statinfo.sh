@@ -1,3 +1,7 @@
+# ============================================================== #
+#                          COMMAND: INFO                         #
+# ============================================================== #
+
 function statinfo {
   local target_host="${host_flag:-$rhost}"
   debug_start
@@ -25,8 +29,6 @@ function statinfo {
   print_progress "Calculating repo stats" 100
   
   echo -ne '\n'
-
-  
   echo ""
   print_line "="
   printf "${c_white}%-20s | %-18s | %-20s${c_reset}\n" "Summarized Info" "Restore Size" "Deduplicated Size"
@@ -34,4 +36,3 @@ function statinfo {
   printf "%-20s | %-18s | %-20s\n" "Latest Snapshot" "$latest_host_stat" "$host_stat"
   printf "%-20s | %-18s | %-20s\n" "All Snapshots" "$stat_restore_size" "$stat_raw_data"
 }
-

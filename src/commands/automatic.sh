@@ -1,3 +1,7 @@
+# ============================================================== #
+#                       COMMAND: AUTOMATIC                       #
+# ============================================================== #
+
 function automatic {
   rescript_lock
   case "$LOGGING" in
@@ -103,4 +107,3 @@ function automatic {
     echo "https://gitlab.com/sulfuror/rescript.sh/blob/master/README.md#usage"
   fi
 }
-

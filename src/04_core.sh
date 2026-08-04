@@ -1,6 +1,25 @@
 # ============================================================== #
-# Rescript Commands                                              #
+#                             CORE                               #
 # ============================================================== #
+
+function restic_alone {
+  rescript_lock
+  debug_start
+  print_context
+  run_restic_with_retry "${rest[@]}"
+  latest_cmd=$prev_cmd exit_code="$?"
+  debug_stop
+  local rest_cmd=""
+  if [[ ${#rest[@]} -gt 0 ]]; then
+    rest_cmd="${rest[0]}"
+    case "$rest_cmd" in
+      --repo=*) rest_cmd="${rest[1]:-}" ;;
+      -r*|--repo*) rest_cmd="${rest[2]:-}" ;;
+    esac
+  fi
+  latest_error
+}
+
 if [[ "${1:-}" == "all" ]]; then
   shift 1
   excluded_repos=()
@@ -201,8 +220,9 @@ function _check_help_or_error {
     esac
   fi
 }
+
 case "${1:-}" in
-  backup|cleanup|diff|extract|search)
+  backup|cleanup|diff|extract|search|init)
     _check_help_or_error "${1:-}" "${2:-}"
     echo "You have not indicated any repo for [$1]..."
     echo ""
@@ -218,42 +238,13 @@ case "${1:-}" in
     exit 0
     ;;
   config)
-    if [[ "${2:-}" == "-h" || "${2:-}" == "--help" ]]; then
-      config-help
-      exit 0
-    elif [[ "${2:-}" == "--wizard" ]]; then
-      config_wizard
-      exit 0
-    elif [[ "${2:-}" == "-g" || "${2:-}" == "--global" ]]; then
-      if [[ -z "$rescript_editor" ]] ; then
-        select_editor
-        echo "Please type [rescript config --global] again to edit"
-        echo "your global configuration."
-        exit
-      fi
-      if [[ ! -f "$config_global" ]]; then
-        global_config_template > "$config_global"
-        chmod 600 "$config_global"
-      fi
-      "$rescript_editor" "$config_global" 2> /dev/null
-      exit 0
-    elif [[ -n "${2:-}" ]]; then
-      echo "Invalid option [${2:-}]..." ; echo "" ; config-help ; exit 1
-    fi
-    if [[ -z "$rescript_editor" ]] ; then
-      select_editor
-      echo "Please type [rescript config] again to set/edit"
-      echo "your configuration/exclusion files."
-      exit
-    fi
-    clear
-    main_menu
-    exit
+    rescript_config "${@:2}"
+    exit 0
     ;;
   editor)
     _check_help_or_error "${1:-}" "${2:-}"
-    select_editor
-    exit
+    rescript_editor_cmd
+    exit 0
     ;;
   -h|--help|help)
     if [[ ! "${2:-}" ]] ; then
@@ -363,12 +354,15 @@ case "${1:-}" in
 esac
 
 # ============================================================== #
-# Functions                                                      #
+# Configuration & Variables                                      #
 # ============================================================== #
+
 if [[ -f "$config_global" ]]; then
   source_config "$config_global"
 fi
+
 source_config "$config_repo"
+
 # Defaulting unset variables from config for strict mode
 export HOST="${HOST:-}"
 export CLEAN="${CLEAN:-}"
@@ -384,7 +378,6 @@ export SHOW_SNAPS="${SHOW_SNAPS:-}"
 export SHOW_STATS="${SHOW_STATS:-}"
 export CONFIRMATION_EMAIL="${CONFIRMATION_EMAIL:-}"
 export DESTINATION="${DESTINATION:-}"
-
 export RESTIC_REPOSITORY="${RESTIC_REPO:-}"
 export B2_ACCOUNT_ID="${B2_ID:-}"
 export B2_ACCOUNT_KEY="${B2_KEY:-}"
@@ -394,11 +387,13 @@ export AZURE_ACCOUNT_NAME="${AZURE_NAME:-}"
 export AZURE_ACCOUNT_KEY="${AZURE_KEY:-}"
 export GOOGLE_PROJECT_ID="${GOOGLE_ID:-}"
 export GOOGLE_APPLICATION_CREDENTIALS="${GOOGLE_CREDENTIALS:-}"
+
 if [[ -n "${RESCRIPT_PASS:-}" ]] ; then
   export RESTIC_PASSWORD="$RESCRIPT_PASS"
 else
   export RESTIC_PASSWORD="${RESTIC_PASSWORD:-}"
 fi
+
 export RESTIC_PASSWORD_COMMAND="${RESTIC_PASSWORD_COMMAND:-}"
 export RESTIC_COMPRESSION="${RESTIC_COMPRESSION:-auto}"
 SECONDS=0
@@ -458,5 +453,3 @@ fi
 if [[ -n "${KEEP_TAG:-}" ]] ; then
   policies+=(--keep-tag "$KEEP_TAG")
 fi
-
-

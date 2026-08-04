@@ -1,3 +1,7 @@
+# ============================================================== #
+#                         COMMAND: LOGS                          #
+# ============================================================== #
+
 function logs {
   if [[ "$catlogs" = "false" && "$removelogs" = "false" ]] ; then
     if ls "$logs_dir/$repo"-* 1> /dev/null 2>&1 ; then

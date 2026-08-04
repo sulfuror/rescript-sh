@@ -1,3 +1,7 @@
+# ============================================================== #
+#                        COMMAND: SIZE                           #
+# ============================================================== #
+
 function size {
   rescript_lock
   local target_host="$rhost"
@@ -47,4 +51,3 @@ function size {
     echo -e "\n${c_white}Total size for [${rest[*]}] in snapshot ${snapshot_id}:${c_reset} ${c_green}${total_size}${c_reset}"
   fi
 }
-

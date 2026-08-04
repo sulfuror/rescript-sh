@@ -1,3 +1,7 @@
+# ============================================================== #
+#                        COMMAND: CONFIG                         #
+# ============================================================== #
+
 function _list_files {
   local title="$1"
   local pattern="${2:-}"
@@ -319,6 +323,52 @@ function build_exclusions {
   esac
 }
 
-# ============================================================== #
-# Install & Update																							 #
-# ============================================================== #
+function rescript_config {
+  if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
+    config-help
+    exit 0
+  elif [[ "${1:-}" == "--wizard" ]]; then
+    config_wizard
+    exit 0
+  elif [[ "${1:-}" == "-g" || "${1:-}" == "--global" ]]; then
+    if [[ -z "$rescript_editor" ]] ; then
+      select_editor
+      echo "Please type [rescript config --global] again to edit"
+      echo "your global configuration."
+      exit
+    fi
+    if [[ ! -f "$config_global" ]]; then
+      global_config_template > "$config_global"
+      chmod 600 "$config_global"
+    fi
+    "$rescript_editor" "$config_global" 2> /dev/null
+    exit 0
+  elif [[ -n "${1:-}" ]]; then
+    echo "Invalid option [${1:-}]..." ; echo "" ; config-help ; exit 1
+  fi
+  if [[ -z "$rescript_editor" ]] ; then
+    select_editor
+    echo "Please type [rescript config] again to set/edit"
+    echo "your configuration/exclusion files."
+    exit
+  fi
+  clear
+  main_menu
+}
+# Main menu
+function main_menu {
+  echo "$ui_line_eq"
+  echo "        Menu          "
+  echo "$ui_line_eq"
+  echo " [1] Configuration    "
+  echo " [2] Exclusions       "
+  echo " [3] Exit             "
+  echo "$ui_line_eq"
+  read -rp "Select an option and press Enter [ 1 - 3 ]: " main
+  case "$main" in
+    1|configuration) clear ; config_menu ;;
+    2|exclusions) clear ; exclusion_menu ;;
+    3|exit) echo "Exiting..." ; exit ;;
+    *) clear ; echo "No valid option..." ; main_menu ;;
+  esac
+}

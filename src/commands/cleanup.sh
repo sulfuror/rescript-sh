@@ -1,3 +1,7 @@
+# ============================================================== #
+#                        COMMAND: CLEANUP                        #
+# ============================================================== #
+
 function cleanup {
   print_context
   rescript_lock
@@ -20,4 +24,3 @@ function cleanup {
     echo "https://gitlab.com/sulfuror/rescript.sh/blob/master/README.md#usage"
   fi
 }
-

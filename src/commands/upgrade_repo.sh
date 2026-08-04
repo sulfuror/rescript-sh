@@ -1,3 +1,7 @@
+# ============================================================== #
+#                      COMMAND: UPGRADE                          #
+# ============================================================== #
+
 function upgrade_repo {
   rescript_lock
   debug_start
@@ -13,4 +17,3 @@ if [[ ! $(command -v restic) ]] ; then
   echo ""
   exit 1
 fi
-

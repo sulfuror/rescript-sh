@@ -1,3 +1,7 @@
+# ============================================================== #
+#                        COMMAND:UMOUNTER                        #
+# ============================================================== #
+
 function umounter {
   rescript_lock
   debug_start
@@ -32,4 +36,3 @@ function umounter {
   debug_stop
   exit 0
 }
-

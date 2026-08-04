@@ -1,3 +1,7 @@
+# ============================================================== #
+#                             MAIN                               #
+# ============================================================== #
+
 if [[ ! $(command -v restic) ]] ; then
   echo "This script is made to work with [restic]. Please, install"
   echo "[restic] package to proceed. If you have [restic] binary"
@@ -11,6 +15,7 @@ if [[ ! $(command -v restic) ]] ; then
   echo "release page: https://github.com/restic/restic/releases"
   exit
 fi
+
 if [[ ! "${2:-}" || "${2:-}" == -* ]] ; then
   cmd="automatic"
   shift 1
@@ -18,7 +23,6 @@ else
   cmd="${2:-}"
   shift 2
 fi
-
 
 function _parse_standard_flags {
   case "$1" in
@@ -334,6 +338,20 @@ case "$cmd" in
   upgrade)
     parse_generic_args "upgrade-help" "$@"
     execute_with_metrics run_quietly upgrade_repo
+    ;;
+  init)
+    shopt -u nocasematch
+    while [[ $# -gt 0 ]] ; do
+      if _parse_standard_flags "$1" ; then shift ; continue ; fi
+      case "$1" in
+        -h|--help ) init-help ; exit 0 ;;
+        --) shift ; rest+=( "$@" ) ; break ;;
+        -*) rest+=( "$1" ) ;;
+        *) rest+=( "$1" ) ;;
+      esac
+      shift
+    done
+    run_quietly init
     ;;
   *)
     shopt -u nocasematch

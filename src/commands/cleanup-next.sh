@@ -1,3 +1,7 @@
+# ============================================================== #
+#                       COMMAND: NEXT                            #
+# ============================================================== #
+
 function cleanup-next {
   if [[ ! -f "$config_dir/$repo-datefile" ]] ; then
     touch "$config_dir/$repo-datefile"
@@ -40,4 +44,3 @@ function cleanup-next {
     echo -e "${c_cyan}Repo will be cleaned and checked in the next run...${c_reset}"
   fi
 }
-

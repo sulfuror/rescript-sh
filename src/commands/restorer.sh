@@ -1,3 +1,7 @@
+# ============================================================== #
+#                       COMMAND: RESTORER                        #
+# ============================================================== #
+
 function restorer {
   rescript_lock
   if [[ "${interactive_flag:-}" == "true" ]] ; then
@@ -54,4 +58,3 @@ function restorer {
   fi
   report_errors
 }
-

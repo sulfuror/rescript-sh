@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
-# ============================================================== #
 set -euo pipefail
+# ============================================================== #
+#                            GLOBALS                             #
+# ============================================================== #
 # Initialize internal variables to prevent unbound variable errors
+version="7.0.1-dev"
 context_flag=""
 rescript_lock_created=""
 var_flag=""
@@ -20,90 +23,9 @@ exit_code=""
 latest_cmd=""
 context_printed=""
 log=""
-function hide_cursor {
-  tput civis 2> /dev/null || true
-}
+repo="${1:-}"
 
-function show_cursor {
-  tput cnorm 2> /dev/null || true
-}
-version="7.0.0"
-
-function usage {
-cat <<EOF
-Name        : rescript
-Author      : Sulfuror, Copyright (c) 2018 <sulfuror@gmail.com>
-URL         : https://github.com/sulfuror/rescript-sh
-License     : BSD 2-Clause License
-Version     : $version
-Description : rescript is a bash shell wrapper for restic
-
-Information about restic: https://restic.net
-
-This script will run backup, snapshots, forget, prune, check and
-stats commands automatically by just indicating the name given
-to your configuration file (repo_name). e.g.:
-
-  rescript [repo_name]
-
-Usage:
-  rescript [config_command]
-  rescript [repo_name] [command] [flags] ...
-  rescript [repo_name] [restic_command] [flags] ...
-
-To execute a command across ALL configured repositories sequentially,
-use the 'all' keyword instead of a specific repo name. You can use
---ignore-repo to ignore specific repositories. e.g.:
-
-  rescript all [command] --ignore-repo [repo_name]
-
-Configuration commands:
-  config                Rescript configuration.
-  editor                Change default text editor used by rescript.
-  help                  Display rescript usage.
-  install               Install rescript.
-  uninstall             Uninstall rescript.
-  update                Check/install new rescript version.
-  version               Display rescript version.
-  
-Commands:
-  automatic             Run backup and cleanup policies sequentially.
-  backup                Take a snapshot.
-  cleanup               Apply retention policies and prune.
-  diff                  Compare two snapshots.
-  env                   Display values in your configurations.
-  extract               Extract a specific file or directory.
-  history               Show version history of a given file.
-  info                  Display stats for latest and all snapshots.
-  init                  Initialize a new restic repository.
-  logs                  List, view or remove your log files.
-  mounter               Mount a restic repo.
-  next                  Display next scheduled automatic cleanup time.
-  restorer              Restore a restic snapshot.
-  search                Find a file or directory across snapshots.
-  size                  Calculate recursive size of a given path.
-  snaps                 List snapshots in your repository (compact mode).
-  status                Print a dashboard with the status of your repositories.
-  umounter              Unmount a previously mounted restic repository.
-  unlocker              Remove lock created by rescript.
-  upgrade               Upgrade restic repository to the latest format.
-
-Global flags:
-  -D, --debug           Debug script.
-  -E, --email           Force to send email with output.
-  -h, --help            Display usage.
-  -L, --log             Create log file with command output.
-  -M, --metadata        Display execution context metadata.
-  -Q, --quiet           Silence output.
-  -T, --timer           Display output with date, time and duration.
-  -W, --webhook         Force to send webhook notification with output.
-
-Commands usage:
-  rescript help [command]
-
-EOF
-}
-# ============================================================== #
+# Variables for text colors and UI lines
 c_blue="\033[1;34m"
 c_cyan="\033[1;36m"
 c_green="\033[1;32m"
@@ -114,8 +36,6 @@ c_red="\033[0;31m"
 c_reset="\033[0m"
 ui_line_eq="======================"
 ui_line_dash="----------------------"
-
-repo="${1:-}"
 
 # Rescript directories and files
 rescript_dir="$HOME/.rescript"
@@ -136,8 +56,18 @@ else
 fi
 
 shopt -s nocasematch
+# ============================================================== #
+#                           UTILS                                #
+# ============================================================== #
 
-#Handle interrupt
+function hide_cursor {
+  tput civis 2> /dev/null || true
+}
+
+function show_cursor {
+  tput cnorm 2> /dev/null || true
+}
+
 function handle_interrupt {
   echo ""
   echo "################ Proccess interrupted ################"
@@ -147,13 +77,16 @@ function handle_interrupt {
 
 trap handle_interrupt INT HUP QUIT
 
-# Create a rescript directories if they are not present
+# Create the rescript directories if they are not present
 mkdir -p "$rescript_dir" "$config_dir" "$lock_dir" "$logs_dir"
+
 # Create "editor" file if not present
 if [[ ! -f "$config_dir/.editor" ]] ; then
   touch "$config_dir/.editor"
 fi
+
 rescript_editor="$(cat "$config_dir/.editor")"
+
 # Set PATH so it includes user's private bin if it exists (cron jobs may require this)
 PATH="$HOME/bin:$HOME/.local/bin:$PATH"
 
@@ -510,61 +443,23 @@ function duration {
     0) echo "Too fast!" ;;
   esac
 }
-# ============================================================== #
-# Menu                                                           #
-# ============================================================== #
-# Select Editor Menu
-function select_editor {
-  clear
-  echo "$ui_line_eq"
-  echo "  Select Text Editor  "
-  echo "$ui_line_eq"
-  echo " [1] Nano             "
-  echo " [2] Vim              "
-  echo " [3] Gedit            "
-  echo " [4] Mousepad         "
-  echo " [5] Leafpad          "
-  echo " [6] Pluma            "
-  echo " [7] Kate             "
-  echo " [8] Xed              "  
-  echo " [9] Other            "
-  echo " [10] Exit            "
-  echo "$ui_line_eq"
-  read -rp "Select the Text Editor you want to use [ 1 - 9 ]: " texteditor
-  case "$texteditor" in
-    1|nano) echo "nano" > "$config_dir/.editor"; echo "You have selected [Nano] as your default text editor." ;;
-    2|vim) echo "vim" > "$config_dir/.editor"; echo "You have selected [Vim] as your default text editor." ;;
-    3|gedit) echo "gedit" > "$config_dir/.editor" ; echo "You have selected [Gedit] as your default text editor." ;;
-    4|mousepad) echo "mousepad" > "$config_dir/.editor" ; echo "You have selected [Mousepad] as your default text editor." ;;
-    5|leafpad) echo "leafpad" > "$config_dir/.editor" ; echo "You have selected [Leafpad] as your default text editor." ;;
-    6|pluma) echo "pluma" > "$config_dir/.editor" ; echo "You have selected [Pluma] as your default text editor." ;;
-    7|kate) echo "kate" > "$config_dir/.editor" ; echo "You have selected [Kate] as your default text editor." ;;
-    8|xed) echo "xed" > "$config_dir/.editor" ; echo "You have selected [Xed] as your default text editor." ;;
-    9|other) read -rp "Type the executable name of the Text Editor you want to use: " othertextedit ; echo "$othertextedit" > "$config_dir/.editor" ; echo "You have selected [$othertextedit] as your default text editor." ;;
-    10|exit) echo "Exiting..." ; exit ;;
-    *) echo "[$texteditor] is not a valid option. If you want to set your" ; echo "own text editor, type [9] or [other] to write your own." ; exit ;;
+
+function now_next {
+  case "$unix_name" in
+    Linux|GNU)
+      now=$(date +"%s")
+      ;;
+    *)
+      now=$(gdate +"%s" 2>/dev/null || date +"%s")
+      ;;
   esac
+  next=$(cat "$config_dir/$repo-datefile" 2>/dev/null || echo "0")
+  if ! [[ "$next" =~ ^[0-9]+$ ]] ; then
+    next=0
+  fi
 }
 
-# Main menu
-function main_menu {
-  echo "$ui_line_eq"
-  echo "        Menu          "
-  echo "$ui_line_eq"
-  echo " [1] Configuration    "
-  echo " [2] Exclusions       "
-  echo " [3] Exit             "
-  echo "$ui_line_eq"
-  read -rp "Select an option and press Enter [ 1 - 3 ]: " main
-  case "$main" in
-    1|configuration) clear ; config_menu ;;
-    2|exclusions) clear ; exclusion_menu ;;
-    3|exit) echo "Exiting..." ; exit ;;
-    *) clear ; echo "No valid option..." ; main_menu ;;
-  esac
-}
-
-# Configuration menu
+# UI and Progress Utilities
 
 function print_progress {
   local label="${1:-}"
@@ -723,6 +618,10 @@ function source_config {
   fi
   source "$conf_file"
 }
+# ============================================================== #
+#                     CONFIGURATION TEMPLATE                     #
+# ============================================================== #
+
 function config_file {
 cat <<EOF
 # =============================================================================== #
@@ -836,6 +735,10 @@ TAG=""
 # ONE_FILE_SYSTEM=""
 EOF
 }
+# ============================================================== #
+#                     EXCLUSION TEMPLATES                        #
+# ============================================================== #
+
 function simple_exclusions {
 cat <<EOF
 # These are the default rescript exclusions:
@@ -927,6 +830,10 @@ lost+found/*
 # Write your custom exclusions below:
 EOF
 }
+# ============================================================== #
+#                GLOBAL CONFIGURATION TEMPLATE                   #
+# ============================================================== #
+
 function global_config_template {
 cat <<EOF
 # =============================================================================== #
@@ -1009,6 +916,894 @@ SHOW_STATS="yes"
 SKIP_OFFICE=""
 EOF
 }
+# ============================================================== #
+#                            HELP                                #
+# ============================================================== #
+
+function usage {
+cat <<EOF
+Name        : rescript
+Author      : Sulfuror, Copyright (c) 2018 <sulfuror@gmail.com>
+URL         : https://github.com/sulfuror/rescript-sh
+License     : BSD 2-Clause License
+Version     : $version
+Description : rescript is a bash shell wrapper for restic
+
+Information about restic: https://restic.net
+
+This script will run backup, snapshots, forget, prune, check and
+stats commands automatically by just indicating the name given
+to your configuration file (repo_name). e.g.:
+
+  rescript [repo_name]
+
+Usage:
+  rescript [config_command]
+  rescript [repo_name] [command] [flags] ...
+  rescript [repo_name] [restic_command] [flags] ...
+
+To execute a command across ALL configured repositories sequentially,
+use the 'all' keyword instead of a specific repo name. You can use
+--ignore-repo to ignore specific repositories. e.g.:
+
+  rescript all [command] --ignore-repo [repo_name]
+
+Configuration commands:
+  config                Rescript configuration.
+  editor                Change default text editor used by rescript.
+  help                  Display rescript usage.
+  install               Install rescript.
+  uninstall             Uninstall rescript.
+  update                Check/install new rescript version.
+  version               Display rescript version.
+  
+Commands:
+  automatic             Run backup and cleanup policies sequentially.
+  backup                Take a snapshot.
+  cleanup               Apply retention policies and prune.
+  diff                  Compare two snapshots.
+  env                   Display values in your configurations.
+  extract               Extract a specific file or directory.
+  history               Show version history of a given file.
+  info                  Display stats for latest and all snapshots.
+  init                  Initialize a new restic repository.
+  logs                  List, view or remove your log files.
+  mounter               Mount a restic repo.
+  next                  Display next scheduled automatic cleanup time.
+  restorer              Restore a restic snapshot.
+  search                Find a file or directory across snapshots.
+  size                  Calculate recursive size of a given path.
+  snaps                 List snapshots in your repository (compact mode).
+  status                Print a dashboard with the status of your repositories.
+  umounter              Unmount a previously mounted restic repository.
+  unlocker              Remove lock created by rescript.
+  upgrade               Upgrade restic repository to the latest format.
+
+Global flags:
+  -D, --debug           Debug script.
+  -E, --email           Force to send email with output.
+  -h, --help            Display usage.
+  -L, --log             Create log file with command output.
+  -M, --metadata        Display execution context metadata.
+  -Q, --quiet           Silence output.
+  -T, --timer           Display output with date, time and duration.
+  -W, --webhook         Force to send webhook notification with output.
+
+Commands usage:
+  rescript help [command]
+
+EOF
+}
+
+function backup-help {
+cat <<EOF
+[backup] is for [backup] command in restic
+
+This command will take a new snapshot using the values set
+in your configuration file.
+
+Usage:
+  rescript [repo_name] backup [flags]
+
+Command flags:
+
+  -C, --check           Check for errors in repository.
+  -U, --cleanup         Apply retention policies and prune.
+  -I, --info            Display stats for latest and all snapshots.
+  -O, --skip-office     Temporarily exclude open (in-use) 'Office'
+                        documents (.xlsx, .docx, .ods, odt, etc.).
+  -S, --simulate        Simulate execution (dry-run).
+
+Global flags:
+  -D, --debug           Debug script.
+  -E, --email           Force to send email with output.
+  -h, --help            Display usage.
+  -L, --log             Create log file with command output.
+  -M, --metadata        Display execution context metadata.
+  -Q, --quiet           Silence output.
+  -T, --timer           Display output with date, time and duration.
+  -W, --webhook         Force to send webhook notification with output.
+
+Make use of restic flags/options as follows:
+  rescript [repo_name] backup [flags] [restic_flags/options] ...
+
+EOF
+}
+
+function cleanup-help {
+cat <<EOF
+[cleanup] is for [forget] and [prune] commands in restic
+
+This command will apply the [forget] policies set in your
+configuration file and then execute [prune] to actually
+delete the data that has been forgotten.
+
+Usage:
+  rescript [repo_name] cleanup [flags] [options]
+
+Command flags:
+
+  -C, --check           Check for errors in repository.
+  -I, --info            Display stats for latest and all snapshots.
+  -S, --simulate        Simulate execution (dry-run).
+      --reset           Remove "datefile"; it resets the dates for
+                        the CLEAN option in your configuration file.
+
+Global flags:
+  -D, --debug           Debug script.
+  -E, --email           Force to send email with output.
+  -h, --help            Display usage.
+  -L, --log             Create log file with command output.
+  -M, --metadata        Display execution context metadata.
+  -Q, --quiet           Silence output.
+  -T, --timer           Display output with date, time and duration.
+  -W, --webhook         Force to send webhook notification with output.
+
+Make use of restic flags/options as follows:
+  rescript [repo_name] cleanup [flags] [restic_flags/options] ...
+
+EOF
+}
+
+function next-help {
+cat <<EOF
+[next] displays the next scheduled automatic cleanup time.
+
+This command will read the CLEAN variable in your configuration
+file and tell you when the next cleanup and check is scheduled
+to occur.
+
+Usage:
+  rescript [repo_name] next [flags]
+
+Global flags:
+  -h, --help            Display usage.
+  -T, --timer           Display output with date, time and duration.
+  -W, --webhook         Force to send webhook notification with output.
+EOF
+}
+
+
+
+function config-help {
+cat <<EOF
+[config] is an interactive command to make easy the to set up rescript
+configuration and exclusions files. You can create, edit, list
+and open your configuration and exclusions files.
+
+Usage:
+  rescript config
+  rescript config --wizard
+  rescript config -g, --global
+
+Global flags:
+  -h, --help            Display usage.
+  -g, --global          Open the global configuration file directly.
+  --wizard              Run the interactive config wizard to easily set up a new repository.
+
+EOF
+}
+
+function diff-help {
+cat <<EOF
+[diff] compares the two latest snapshots in your repository to show what
+files were added, modified, or removed. You can also pass specific
+snapshot IDs to compare them.
+
+Usage:
+  rescript [repo_name] diff [snapshot1] [snapshot2]
+
+Global flags:
+  -D, --debug           Debug script.
+  -E, --email           Force to send email with output.
+  -h, --help            Display usage.
+  -L, --log             Create log file with command output.
+  -M, --metadata        Display execution context metadata.
+  -Q, --quiet           Silence output.
+  -T, --timer           Display output with date, time and duration.
+  -W, --webhook         Force to send webhook notification with output.
+
+Make use of restic flags/options as follows:
+  rescript [repo_name] diff [flags] [restic_flags/options] ...
+
+EOF
+}
+
+function editor-help {
+cat <<EOF
+[editor] is to select or change the default text editor
+to be used to open the rescript configuration and
+exclusion files. This will list the most common text editors
+used and also have an option to write the executable name
+of your favorite text editor if not listed.
+
+Usage:
+  rescript editor
+
+Global flags:
+  -h, --help            Display usage.
+
+EOF
+}
+
+function env-help {
+cat <<EOF
+[env] is to display the variables values in your
+configuration file.
+
+Usage:
+  rescript [repo_name] env
+
+Command flags:
+  -V, --var VARNAME     Display varname value chosen.
+
+Global flags:
+  -h, --help            Display usage.
+
+EOF
+}
+
+function extract-help {
+cat <<EOF
+[extract] allows you to quickly dump a specific file or directory from
+a snapshot directly to your current working directory.
+If no snapshot ID is provided, the script will automatically search for
+the latest snapshot containing that file.
+
+Note: You must provide the exact full path of the file as it was backed up,
+not just the filename.
+
+Usage:
+  rescript [repo_name] extract [snapshot_id] <file_path>
+
+Global flags:
+  -D, --debug           Debug script.
+  -E, --email           Force to send email with output.
+  -h, --help            Display usage.
+  -L, --log             Create log file with command output.
+  -M, --metadata        Display execution context metadata.
+  -Q, --quiet           Silence output.
+  -T, --timer           Display output with date, time and duration.
+  -W, --webhook         Force to send webhook notification with output.
+
+Make use of restic flags/options natively:
+  rescript [repo_name] extract [snapshot_id] [restic_flags] <file_path>
+
+EOF
+}
+
+function info-help {
+cat <<EOF
+[info] is for [stats] command in restic
+
+This command will display restore and deduplicated (raw-data)
+size of latest and all snapshots in a custom format.
+
+Usage:
+  rescript [repo_name] info [flags]
+
+Command flags:
+  -H, --host hostname   Only consider snapshots for this host.
+
+Global flags:
+  -D, --debug           Debug script.
+  -E, --email           Force to send email with output.
+  -h, --help            Display usage.
+  -L, --log             Create log file with command output.
+  -M, --metadata        Display execution context metadata.
+  -Q, --quiet           Silence output.
+  -T, --timer           Display output with date, time and duration.
+  -W, --webhook         Force to send webhook notification with output.
+
+EOF
+} 
+
+function install-help {
+cat <<EOF
+[install] is to simply copy the script to your PATH directory
+inside your HOME and install the bash autocompletion feature.
+If there is no PATH in your HOME then rescript will ask you if you 
+want to create one. If the answer is yes then it will create a [/bin] 
+directory inside your [./local] directory. If the answer is no then it 
+will exit. If you don't want to use rescript from your PATH then remember 
+to use it indicating the complete path where the script is located.
+
+Usage:
+  rescript install [flags]
+  rescript install --autocomplete-only [system|user]
+
+Command flags:
+  --autocomplete-only   Install ONLY the bash autocompletion feature
+                        without reinstalling the rescript binary.
+                        It can optionally receive 'system' or 'user'.
+
+Global flags:
+  -h, --help            Display usage.
+
+EOF
+}
+
+function uninstall-help {
+cat <<EOF
+[uninstall] removes rescript and its autocompletion script.
+
+This command will prompt you to remove the binary from your PATH
+and delete the bash autocompletion feature. It will also ask if
+you wish to completely remove your configuration directory
+(~/.rescript).
+
+Usage:
+  rescript uninstall
+
+Global flags:
+  -h, --help            Display usage.
+
+EOF
+}
+
+function logs-help {
+cat <<EOF
+[logs] is for log files saved by rescript
+
+Usage:
+  rescript [repo_name] logs
+OR
+  rescript [repo_name] logs [flag] [logfile]
+
+Command flags:
+  -V, --view logfile    Display output of selected log file.
+  -R, --remove logfile  Remove all log files (use 'all' to remove
+                        all logs related to the repository).
+
+Global flags:
+  -h, --help            Display usage.
+
+NOTE: if you don't indicate a logfile when using [--remove]
+it will delete all logfiles related to the [repo_name].
+
+EOF
+}
+
+function mounter-help {
+cat <<EOF
+[mounter] is to automatically mount your repository in your HOME
+directory so you can browse and restore your files.
+When you finish just use [rescript repo umounter] or press [Ctrl+C].
+
+Usage:
+  rescript [repo_name] mounter [--background]
+
+Command flags:
+  --background          Mount the repository in the background.
+
+Global flags:
+  -D, --debug           Debug script.
+  -E, --email           Force to send email with output.
+  -h, --help            Display usage.
+  -L, --log             Create log file with command output.
+  -M, --metadata        Display execution context metadata.
+  -Q, --quiet           Silence output.
+  -T, --timer           Display output with date, time and duration.
+  -W, --webhook         Force to send webhook notification with output.
+
+Make use of restic flags/options as follows:
+  rescript [repo_name] mounter [--background] [restic_flags/options] ...
+
+EOF
+}
+
+function restorer-help {
+cat <<EOF
+[restorer] is for [restore] command in restic
+
+This command will create a new directory in your /home/sulfuror
+directory containing the restored files. The new directory will
+be named with a unique name so it will not conflict with your
+existing directories.
+
+Usage:
+  rescript [repo_name] restorer [flags] [snapshot ID]
+
+Command flags:
+  -i, --interactive     Fetch a list of snapshots and present an interactive menu to choose from.
+  -H, --host hostname   Only consider snapshots for this host
+                        when snapshot-ID is [latest].
+  -P, --path path       Only consider snapshots which include
+                        this [absolute] path for snapshot-ID [latest].
+  -Z, --snapshot ID     Indicate snapshot-ID to restore.
+      --tag tagname     Only consider snapshots which include this
+                        taglist for snapshot-ID [latest].
+  -S, --simulate        Simulate execution (dry-run).
+
+Global flags:
+  -D, --debug           Debug script.
+  -E, --email           Force to send email with output.
+  -h, --help            Display usage.
+  -L, --log             Create log file with command output.
+  -M, --metadata        Display execution context metadata.
+  -Q, --quiet           Silence output.
+  -T, --timer           Display output with date, time and duration.
+  -W, --webhook         Force to send webhook notification with output.
+
+EOF
+}
+
+function search-help {
+cat <<EOF
+[search] allows you to find a specific file or directory across all
+snapshots in your repository, showing the snapshot ID and the date.
+
+Usage:
+  rescript [repo_name] search <pattern>
+
+Command flags:
+  -i, --ignore-case     Ignore case for pattern (e.g., *report* vs *Report*).
+
+Global flags:
+  -D, --debug           Debug script.
+  -E, --email           Force to send email with output.
+  -h, --help            Display usage.
+  -L, --log             Create log file with command output.
+  -M, --metadata        Display execution context metadata.
+  -Q, --quiet           Silence output.
+  -T, --timer           Display output with date, time and duration.
+  -W, --webhook         Force to send webhook notification with output.
+
+Make use of restic flags/options as follows:
+  rescript [repo_name] search [flags] [restic_flags/options] ...
+
+EOF
+}
+
+function snaps-help {
+cat <<EOF
+[snaps] is is for [snapshots] command in restic
+
+This is nothing more than [snapshots --compact] in restic.
+You can use any restic available flags for [snapshots] command
+but it will always display snapshots in compact mode.
+
+Usage:
+  rescript [repo_name] snaps [flags] [options]
+
+Global flags:
+  -D, --debug           Debug script.
+  -E, --email           Force to send email with output.
+  -h, --help            Display usage.
+  -L, --log             Create log file with command output.
+  -M, --metadata        Display execution context metadata.
+  -Q, --quiet           Silence output.
+  -T, --timer           Display output with date, time and duration.
+  -W, --webhook         Force to send webhook notification with output.
+
+Make use of restic flags/options as follows:
+  rescript [repo_name] snaps [flags] [restic_flags/options] ...
+
+EOF
+}
+
+function unlocker-help {
+cat <<EOF
+[unlocker] is to remove the temporary lock created by rescript.
+When rescript is running it will create a temporary lock file
+to prevent the interruption of other processes that could be active
+at the moment of executing another command within the same instance
+(e.g. scheduled jobs). If you are sure there are not any other
+processes running in the backgroup, then you can safely remove the
+created by rescript using this command.
+
+Usage:
+  rescript [repo_name] unlocker
+
+Global flags:
+  -D, --debug           Debug script.
+  -E, --email           Force to send email with output.
+  -h, --help            Display usage.
+  -L, --log             Create log file with command output.
+  -M, --metadata        Display execution context metadata.
+  -Q, --quiet           Silence output.
+  -T, --timer           Display output with date, time and duration.
+  -W, --webhook         Force to send webhook notification with output.
+
+EOF
+}
+
+function update-help {
+cat <<EOF
+[update] is to update the rescript script itself.
+
+Usage:
+  rescript update
+
+If script is located in /usr/bin:
+  sudo rescript update
+
+Global flags:
+  -h, --help            Display usage.
+
+EOF
+}
+
+function upgrade-help {
+cat <<EOF
+[upgrade] is to update the restic repository to the latest format (v2).
+
+This command will execute [restic migrate upgrade_repo_v2] to upgrade
+your repository. This is necessary to enable features like compression.
+
+Usage:
+  rescript [repo_name] upgrade [flags]
+
+Global flags:
+  -D, --debug           Debug script.
+  -E, --email           Force to send email with output.
+  -h, --help            Display usage.
+  -L, --log             Create log file with command output.
+  -M, --metadata        Display execution context metadata.
+  -Q, --quiet           Silence output.
+  -T, --timer           Display output with date, time and duration.
+  -W, --webhook         Force to send webhook notification with output.
+
+EOF
+}
+
+function size-help {
+cat <<EOF
+[size] calculates the total size of a specific directory within
+a snapshot, parsing restic ls output. If no snapshot is specified,
+it defaults to 'latest'.
+
+Usage:
+  rescript [repo_name] size [snapshot_id] <path> [flags]
+
+Command flags:
+  -H, --host hostname   Only consider snapshots for this host (only applies to 'latest').
+
+Global flags:
+  -D, --debug           Debug script.
+  -E, --email           Force to send email with output.
+  -h, --help            Display usage.
+  -L, --log             Create log file with command output.
+  -M, --metadata        Display execution context metadata.
+  -Q, --quiet           Silence output.
+  -T, --timer           Display output with date, time and duration.
+  -W, --webhook         Force to send webhook notification with output.
+
+Make use of restic flags/options as follows:
+  rescript [repo_name] size [snapshot_id] <path> [restic_flags/options] ...
+
+EOF
+}
+
+function history-help {
+cat <<EOF
+[history] searches for a specific file across all snapshots
+and displays a chronological table showing only the snapshots
+where the file was modified or introduced as a new version
+(based on changes in its Size or Modification Date).
+
+Usage:
+  rescript [repo_name] history <pattern>
+
+Command flags:
+  -i, --ignore-case     Ignore case for pattern.
+
+Global flags:
+  -D, --debug           Debug script.
+  -E, --email           Force to send email with output.
+  -h, --help            Display usage.
+  -L, --log             Create log file with command output.
+  -M, --metadata        Display execution context metadata.
+  -Q, --quiet           Silence output.
+  -T, --timer           Display output with date, time and duration.
+  -W, --webhook         Force to send webhook notification with output.
+
+Make use of restic flags/options as follows:
+  rescript [repo_name] history [flags] [restic_flags/options] ...
+
+EOF
+}
+
+function umounter-help {
+cat <<EOF
+[umounter] unmounts a repository previously mounted with
+[mounter --background] and cleans up the mount point.
+
+Usage:
+  rescript [repo_name] umounter
+
+Global flags:
+  -h, --help            Display usage.
+
+EOF
+}
+
+function status-help {
+cat <<EOF
+[status] prints a dashboard showing the state of your repositories.
+
+This command provides a quick overview of configured repositories,
+displaying snapshot counts, the latest snapshot date, and optionally
+the repository size and health. It can be run on a single repository
+or globally for all configured repositories.
+
+Usage:
+  rescript status [flags]
+  rescript [repo_name] status [flags]
+
+Command flags:
+  -F, --full            Display a full dashboard including size and health.
+                        Note: This takes significantly more time.
+  -X, --ignore-repo     Exclude specific repositories (e.g. -X foo -X bar).
+
+Global flags:
+  -h, --help            Display usage.
+
+EOF
+}
+# ============================================================== #
+#                       COMMAND: AUTOMATIC                       #
+# ============================================================== #
+
+function automatic {
+  rescript_lock
+  case "$LOGGING" in
+    y|yes)
+      log_flag="true"
+      ;;
+  esac
+  time_flag="true"
+  context_flag="true"
+  logger
+  time_start
+  print_context
+  context_flag="false"
+
+
+
+  function _run_auto_cleanup {
+    if [[ -n "${policies[*]}" ]] ; then
+      print_line
+      echo -e "${c_cyan}Cleaning Repo...${c_reset}"
+      cleanup
+      print_line
+      echo -e "${c_cyan}Checking for Errors in Repo...${c_reset}"
+      run_restic_with_retry check --cleanup-cache
+      check_restic_error $?
+    fi
+  }
+  # Backup
+  case "$SKIP_OFFICE" in
+    y|yes)
+      echo -e "${c_cyan}Taking a Snapshot...${c_reset}" ; skip_flag="true" ; backup ;;
+    *)
+      echo -e "${c_cyan}Taking a Snapshot...${c_reset}" ; backup ;;
+  esac
+  exclusions=$(grep -E -v -n -c '(^#|^\s*$|^\s*\t*#)' "$excludes")
+  if [[ "$exclusions" -gt "0" ]] ; then
+    echo -e "${c_green}There are $exclusions exclusion rules...${c_reset}"
+  fi
+  # Snapshot List
+  case "$SHOW_SNAPS" in
+    y|yes)
+      print_line
+      echo -e "${c_cyan}Snapshots List...${c_reset}"
+      snaps
+      check_restic_error $?
+      ;;
+  esac
+  # Check and Clean Repo Based on User's Policy
+  if [[ -f "$config_dir/$repo-datefile" || -n "${CLEAN:-}" ]]; then
+    if [[ ! -f "$config_dir/$repo-datefile" ]] ; then
+      touch "$config_dir/$repo-datefile"
+    fi
+    now_next
+    if [[ "$now" -lt "$next" ]] ; then
+      print_line
+      cleanup-next
+    else 
+        _run_auto_cleanup
+        if [[ -n "${CLEAN:-}" ]] ; then
+          clean_num="${CLEAN//[A-Za-z]/}"
+          clean_unit="${CLEAN//[0-9]/}"
+          case "$unix_name" in
+            Linux|GNU)
+              date -d "now+${CLEAN:-}" +%s 2>/dev/null > "$config_dir/$repo-datefile"
+              ;;
+            *)
+              gdate -d "now+${CLEAN:-}" +%s 2>/dev/null > "$config_dir/$repo-datefile"
+              ;;
+          esac
+          exit_code="$?"
+          if [[ "$exit_code" -gt "0" ]] ; then
+            echo -e "WARNING: \nCLEAN is set to ${CLEAN:-} in your configuration file; please use the correct syntax as follows: \n1. CLEAN=\"${CLEAN}days\"     <---setup cleanup every ${CLEAN:-} days\n2. CLEAN=\"${CLEAN}hours\"    <---setup cleanup every ${CLEAN:-} hours\n3. CLEAN=\"${CLEAN}minutes\"  <---setup cleanup every ${CLEAN:-} minutes"
+          else
+            echo -e "${c_green}Done Cleaning; Next Cleanup and Check Will Be Done in $clean_num $clean_unit...${c_reset}"
+          fi
+      fi
+    fi
+  else 
+      _run_auto_cleanup
+  fi
+  # Stats
+  case "$SHOW_STATS" in
+    y|yes) 
+      print_line
+      statinfo 
+      ;;
+  esac
+  # Time and Runtime
+  time_end
+
+  if [[ -n "${CLEAN:-}" && -z "${policies[*]}" ]] ; then
+    clean_num="${CLEAN//[A-Za-z]/}"
+    clean_unit="${CLEAN//[0-9]/}"
+    echo "[rescript] noted that your CLEAN variable is ${CLEAN:-}, so [rescript] assumes that"
+    echo "you want to perform a 'cleanup' (forget, prune and check) every $clean_num $clean_unit but"
+    echo "it can't execute it if you have not set the KEEP variables; please set your"
+    echo "desired KEEP values in order to perform the 'cleanup' every $clean_num $clean_unit. If you"
+    echo "don't want [rescript] to 'cleanup' your repo automatically every $clean_num $clean_unit,"
+    echo "just leave the CLEAN variable blank in your cofiguration file and this"
+    echo "message will not appear again."
+    echo ""
+    echo "For more info about this subject:"
+    echo "https://gitlab.com/sulfuror/rescript.sh/blob/master/README.md#usage"
+  fi
+}
+# ============================================================== #
+#                           BACKUP                               #
+# ============================================================== #
+
+function backup {
+  print_context
+  declare -a bu_opts=()
+  if [[ "${EXCLUDE_CACHE:-}" = "yes" || "${EXCLUDE_CACHE:-}" = "y" || -z "${EXCLUDE_CACHE:-}" ]] ; then
+    bu_opts+=( --exclude-caches )
+  fi
+  if [[ "${EXCLUDE_FILE:-}" = "yes" || "${EXCLUDE_FILE:-}" = "y" || -z "${EXCLUDE_FILE:-}" ]] ; then
+    bu_opts+=( --exclude-file="$excludes" )
+  fi
+  if [[ "${ONE_FILE_SYSTEM:-}" = "yes" || "${ONE_FILE_SYSTEM:-}" = "y" ]] ; then
+    bu_opts+=( --one-file-system )
+  fi
+  if [[ -n "$HOST" ]] ; then
+    bu_opts+=( --host="$HOST" )
+  fi
+  if [[ -n "${TAG:-}" ]] ; then
+    bu_opts+=( --tag="${TAG:-}" )
+  fi
+  if [[ -n "$RESTIC_COMPRESSION" ]] ; then
+    bu_opts+=( --compression="$RESTIC_COMPRESSION" )
+  fi
+  rescript_lock
+  
+  if [[ -n "$PRE_CMD" && "${RESCRIPT_SKIP_HOOKS:-}" != "true" ]] ; then
+    if [[ "$simulate_flag" == "true" ]]; then
+      echo -e "${c_cyan}Running PRE_CMD...${c_reset}"
+      echo -e "${c_yellow}SIMULATE: $PRE_CMD${c_reset}"
+    else
+      run_with_spinner "$PRE_CMD" "${c_cyan}Running PRE_CMD...${c_reset}"
+      if [[ $? -ne 0 ]] ; then
+        exit 1
+      fi
+    fi
+  fi
+  debug_start
+  set_sim_flag "Backup"
+  if [[ "$skip_flag" = "true" ]] ; then
+    run_restic_with_retry backup $sim_flag --verbose "${bu_opts[@]}" --exclude-file=<(find "${BACKUP_DIR[@]}" -iname ".~lock.*" 2> /dev/null | sed -e 's/.~lock.//g' | sed -e 's/#//g') --exclude=".~lock.*" "${rest[@]}" "${BACKUP_DIR[@]}"
+  else
+    run_restic_with_retry backup $sim_flag --verbose "${bu_opts[@]}" "${rest[@]}" "${BACKUP_DIR[@]}"
+  fi
+  check_restic_error $?
+  debug_stop
+
+  if [[ -n "$POST_CMD" && "${RESCRIPT_SKIP_HOOKS:-}" != "true" ]] ; then
+    if [[ "$simulate_flag" == "true" ]]; then
+      echo -e "${c_cyan}Running POST_CMD...${c_reset}"
+      echo -e "${c_yellow}SIMULATE: $POST_CMD${c_reset}"
+    else
+      run_with_spinner "$POST_CMD" "${c_cyan}Running POST_CMD...${c_reset}"
+    fi
+  fi
+
+}
+# ============================================================== #
+#                       COMMAND: NEXT                            #
+# ============================================================== #
+
+function cleanup-next {
+  if [[ ! -f "$config_dir/$repo-datefile" ]] ; then
+    touch "$config_dir/$repo-datefile"
+  fi
+  now_next
+  result=$((next-now))
+  days=$((result / 86400))
+  hours=$(((result / 3600) % 24))
+  minutes=$(((result / 60) % 60))
+  seconds=$((result % 60))
+  if [[ "$days" = "1" ]] ; then
+    d="day"
+  else
+    d="days"
+  fi
+  if [[ "$hours" = "1" ]] ; then
+    h="hour"
+  else
+    h="hours"
+  fi
+  if [[ "$minutes" = "1" ]] ; then
+    m="minute"
+  else
+    m="minutes"
+  fi
+  if [[ "$seconds" = "1" ]] ; then
+    s="second"
+  else
+    s="seconds"
+  fi
+  if [[ "$days" -gt "0" ]] ; then
+    echo -e "${c_cyan}Next cleanup and check in $days $d...${c_reset}"
+  elif [[ "$hours" -gt "0" ]] ; then
+    echo -e "${c_cyan}Next cleanup and check in $hours $h...${c_reset}"
+  elif [[ "$minutes" -gt "0" ]] ; then
+    echo -e "${c_cyan}Next cleanup and check in $minutes $m...${c_reset}"
+  elif [[ "$seconds" -gt "0" ]] ; then
+    echo -e "${c_cyan}Next cleanup and check in $seconds $s...${c_reset}"
+  else
+    echo -e "${c_cyan}Repo will be cleaned and checked in the next run...${c_reset}"
+  fi
+}
+# ============================================================== #
+#                        COMMAND: CLEANUP                        #
+# ============================================================== #
+
+function cleanup {
+  print_context
+  rescript_lock
+
+  set_sim_flag "Cleanup"
+
+  if [[ -n "${policies[*]}" ]] ; then
+    debug_start
+    run_restic_with_retry forget $sim_flag "${policies[@]}" "${rest[@]}"
+    check_restic_error $?
+    debug_stop
+    debug_start
+    run_restic_with_retry prune $sim_flag --cleanup-cache
+    check_restic_error $?
+    debug_stop
+  else
+    echo "You have not indicated any policy value..."
+    echo "If you want to use [cleanup] option you need to set the [KEEP] variables."
+    echo "For more information about the Usage check out the following link:"
+    echo "https://gitlab.com/sulfuror/rescript.sh/blob/master/README.md#usage"
+  fi
+}
+# ============================================================== #
+#                        COMMAND: CONFIG                         #
+# ============================================================== #
+
 function _list_files {
   local title="$1"
   local pattern="${2:-}"
@@ -1330,810 +2125,58 @@ function build_exclusions {
   esac
 }
 
+function rescript_config {
+  if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
+    config-help
+    exit 0
+  elif [[ "${1:-}" == "--wizard" ]]; then
+    config_wizard
+    exit 0
+  elif [[ "${1:-}" == "-g" || "${1:-}" == "--global" ]]; then
+    if [[ -z "$rescript_editor" ]] ; then
+      select_editor
+      echo "Please type [rescript config --global] again to edit"
+      echo "your global configuration."
+      exit
+    fi
+    if [[ ! -f "$config_global" ]]; then
+      global_config_template > "$config_global"
+      chmod 600 "$config_global"
+    fi
+    "$rescript_editor" "$config_global" 2> /dev/null
+    exit 0
+  elif [[ -n "${1:-}" ]]; then
+    echo "Invalid option [${1:-}]..." ; echo "" ; config-help ; exit 1
+  fi
+  if [[ -z "$rescript_editor" ]] ; then
+    select_editor
+    echo "Please type [rescript config] again to set/edit"
+    echo "your configuration/exclusion files."
+    exit
+  fi
+  clear
+  main_menu
+}
+# Main menu
+function main_menu {
+  echo "$ui_line_eq"
+  echo "        Menu          "
+  echo "$ui_line_eq"
+  echo " [1] Configuration    "
+  echo " [2] Exclusions       "
+  echo " [3] Exit             "
+  echo "$ui_line_eq"
+  read -rp "Select an option and press Enter [ 1 - 3 ]: " main
+  case "$main" in
+    1|configuration) clear ; config_menu ;;
+    2|exclusions) clear ; exclusion_menu ;;
+    3|exit) echo "Exiting..." ; exit ;;
+    *) clear ; echo "No valid option..." ; main_menu ;;
+  esac
+}
 # ============================================================== #
-# Install & Update																							 #
+#                        COMMAND: DIFF                           #
 # ============================================================== #
-# Commands Help																									 #
-# ============================================================== #
-
-
-function backup-help {
-cat <<EOF
-[backup] is for [backup] command in restic
-
-This command will take a new snapshot using the values set
-in your configuration file.
-
-Usage:
-  rescript [repo_name] backup [flags]
-
-Command flags:
-
-  -C, --check           Check for errors in repository.
-  -U, --cleanup         Apply retention policies and prune.
-  -I, --info            Display stats for latest and all snapshots.
-  -O, --skip-office     Temporarily exclude open (in-use) 'Office'
-                        documents (.xlsx, .docx, .ods, odt, etc.).
-  -S, --simulate        Simulate execution (dry-run).
-
-Global flags:
-  -D, --debug           Debug script.
-  -E, --email           Force to send email with output.
-  -h, --help            Display usage.
-  -L, --log             Create log file with command output.
-  -M, --metadata        Display execution context metadata.
-  -Q, --quiet           Silence output.
-  -T, --timer           Display output with date, time and duration.
-  -W, --webhook         Force to send webhook notification with output.
-
-Make use of restic flags/options as follows:
-  rescript [repo_name] backup [flags] [restic_flags/options] ...
-
-EOF
-}
-
-function cleanup-help {
-cat <<EOF
-[cleanup] is for [forget] and [prune] commands in restic
-
-This command will apply the [forget] policies set in your
-configuration file and then execute [prune] to actually
-delete the data that has been forgotten.
-
-Usage:
-  rescript [repo_name] cleanup [flags] [options]
-
-Command flags:
-
-  -C, --check           Check for errors in repository.
-  -I, --info            Display stats for latest and all snapshots.
-  -S, --simulate        Simulate execution (dry-run).
-      --reset           Remove "datefile"; it resets the dates for
-                        the CLEAN option in your configuration file.
-
-Global flags:
-  -D, --debug           Debug script.
-  -E, --email           Force to send email with output.
-  -h, --help            Display usage.
-  -L, --log             Create log file with command output.
-  -M, --metadata        Display execution context metadata.
-  -Q, --quiet           Silence output.
-  -T, --timer           Display output with date, time and duration.
-  -W, --webhook         Force to send webhook notification with output.
-
-Make use of restic flags/options as follows:
-  rescript [repo_name] cleanup [flags] [restic_flags/options] ...
-
-EOF
-}
-
-function next-help {
-cat <<EOF
-[next] displays the next scheduled automatic cleanup time.
-
-This command will read the CLEAN variable in your configuration
-file and tell you when the next cleanup and check is scheduled
-to occur.
-
-Usage:
-  rescript [repo_name] next [flags]
-
-Global flags:
-  -h, --help            Display usage.
-  -T, --timer           Display output with date, time and duration.
-  -W, --webhook         Force to send webhook notification with output.
-EOF
-}
-
-
-
-function config-help {
-cat <<EOF
-[config] is an interactive command to make easy the to set up rescript
-configuration and exclusions files. You can create, edit, list
-and open your configuration and exclusions files.
-
-Usage:
-  rescript config
-  rescript config --wizard
-  rescript config -g, --global
-
-Global flags:
-  -h, --help            Display usage.
-  -g, --global          Open the global configuration file directly.
-  --wizard              Run the interactive config wizard to easily set up a new repository.
-
-EOF
-}
-
-function diff-help {
-cat <<EOF
-[diff] compares the two latest snapshots in your repository to show what
-files were added, modified, or removed. You can also pass specific
-snapshot IDs to compare them.
-
-Usage:
-  rescript [repo_name] diff [snapshot1] [snapshot2]
-
-Global flags:
-  -D, --debug           Debug script.
-  -E, --email           Force to send email with output.
-  -h, --help            Display usage.
-  -L, --log             Create log file with command output.
-  -M, --metadata        Display execution context metadata.
-  -Q, --quiet           Silence output.
-  -T, --timer           Display output with date, time and duration.
-  -W, --webhook         Force to send webhook notification with output.
-
-Make use of restic flags/options as follows:
-  rescript [repo_name] diff [flags] [restic_flags/options] ...
-
-EOF
-}
-
-function editor-help {
-cat <<EOF
-[editor] is to select or change the default text editor
-to be used to open the rescript configuration and
-exclusion files. This will list the most common text editors
-used and also have an option to write the executable name
-of your favorite text editor if not listed.
-
-Usage:
-  rescript editor
-
-Global flags:
-  -h, --help            Display usage.
-
-EOF
-}
-
-function env-help {
-cat <<EOF
-[env] is to display the variables values in your
-configuration file.
-
-Usage:
-  rescript [repo_name] env
-
-Command flags:
-  -V, --var VARNAME     Display varname value chosen.
-
-Global flags:
-  -h, --help            Display usage.
-
-EOF
-}
-
-function extract-help {
-cat <<EOF
-[extract] allows you to quickly dump a specific file or directory from
-a snapshot directly to your current working directory.
-If no snapshot ID is provided, the script will automatically search for
-the latest snapshot containing that file.
-
-Note: You must provide the exact full path of the file as it was backed up,
-not just the filename.
-
-Usage:
-  rescript [repo_name] extract [snapshot_id] <file_path>
-
-Global flags:
-  -D, --debug           Debug script.
-  -E, --email           Force to send email with output.
-  -h, --help            Display usage.
-  -L, --log             Create log file with command output.
-  -M, --metadata        Display execution context metadata.
-  -Q, --quiet           Silence output.
-  -T, --timer           Display output with date, time and duration.
-  -W, --webhook         Force to send webhook notification with output.
-
-Make use of restic flags/options natively:
-  rescript [repo_name] extract [snapshot_id] [restic_flags] <file_path>
-
-EOF
-}
-
-function info-help {
-cat <<EOF
-[info] is for [stats] command in restic
-
-This command will display restore and deduplicated (raw-data)
-size of latest and all snapshots in a custom format.
-
-Usage:
-  rescript [repo_name] info [flags]
-
-Command flags:
-  -H, --host hostname   Only consider snapshots for this host.
-
-Global flags:
-  -D, --debug           Debug script.
-  -E, --email           Force to send email with output.
-  -h, --help            Display usage.
-  -L, --log             Create log file with command output.
-  -M, --metadata        Display execution context metadata.
-  -Q, --quiet           Silence output.
-  -T, --timer           Display output with date, time and duration.
-  -W, --webhook         Force to send webhook notification with output.
-
-EOF
-} 
-
-function install-help {
-cat <<EOF
-[install] is to simply copy the script to your PATH directory
-inside your HOME and install the bash autocompletion feature.
-If there is no PATH in your HOME then rescript will ask you if you 
-want to create one. If the answer is yes then it will create a [/bin] 
-directory inside your [./local] directory. If the answer is no then it 
-will exit. If you don't want to use rescript from your PATH then remember 
-to use it indicating the complete path where the script is located.
-
-Usage:
-  rescript install [flags]
-  rescript install --autocomplete-only [system|user]
-
-Command flags:
-  --autocomplete-only   Install ONLY the bash autocompletion feature
-                        without reinstalling the rescript binary.
-                        It can optionally receive 'system' or 'user'.
-
-Global flags:
-  -h, --help            Display usage.
-
-EOF
-}
-
-function uninstall-help {
-cat <<EOF
-[uninstall] removes rescript and its autocompletion script.
-
-This command will prompt you to remove the binary from your PATH
-and delete the bash autocompletion feature. It will also ask if
-you wish to completely remove your configuration directory
-(~/.rescript).
-
-Usage:
-  rescript uninstall
-
-Global flags:
-  -h, --help            Display usage.
-
-EOF
-}
-
-function logs-help {
-cat <<EOF
-[logs] is for log files saved by rescript
-
-Usage:
-  rescript [repo_name] logs
-OR
-  rescript [repo_name] logs [flag] [logfile]
-
-Command flags:
-  -V, --view logfile    Display output of selected log file.
-  -R, --remove logfile  Remove all log files (use 'all' to remove
-                        all logs related to the repository).
-
-Global flags:
-  -h, --help            Display usage.
-
-NOTE: if you don't indicate a logfile when using [--remove]
-it will delete all logfiles related to the [repo_name].
-
-EOF
-}
-
-function mounter-help {
-cat <<EOF
-[mounter] is to automatically mount your repository in your HOME
-directory so you can browse and restore your files.
-When you finish just use [rescript repo umounter] or press [Ctrl+C].
-
-Usage:
-  rescript [repo_name] mounter [--background]
-
-Command flags:
-  --background          Mount the repository in the background.
-
-Global flags:
-  -D, --debug           Debug script.
-  -E, --email           Force to send email with output.
-  -h, --help            Display usage.
-  -L, --log             Create log file with command output.
-  -M, --metadata        Display execution context metadata.
-  -Q, --quiet           Silence output.
-  -T, --timer           Display output with date, time and duration.
-  -W, --webhook         Force to send webhook notification with output.
-
-Make use of restic flags/options as follows:
-  rescript [repo_name] mounter [--background] [restic_flags/options] ...
-
-EOF
-}
-
-
-
-function restorer-help {
-cat <<EOF
-[restorer] is for [restore] command in restic
-
-This command will create a new directory in your /home/sulfuror
-directory containing the restored files. The new directory will
-be named with a unique name so it will not conflict with your
-existing directories.
-
-Usage:
-  rescript [repo_name] restorer [flags] [snapshot ID]
-
-Command flags:
-  -i, --interactive     Fetch a list of snapshots and present an interactive menu to choose from.
-  -H, --host hostname   Only consider snapshots for this host
-                        when snapshot-ID is [latest].
-  -P, --path path       Only consider snapshots which include
-                        this [absolute] path for snapshot-ID [latest].
-  -Z, --snapshot ID     Indicate snapshot-ID to restore.
-      --tag tagname     Only consider snapshots which include this
-                        taglist for snapshot-ID [latest].
-  -S, --simulate        Simulate execution (dry-run).
-
-Global flags:
-  -D, --debug           Debug script.
-  -E, --email           Force to send email with output.
-  -h, --help            Display usage.
-  -L, --log             Create log file with command output.
-  -M, --metadata        Display execution context metadata.
-  -Q, --quiet           Silence output.
-  -T, --timer           Display output with date, time and duration.
-  -W, --webhook         Force to send webhook notification with output.
-
-EOF
-}
-
-function search-help {
-cat <<EOF
-[search] allows you to find a specific file or directory across all
-snapshots in your repository, showing the snapshot ID and the date.
-
-Usage:
-  rescript [repo_name] search <pattern>
-
-Command flags:
-  -i, --ignore-case     Ignore case for pattern (e.g., *report* vs *Report*).
-
-Global flags:
-  -D, --debug           Debug script.
-  -E, --email           Force to send email with output.
-  -h, --help            Display usage.
-  -L, --log             Create log file with command output.
-  -M, --metadata        Display execution context metadata.
-  -Q, --quiet           Silence output.
-  -T, --timer           Display output with date, time and duration.
-  -W, --webhook         Force to send webhook notification with output.
-
-Make use of restic flags/options as follows:
-  rescript [repo_name] search [flags] [restic_flags/options] ...
-
-EOF
-}
-
-function snaps-help {
-cat <<EOF
-[snaps] is is for [snapshots] command in restic
-
-This is nothing more than [snapshots --compact] in restic.
-You can use any restic available flags for [snapshots] command
-but it will always display snapshots in compact mode.
-
-Usage:
-  rescript [repo_name] snaps [flags] [options]
-
-Global flags:
-  -D, --debug           Debug script.
-  -E, --email           Force to send email with output.
-  -h, --help            Display usage.
-  -L, --log             Create log file with command output.
-  -M, --metadata        Display execution context metadata.
-  -Q, --quiet           Silence output.
-  -T, --timer           Display output with date, time and duration.
-  -W, --webhook         Force to send webhook notification with output.
-
-Make use of restic flags/options as follows:
-  rescript [repo_name] snaps [flags] [restic_flags/options] ...
-
-EOF
-}
-
-function unlocker-help {
-cat <<EOF
-[unlocker] is to remove the temporary lock created by rescript.
-When rescript is running it will create a temporary lock file
-to prevent the interruption of other processes that could be active
-at the moment of executing another command within the same instance
-(e.g. scheduled jobs). If you are sure there are not any other
-processes running in the backgroup, then you can safely remove the
-created by rescript using this command.
-
-Usage:
-  rescript [repo_name] unlocker
-
-Global flags:
-  -D, --debug           Debug script.
-  -E, --email           Force to send email with output.
-  -h, --help            Display usage.
-  -L, --log             Create log file with command output.
-  -M, --metadata        Display execution context metadata.
-  -Q, --quiet           Silence output.
-  -T, --timer           Display output with date, time and duration.
-  -W, --webhook         Force to send webhook notification with output.
-
-EOF
-}
-
-function update-help {
-cat <<EOF
-[update] is to update the rescript script itself.
-
-Usage:
-  rescript update
-
-If script is located in /usr/bin:
-  sudo rescript update
-
-Global flags:
-  -h, --help            Display usage.
-
-EOF
-}
-
-function upgrade-help {
-cat <<EOF
-[upgrade] is to update the restic repository to the latest format (v2).
-
-This command will execute [restic migrate upgrade_repo_v2] to upgrade
-your repository. This is necessary to enable features like compression.
-
-Usage:
-  rescript [repo_name] upgrade [flags]
-
-Global flags:
-  -D, --debug           Debug script.
-  -E, --email           Force to send email with output.
-  -h, --help            Display usage.
-  -L, --log             Create log file with command output.
-  -M, --metadata        Display execution context metadata.
-  -Q, --quiet           Silence output.
-  -T, --timer           Display output with date, time and duration.
-  -W, --webhook         Force to send webhook notification with output.
-
-EOF
-}
-
-function size-help {
-cat <<EOF
-[size] calculates the total size of a specific directory within
-a snapshot, parsing restic ls output. If no snapshot is specified,
-it defaults to 'latest'.
-
-Usage:
-  rescript [repo_name] size [snapshot_id] <path> [flags]
-
-Command flags:
-  -H, --host hostname   Only consider snapshots for this host (only applies to 'latest').
-
-Global flags:
-  -D, --debug           Debug script.
-  -E, --email           Force to send email with output.
-  -h, --help            Display usage.
-  -L, --log             Create log file with command output.
-  -M, --metadata        Display execution context metadata.
-  -Q, --quiet           Silence output.
-  -T, --timer           Display output with date, time and duration.
-  -W, --webhook         Force to send webhook notification with output.
-
-Make use of restic flags/options as follows:
-  rescript [repo_name] size [snapshot_id] <path> [restic_flags/options] ...
-
-EOF
-}
-
-function history-help {
-cat <<EOF
-[history] searches for a specific file across all snapshots
-and displays a chronological table showing only the snapshots
-where the file was modified or introduced as a new version
-(based on changes in its Size or Modification Date).
-
-Usage:
-  rescript [repo_name] history <pattern>
-
-Command flags:
-  -i, --ignore-case     Ignore case for pattern.
-
-Global flags:
-  -D, --debug           Debug script.
-  -E, --email           Force to send email with output.
-  -h, --help            Display usage.
-  -L, --log             Create log file with command output.
-  -M, --metadata        Display execution context metadata.
-  -Q, --quiet           Silence output.
-  -T, --timer           Display output with date, time and duration.
-  -W, --webhook         Force to send webhook notification with output.
-
-Make use of restic flags/options as follows:
-  rescript [repo_name] history [flags] [restic_flags/options] ...
-
-EOF
-}
-
-function umounter-help {
-cat <<EOF
-[umounter] unmounts a repository previously mounted with
-[mounter --background] and cleans up the mount point.
-
-Usage:
-  rescript [repo_name] umounter
-
-Global flags:
-  -h, --help            Display usage.
-
-EOF
-}
-
-function status-help {
-cat <<EOF
-[status] prints a dashboard showing the state of your repositories.
-
-This command provides a quick overview of configured repositories,
-displaying snapshot counts, the latest snapshot date, and optionally
-the repository size and health. It can be run on a single repository
-or globally for all configured repositories.
-
-Usage:
-  rescript status [flags]
-  rescript [repo_name] status [flags]
-
-Command flags:
-  -F, --full            Display a full dashboard including size and health.
-                        Note: This takes significantly more time.
-  -X, --ignore-repo     Exclude specific repositories (e.g. -X foo -X bar).
-
-Global flags:
-  -h, --help            Display usage.
-
-EOF
-}
-function automatic {
-  rescript_lock
-  case "$LOGGING" in
-    y|yes)
-      log_flag="true"
-      ;;
-  esac
-  time_flag="true"
-  context_flag="true"
-  logger
-  time_start
-  print_context
-  context_flag="false"
-
-
-
-  function _run_auto_cleanup {
-    if [[ -n "${policies[*]}" ]] ; then
-      print_line
-      echo -e "${c_cyan}Cleaning Repo...${c_reset}"
-      cleanup
-      print_line
-      echo -e "${c_cyan}Checking for Errors in Repo...${c_reset}"
-      run_restic_with_retry check --cleanup-cache
-      check_restic_error $?
-    fi
-  }
-  # Backup
-  case "$SKIP_OFFICE" in
-    y|yes)
-      echo -e "${c_cyan}Taking a Snapshot...${c_reset}" ; skip_flag="true" ; backup ;;
-    *)
-      echo -e "${c_cyan}Taking a Snapshot...${c_reset}" ; backup ;;
-  esac
-  exclusions=$(grep -E -v -n -c '(^#|^\s*$|^\s*\t*#)' "$excludes")
-  if [[ "$exclusions" -gt "0" ]] ; then
-    echo -e "${c_green}There are $exclusions exclusion rules...${c_reset}"
-  fi
-  # Snapshot List
-  case "$SHOW_SNAPS" in
-    y|yes)
-      print_line
-      echo -e "${c_cyan}Snapshots List...${c_reset}"
-      snaps
-      check_restic_error $?
-      ;;
-  esac
-  # Check and Clean Repo Based on User's Policy
-  if [[ -f "$config_dir/$repo-datefile" || -n "${CLEAN:-}" ]]; then
-    if [[ ! -f "$config_dir/$repo-datefile" ]] ; then
-      touch "$config_dir/$repo-datefile"
-    fi
-    now_next
-    if [[ "$now" -lt "$next" ]] ; then
-      print_line
-      cleanup-next
-    else 
-        _run_auto_cleanup
-        if [[ -n "${CLEAN:-}" ]] ; then
-          clean_num="${CLEAN//[A-Za-z]/}"
-          clean_unit="${CLEAN//[0-9]/}"
-          case "$unix_name" in
-            Linux|GNU)
-              date -d "now+${CLEAN:-}" +%s 2>/dev/null > "$config_dir/$repo-datefile"
-              ;;
-            *)
-              gdate -d "now+${CLEAN:-}" +%s 2>/dev/null > "$config_dir/$repo-datefile"
-              ;;
-          esac
-          exit_code="$?"
-          if [[ "$exit_code" -gt "0" ]] ; then
-            echo -e "WARNING: \nCLEAN is set to ${CLEAN:-} in your configuration file; please use the correct syntax as follows: \n1. CLEAN=\"${CLEAN}days\"     <---setup cleanup every ${CLEAN:-} days\n2. CLEAN=\"${CLEAN}hours\"    <---setup cleanup every ${CLEAN:-} hours\n3. CLEAN=\"${CLEAN}minutes\"  <---setup cleanup every ${CLEAN:-} minutes"
-          else
-            echo -e "${c_green}Done Cleaning; Next Cleanup and Check Will Be Done in $clean_num $clean_unit...${c_reset}"
-          fi
-      fi
-    fi
-  else 
-      _run_auto_cleanup
-  fi
-  # Stats
-  case "$SHOW_STATS" in
-    y|yes) 
-      print_line
-      statinfo 
-      ;;
-  esac
-  # Time and Runtime
-  time_end
-
-  if [[ -n "${CLEAN:-}" && -z "${policies[*]}" ]] ; then
-    clean_num="${CLEAN//[A-Za-z]/}"
-    clean_unit="${CLEAN//[0-9]/}"
-    echo "[rescript] noted that your CLEAN variable is ${CLEAN:-}, so [rescript] assumes that"
-    echo "you want to perform a 'cleanup' (forget, prune and check) every $clean_num $clean_unit but"
-    echo "it can't execute it if you have not set the KEEP variables; please set your"
-    echo "desired KEEP values in order to perform the 'cleanup' every $clean_num $clean_unit. If you"
-    echo "don't want [rescript] to 'cleanup' your repo automatically every $clean_num $clean_unit,"
-    echo "just leave the CLEAN variable blank in your cofiguration file and this"
-    echo "message will not appear again."
-    echo ""
-    echo "For more info about this subject:"
-    echo "https://gitlab.com/sulfuror/rescript.sh/blob/master/README.md#usage"
-  fi
-}
-
-function backup {
-  print_context
-  declare -a bu_opts=()
-  if [[ "${EXCLUDE_CACHE:-}" = "yes" || "${EXCLUDE_CACHE:-}" = "y" || -z "${EXCLUDE_CACHE:-}" ]] ; then
-    bu_opts+=( --exclude-caches )
-  fi
-  if [[ "${EXCLUDE_FILE:-}" = "yes" || "${EXCLUDE_FILE:-}" = "y" || -z "${EXCLUDE_FILE:-}" ]] ; then
-    bu_opts+=( --exclude-file="$excludes" )
-  fi
-  if [[ "${ONE_FILE_SYSTEM:-}" = "yes" || "${ONE_FILE_SYSTEM:-}" = "y" ]] ; then
-    bu_opts+=( --one-file-system )
-  fi
-  if [[ -n "$HOST" ]] ; then
-    bu_opts+=( --host="$HOST" )
-  fi
-  if [[ -n "${TAG:-}" ]] ; then
-    bu_opts+=( --tag="${TAG:-}" )
-  fi
-  if [[ -n "$RESTIC_COMPRESSION" ]] ; then
-    bu_opts+=( --compression="$RESTIC_COMPRESSION" )
-  fi
-  rescript_lock
-  
-  if [[ -n "$PRE_CMD" && "${RESCRIPT_SKIP_HOOKS:-}" != "true" ]] ; then
-    if [[ "$simulate_flag" == "true" ]]; then
-      echo -e "${c_cyan}Running PRE_CMD...${c_reset}"
-      echo -e "${c_yellow}SIMULATE: $PRE_CMD${c_reset}"
-    else
-      run_with_spinner "$PRE_CMD" "${c_cyan}Running PRE_CMD...${c_reset}"
-      if [[ $? -ne 0 ]] ; then
-        exit 1
-      fi
-    fi
-  fi
-  debug_start
-  set_sim_flag "Backup"
-  if [[ "$skip_flag" = "true" ]] ; then
-    run_restic_with_retry backup $sim_flag --verbose "${bu_opts[@]}" --exclude-file=<(find "${BACKUP_DIR[@]}" -iname ".~lock.*" 2> /dev/null | sed -e 's/.~lock.//g' | sed -e 's/#//g') --exclude=".~lock.*" "${rest[@]}" "${BACKUP_DIR[@]}"
-  else
-    run_restic_with_retry backup $sim_flag --verbose "${bu_opts[@]}" "${rest[@]}" "${BACKUP_DIR[@]}"
-  fi
-  check_restic_error $?
-  debug_stop
-
-  if [[ -n "$POST_CMD" && "${RESCRIPT_SKIP_HOOKS:-}" != "true" ]] ; then
-    if [[ "$simulate_flag" == "true" ]]; then
-      echo -e "${c_cyan}Running POST_CMD...${c_reset}"
-      echo -e "${c_yellow}SIMULATE: $POST_CMD${c_reset}"
-    else
-      run_with_spinner "$POST_CMD" "${c_cyan}Running POST_CMD...${c_reset}"
-    fi
-  fi
-
-}
-
-
-
-
-function cleanup-next {
-  if [[ ! -f "$config_dir/$repo-datefile" ]] ; then
-    touch "$config_dir/$repo-datefile"
-  fi
-  now_next
-  result=$((next-now))
-  days=$((result / 86400))
-  hours=$(((result / 3600) % 24))
-  minutes=$(((result / 60) % 60))
-  seconds=$((result % 60))
-  if [[ "$days" = "1" ]] ; then
-    d="day"
-  else
-    d="days"
-  fi
-  if [[ "$hours" = "1" ]] ; then
-    h="hour"
-  else
-    h="hours"
-  fi
-  if [[ "$minutes" = "1" ]] ; then
-    m="minute"
-  else
-    m="minutes"
-  fi
-  if [[ "$seconds" = "1" ]] ; then
-    s="second"
-  else
-    s="seconds"
-  fi
-  if [[ "$days" -gt "0" ]] ; then
-    echo -e "${c_cyan}Next cleanup and check in $days $d...${c_reset}"
-  elif [[ "$hours" -gt "0" ]] ; then
-    echo -e "${c_cyan}Next cleanup and check in $hours $h...${c_reset}"
-  elif [[ "$minutes" -gt "0" ]] ; then
-    echo -e "${c_cyan}Next cleanup and check in $minutes $m...${c_reset}"
-  elif [[ "$seconds" -gt "0" ]] ; then
-    echo -e "${c_cyan}Next cleanup and check in $seconds $s...${c_reset}"
-  else
-    echo -e "${c_cyan}Repo will be cleaned and checked in the next run...${c_reset}"
-  fi
-}
-
-function cleanup {
-  print_context
-  rescript_lock
-
-  set_sim_flag "Cleanup"
-
-  if [[ -n "${policies[*]}" ]] ; then
-    debug_start
-    run_restic_with_retry forget $sim_flag "${policies[@]}" "${rest[@]}"
-    check_restic_error $?
-    debug_stop
-    debug_start
-    run_restic_with_retry prune $sim_flag --cleanup-cache
-    check_restic_error $?
-    debug_stop
-  else
-    echo "You have not indicated any policy value..."
-    echo "If you want to use [cleanup] option you need to set the [KEEP] variables."
-    echo "For more information about the Usage check out the following link:"
-    echo "https://gitlab.com/sulfuror/rescript.sh/blob/master/README.md#usage"
-  fi
-}
 
 function differ {
   rescript_lock
@@ -2152,6 +2195,49 @@ function differ {
     debug_stop
   fi
 }
+# ============================================================== #
+#                        COMMAND: EDITOR                         #
+# ============================================================== #
+
+function rescript_editor_cmd {
+  select_editor
+}
+
+# Select Editor Menu
+function select_editor {
+  clear
+  echo "$ui_line_eq"
+  echo "  Select Text Editor  "
+  echo "$ui_line_eq"
+  echo " [1] Nano             "
+  echo " [2] Vim              "
+  echo " [3] Gedit            "
+  echo " [4] Mousepad         "
+  echo " [5] Leafpad          "
+  echo " [6] Pluma            "
+  echo " [7] Kate             "
+  echo " [8] Xed              "  
+  echo " [9] Other            "
+  echo " [10] Exit            "
+  echo "$ui_line_eq"
+  read -rp "Select the Text Editor you want to use [ 1 - 9 ]: " texteditor
+  case "$texteditor" in
+    1|nano) echo "nano" > "$config_dir/.editor"; echo "You have selected [Nano] as your default text editor." ;;
+    2|vim) echo "vim" > "$config_dir/.editor"; echo "You have selected [Vim] as your default text editor." ;;
+    3|gedit) echo "gedit" > "$config_dir/.editor" ; echo "You have selected [Gedit] as your default text editor." ;;
+    4|mousepad) echo "mousepad" > "$config_dir/.editor" ; echo "You have selected [Mousepad] as your default text editor." ;;
+    5|leafpad) echo "leafpad" > "$config_dir/.editor" ; echo "You have selected [Leafpad] as your default text editor." ;;
+    6|pluma) echo "pluma" > "$config_dir/.editor" ; echo "You have selected [Pluma] as your default text editor." ;;
+    7|kate) echo "kate" > "$config_dir/.editor" ; echo "You have selected [Kate] as your default text editor." ;;
+    8|xed) echo "xed" > "$config_dir/.editor" ; echo "You have selected [Xed] as your default text editor." ;;
+    9|other) read -rp "Type the executable name of the Text Editor you want to use: " othertextedit ; echo "$othertextedit" > "$config_dir/.editor" ; echo "You have selected [$othertextedit] as your default text editor." ;;
+    10|exit) echo "Exiting..." ; exit ;;
+    *) echo "[$texteditor] is not a valid option. If you want to set your" ; echo "own text editor, type [9] or [other] to write your own." ; exit ;;
+  esac
+}
+# ============================================================== #
+#                        COMMAND: ENV                            #
+# ============================================================== #
 
 function env_conf {
   local title
@@ -2198,6 +2284,9 @@ function env_conf {
     }'
   fi
 }
+# ============================================================== #
+#                        COMMAND: EXTRACT                        #
+# ============================================================== #
 
 function extract {
   rescript_lock
@@ -2309,6 +2398,9 @@ function extract {
   fi
   rm -f "$err_file"
 }
+# ============================================================== #
+#                         COMMAND: HISTORY                       #
+# ============================================================== #
 
 function history {
   rescript_lock
@@ -2368,6 +2460,23 @@ function history {
     echo "History search failed due to a repository or connection error."
   fi
 }
+# ============================================================== #
+#                          COMMAND: INIT                         #
+# ============================================================== #
+
+function init {
+  rescript_lock
+  debug_start
+  print_context
+  run_restic_with_retry init "${rest[@]}"
+  latest_cmd=$prev_cmd exit_code="$?"
+  debug_stop
+  latest_error
+}
+# ============================================================== #
+#                      COMMAND: INSTALL                          #
+# ============================================================== #
+
 function install_autocomplete {
   local target_dir="$1"
   local target_file="$target_dir/rescript"
@@ -2600,6 +2709,10 @@ function install {
     *) clear ; echo "No valid action indicated..." ; install ;;
   esac
 }
+# ============================================================== #
+#                         COMMAND: LOGS                          #
+# ============================================================== #
+
 function logs {
   if [[ "$catlogs" = "false" && "$removelogs" = "false" ]] ; then
     if ls "$logs_dir/$repo"-* 1> /dev/null 2>&1 ; then
@@ -2650,6 +2763,10 @@ function logs {
     exit 1
   fi
 }
+# ============================================================== #
+#                     COMMAND: MOUNTER                           #
+# ============================================================== #
+
 function mounter {
   rescript_lock
   local bg=false
@@ -2701,39 +2818,9 @@ function mounter {
     fi
   fi
 }
-
-function now_next {
-  case "$unix_name" in
-    Linux|GNU)
-      now=$(date +"%s")
-      ;;
-    *)
-      now=$(gdate +"%s" 2>/dev/null || date +"%s")
-      ;;
-  esac
-  next=$(cat "$config_dir/$repo-datefile" 2>/dev/null || echo "0")
-  if ! [[ "$next" =~ ^[0-9]+$ ]] ; then
-    next=0
-  fi
-}
-
-function restic_alone {
-  rescript_lock
-  debug_start
-  print_context
-  run_restic_with_retry "${rest[@]}"
-  latest_cmd=$prev_cmd exit_code="$?"
-  debug_stop
-  local rest_cmd=""
-  if [[ ${#rest[@]} -gt 0 ]]; then
-    rest_cmd="${rest[0]}"
-    case "$rest_cmd" in
-      --repo=*) rest_cmd="${rest[1]:-}" ;;
-      -r*|--repo*) rest_cmd="${rest[2]:-}" ;;
-    esac
-  fi
-  latest_error
-}
+# ============================================================== #
+#                       COMMAND: RESTORER                        #
+# ============================================================== #
 
 function restorer {
   rescript_lock
@@ -2791,6 +2878,9 @@ function restorer {
   fi
   report_errors
 }
+# ============================================================== #
+#                       COMMAND: SEARCH                          #
+# ============================================================== #
 
 function search {
   rescript_lock
@@ -2839,6 +2929,10 @@ function search {
   }'
   debug_stop
 }
+# ============================================================== #
+#                        COMMAND: SIZE                           #
+# ============================================================== #
+
 function size {
   rescript_lock
   local target_host="$rhost"
@@ -2888,6 +2982,9 @@ function size {
     echo -e "\n${c_white}Total size for [${rest[*]}] in snapshot ${snapshot_id}:${c_reset} ${c_green}${total_size}${c_reset}"
   fi
 }
+# ============================================================= #
+#                           SNAPS                               #
+# ============================================================= #
 
 function snaps {
   if [[ "$cmd" != "snaps" ]] ; then
@@ -2930,6 +3027,9 @@ function snaps {
   debug_stop
   latest_error
 }
+# ============================================================== #
+#                          COMMAND: INFO                         #
+# ============================================================== #
 
 function statinfo {
   local target_host="${host_flag:-$rhost}"
@@ -2958,8 +3058,6 @@ function statinfo {
   print_progress "Calculating repo stats" 100
   
   echo -ne '\n'
-
-  
   echo ""
   print_line "="
   printf "${c_white}%-20s | %-18s | %-20s${c_reset}\n" "Summarized Info" "Restore Size" "Deduplicated Size"
@@ -2967,6 +3065,9 @@ function statinfo {
   printf "%-20s | %-18s | %-20s\n" "Latest Snapshot" "$latest_host_stat" "$host_stat"
   printf "%-20s | %-18s | %-20s\n" "All Snapshots" "$stat_restore_size" "$stat_raw_data"
 }
+# ============================================================== #
+#                            STATUS                              #
+# ============================================================== #
 
 function global_status {
   local full_mode="false"
@@ -3107,6 +3208,10 @@ function global_status {
   done
   print_line "="
 }
+# ============================================================== #
+#                        COMMAND:UMOUNTER                        #
+# ============================================================== #
+
 function umounter {
   rescript_lock
   debug_start
@@ -3141,6 +3246,9 @@ function umounter {
   debug_stop
   exit 0
 }
+# ============================================================== #
+#                       COMMAND: UNINSTALL                       #
+# ============================================================== #
 
 function uninstall {
   echo "$ui_line_eq"
@@ -3190,6 +3298,10 @@ function uninstall {
   esac
   exit 0
 }
+# ============================================================== #
+#                      COMMAND: UNLOCKER                         #
+# ============================================================== #
+
 function unlocker {
   if [[ ! -e "$lock" ]]; then
     echo -e "${c_cyan}No locks found...${c_reset}"
@@ -3198,6 +3310,10 @@ function unlocker {
     echo -e "${c_green}Script unlocked...${c_reset}"
   fi
 }
+# ============================================================== #
+#                       COMMAND: UPDATE                          #
+# ============================================================== #
+
 function update {
   if [[ ! $(command -v curl) ]] ; then
     echo "***$(basename "$0") warning***"
@@ -3272,6 +3388,10 @@ function update {
     esac
   fi
 }
+# ============================================================== #
+#                      COMMAND: UPGRADE                          #
+# ============================================================== #
+
 function upgrade_repo {
   rescript_lock
   debug_start
@@ -3287,10 +3407,28 @@ if [[ ! $(command -v restic) ]] ; then
   echo ""
   exit 1
 fi
+# ============================================================== #
+#                             CORE                               #
+# ============================================================== #
 
-# ============================================================== #
-# Rescript Commands                                              #
-# ============================================================== #
+function restic_alone {
+  rescript_lock
+  debug_start
+  print_context
+  run_restic_with_retry "${rest[@]}"
+  latest_cmd=$prev_cmd exit_code="$?"
+  debug_stop
+  local rest_cmd=""
+  if [[ ${#rest[@]} -gt 0 ]]; then
+    rest_cmd="${rest[0]}"
+    case "$rest_cmd" in
+      --repo=*) rest_cmd="${rest[1]:-}" ;;
+      -r*|--repo*) rest_cmd="${rest[2]:-}" ;;
+    esac
+  fi
+  latest_error
+}
+
 if [[ "${1:-}" == "all" ]]; then
   shift 1
   excluded_repos=()
@@ -3491,8 +3629,9 @@ function _check_help_or_error {
     esac
   fi
 }
+
 case "${1:-}" in
-  backup|cleanup|diff|extract|search)
+  backup|cleanup|diff|extract|search|init)
     _check_help_or_error "${1:-}" "${2:-}"
     echo "You have not indicated any repo for [$1]..."
     echo ""
@@ -3508,42 +3647,13 @@ case "${1:-}" in
     exit 0
     ;;
   config)
-    if [[ "${2:-}" == "-h" || "${2:-}" == "--help" ]]; then
-      config-help
-      exit 0
-    elif [[ "${2:-}" == "--wizard" ]]; then
-      config_wizard
-      exit 0
-    elif [[ "${2:-}" == "-g" || "${2:-}" == "--global" ]]; then
-      if [[ -z "$rescript_editor" ]] ; then
-        select_editor
-        echo "Please type [rescript config --global] again to edit"
-        echo "your global configuration."
-        exit
-      fi
-      if [[ ! -f "$config_global" ]]; then
-        global_config_template > "$config_global"
-        chmod 600 "$config_global"
-      fi
-      "$rescript_editor" "$config_global" 2> /dev/null
-      exit 0
-    elif [[ -n "${2:-}" ]]; then
-      echo "Invalid option [${2:-}]..." ; echo "" ; config-help ; exit 1
-    fi
-    if [[ -z "$rescript_editor" ]] ; then
-      select_editor
-      echo "Please type [rescript config] again to set/edit"
-      echo "your configuration/exclusion files."
-      exit
-    fi
-    clear
-    main_menu
-    exit
+    rescript_config "${@:2}"
+    exit 0
     ;;
   editor)
     _check_help_or_error "${1:-}" "${2:-}"
-    select_editor
-    exit
+    rescript_editor_cmd
+    exit 0
     ;;
   -h|--help|help)
     if [[ ! "${2:-}" ]] ; then
@@ -3653,12 +3763,15 @@ case "${1:-}" in
 esac
 
 # ============================================================== #
-# Functions                                                      #
+# Configuration & Variables                                      #
 # ============================================================== #
+
 if [[ -f "$config_global" ]]; then
   source_config "$config_global"
 fi
+
 source_config "$config_repo"
+
 # Defaulting unset variables from config for strict mode
 export HOST="${HOST:-}"
 export CLEAN="${CLEAN:-}"
@@ -3674,7 +3787,6 @@ export SHOW_SNAPS="${SHOW_SNAPS:-}"
 export SHOW_STATS="${SHOW_STATS:-}"
 export CONFIRMATION_EMAIL="${CONFIRMATION_EMAIL:-}"
 export DESTINATION="${DESTINATION:-}"
-
 export RESTIC_REPOSITORY="${RESTIC_REPO:-}"
 export B2_ACCOUNT_ID="${B2_ID:-}"
 export B2_ACCOUNT_KEY="${B2_KEY:-}"
@@ -3684,11 +3796,13 @@ export AZURE_ACCOUNT_NAME="${AZURE_NAME:-}"
 export AZURE_ACCOUNT_KEY="${AZURE_KEY:-}"
 export GOOGLE_PROJECT_ID="${GOOGLE_ID:-}"
 export GOOGLE_APPLICATION_CREDENTIALS="${GOOGLE_CREDENTIALS:-}"
+
 if [[ -n "${RESCRIPT_PASS:-}" ]] ; then
   export RESTIC_PASSWORD="$RESCRIPT_PASS"
 else
   export RESTIC_PASSWORD="${RESTIC_PASSWORD:-}"
 fi
+
 export RESTIC_PASSWORD_COMMAND="${RESTIC_PASSWORD_COMMAND:-}"
 export RESTIC_COMPRESSION="${RESTIC_COMPRESSION:-auto}"
 SECONDS=0
@@ -3748,7 +3862,9 @@ fi
 if [[ -n "${KEEP_TAG:-}" ]] ; then
   policies+=(--keep-tag "$KEEP_TAG")
 fi
-
+# ============================================================== #
+#                             MAIN                               #
+# ============================================================== #
 
 if [[ ! $(command -v restic) ]] ; then
   echo "This script is made to work with [restic]. Please, install"
@@ -3763,6 +3879,7 @@ if [[ ! $(command -v restic) ]] ; then
   echo "release page: https://github.com/restic/restic/releases"
   exit
 fi
+
 if [[ ! "${2:-}" || "${2:-}" == -* ]] ; then
   cmd="automatic"
   shift 1
@@ -3770,7 +3887,6 @@ else
   cmd="${2:-}"
   shift 2
 fi
-
 
 function _parse_standard_flags {
   case "$1" in
@@ -4086,6 +4202,20 @@ case "$cmd" in
   upgrade)
     parse_generic_args "upgrade-help" "$@"
     execute_with_metrics run_quietly upgrade_repo
+    ;;
+  init)
+    shopt -u nocasematch
+    while [[ $# -gt 0 ]] ; do
+      if _parse_standard_flags "$1" ; then shift ; continue ; fi
+      case "$1" in
+        -h|--help ) init-help ; exit 0 ;;
+        --) shift ; rest+=( "$@" ) ; break ;;
+        -*) rest+=( "$1" ) ;;
+        *) rest+=( "$1" ) ;;
+      esac
+      shift
+    done
+    run_quietly init
     ;;
   *)
     shopt -u nocasematch
