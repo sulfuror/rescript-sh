@@ -11,8 +11,6 @@
 * **Standardization:** Unified headers and file numbering across the entire `src/` directory to improve codebase navigation and build logic readability.
 * **Docs & Comments:** Polished internal file comments and eliminated legacy code artifacts to accurately reflect the new 100% modular structure.
 
----
-
 ## v7.0.0
 
 ### August 3, 2026
