@@ -1,0 +1,30 @@
+name: Release Builder
+
+on:
+  push:
+    tags:
+      - 'v*'
+  release:
+    types: [published]
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Build Binary
+        run: |
+          chmod +x build.sh
+          ./build.sh
+
+      - name: Upload Release Asset
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: rescript
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,0 +1,6 @@
+# Compiled binary
+rescript
+
+# Logs and temps
+*.log
+/tmp/

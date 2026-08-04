@@ -1,0 +1,40 @@
+name: Sync Docs to Wiki
+
+on:
+  push:
+    branches:
+      - master
+      - main
+    paths:
+      - 'docs/**'
+
+jobs:
+  update-wiki:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Checkout Wiki Repository
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository }}.wiki
+          path: rescript.wiki
+          # A Personal Access Token (PAT) is usually required to push to a wiki repo
+          # if the default GITHUB_TOKEN doesn't have enough permissions.
+          token: ${{ secrets.WIKI_TOKEN }}
+
+      - name: Update Wiki Content
+        run: |
+          cd rescript.wiki
+          find . -maxdepth 1 ! -name '.' ! -name '..' ! -name '.git' -exec rm -rf {} +
+          cp -a ../docs/. .
+          git config --global user.name "GitHub Actions Bot"
+          git config --global user.email "actions@github.com"
+          git add .
+          if [ -z "$(git status --porcelain)" ]; then
+            echo "No new changes in docs/. The wiki is up to date."
+          else
+            git commit -m "docs: Auto-update wiki from docs/ [skip ci]"
+            git push origin HEAD
+          fi

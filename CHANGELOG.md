@@ -1,5 +1,18 @@
 # Rescript Changelog
 
+## v7.0.0
+
+### August 3, 2026
+
+* **GitHub Migration:** Project migrated from GitLab to GitHub. Version history reset to v7.0.0. See [Release Notes](https://github.com/sulfuror/rescript-sh/releases/tag/v7.0.0).
+
+---
+
+## Legacy (Before Migration to GitHub)
+
+<details>
+<summary>Click to expand legacy changelog</summary>
+
 ---
 
 ## v6.1
@@ -192,7 +205,7 @@
 
 * **Decoupling `next` Logic:** Extracted the auto-cleanup calculation logic. The `Next cleanup and check...` string is no longer redundantly printed at the end of manual operations. It is properly scoped to execute during the `automatic` orchestrator run or via the standalone `next` command.
 * **Orchestration Decoupling:** Migrated execution timing, lock management, and logging wrappers from individual commands in `src/07_commands.sh` into a centralized `execute_with_metrics` dispatcher in `src/08_main.sh`, drastically reducing code duplication.
-* **Smart Lock Management:** Refactored `rescript_lock` into a state-aware singleton (`rescript_lock_created`), successfully removing all scattered `rm -rf "$lock"` teardown hacks and preventing lock-stealing race conditions during chained command pipelines.
+* **Smart Lock Management:** Refactored `rsilo_lock` into a state-aware singleton (`rsilo_lock_created`), successfully removing all scattered `rm -rf "$lock"` teardown hacks and preventing lock-stealing race conditions during chained command pipelines.
 * **Pipeline Consolidation:** Moved chained command sequences (like triggering `cleanup`, `check`, and `statinfo` after a `backup`) strictly into the main engine router, ensuring modular command purity.
 * **Centralized Error Handling:** Centralized the `restic` error checking routine in `src/02_utils.sh` to standardize exit code validation and reduce repetition.
 * **Helper Functions:** Abstracted the highly duplicated cleanup policy evaluation block in the `automatic` command into a clean internal `_run_auto_cleanup` helper. Extracted repetitive simulation (`dry-run`) validation into a cleaner helper function, and consolidated directory creation logic for POSIX compliance.
@@ -218,7 +231,7 @@ This is a major release marking the evolution of Rescript from a monolithic scri
 
 ### 🏗️ Architecture and Core Refactoring
 
-* **Modular Architecture Migration:** The old monolithic script (`rescript_v4.7`, +86KB) has been split into 8 independent logical modules inside the `src/` directory (e.g., `01_globals.sh`, `02_utils.sh`, `06_core.sh`), greatly improving maintainability. A `build.sh` script was introduced to compile everything into a single final binary.
+* **Modular Architecture Migration:** The old monolithic script (`rsilo_v4.7`, +86KB) has been split into 8 independent logical modules inside the `src/` directory (e.g., `01_globals.sh`, `02_utils.sh`, `06_core.sh`), greatly improving maintainability. A `build.sh` script was introduced to compile everything into a single final binary.
 * **POSIX Compliance (Zsh to Bash):** Full transition from Zsh to pure Bash. Array handling and variable expansions were rewritten to guarantee universal compatibility across modern Linux servers.
 
 ### 🔥 New Features
@@ -239,7 +252,7 @@ This is a major release marking the evolution of Rescript from a monolithic scri
   * **CRITICAL:** To prevent stealing native Restic flags (like `-e`, `-l`, `-q`), all Rescript global flags were migrated to an uppercase namespace: `-D` (Debug), `-E` (Email), `-L` (Log), `-Q` (Quiet), `-S` (Simulate), `-T` (Timer).
   * Rescript's old `--time` flag (which just displays execution time and takes no arguments) was renamed to `--timer`. This frees up the `--time` flag so that *Restic's native* `--time` flag (which *does* take timestamp arguments like `--time "2020-01-01"`) can now pass through perfectly without interference.
 * **Array Space Protection:** Fixed multiple calls in `07_commands.sh` to expand arrays using `"${rest[@]}"` (quoted), preventing Bash from splitting composed arguments (like paths or timestamps with spaces).
-* **Atomic Lock Management:** Strict integration of `rescript_lock` at the start of each macro, combined with a native OS `trap` to invoke `unlocker` if the user abruptly cancels with `Ctrl+C`.
+* **Atomic Lock Management:** Strict integration of `rsilo_lock` at the start of each macro, combined with a native OS `trap` to invoke `unlocker` if the user abruptly cancels with `Ctrl+C`.
 
 ### 🛠️ New Commands and Macro Improvements (UX)
 
@@ -304,7 +317,7 @@ This is a major release marking the evolution of Rescript from a monolithic scri
 10. Added `ONE_FILE_SYSTEM=""` in configuration file; by default is blank and it is not used, as in previous versions. If set "yes" then it will add the `--one-file-system` flag for backups.
 11. Added a flag for `cleanup` command called `--reset`. This will delete the `datefile` created. The point is to reset the `CLEAN` var and if the datefile gets deleted, then the script will have to create it again and it will "reset" the dates. If used, in the next run will do all cleanup and set the date as in the `CLEAN` var.
 12. Added a function for the configuration file and exclusions to make it easier to read the script and also deleting all `echo` commands to send the template to a new configuration file (it was time).
-13. There is a new variable called `RESCRIPT_PASS`; this was made with "security" in mind. If you have everything needed in your configuration file you don't have to worry about this. This is for people who does not want to save the  repository password inside the configuration file for security reasons. You can export this variable in your session and make use of `rescript` until the session is closed. i.e.: `export RESCRIPT_PASS="mytotallysecurepassword"`.
+13. There is a new variable called `RSILO_PASS`; this was made with "security" in mind. If you have everything needed in your configuration file you don't have to worry about this. This is for people who does not want to save the  repository password inside the configuration file for security reasons. You can export this variable in your session and make use of `rescript` until the session is closed. i.e.: `export RSILO_PASS="mytotallysecurepassword"`.
 14. There is a new function to cleanup files for the archive function.
 
 **Changes / Improvements**:
@@ -653,7 +666,7 @@ doing the "trick" for the command to run. If you are not having any problem at a
 1. Changes in the editor menu that removes a bit part of the menu code making
    it a little bit simple. This change remove the need to use `sudo rescript editor`
    when the script is istalled in `/usr/bin`. There is also a new `.deb` package
-   for an easier installation that you can find in the [release page](https://gitlab.com/sulfuror/rescript.sh/releases).
+   for an easier installation that you can find in the [release page](https://github.com/sulfuror/rescript-sh/releases).
 
 ## v.3.6
 
@@ -864,7 +877,7 @@ Now the script use functions, a whole new menu in `config`, new commands and fla
 
 **Changes**:
 
-1. Added some commands (check the [Commands and Options](https://gitlab.com/sulfuror/rescript.sh/blob/master/README.md#commands-and-options) section in README):
+1. Added some commands (check the [Commands and Options](https://github.com/sulfuror/rescript-sh/blob/master/README.md#commands-and-options) section in README):
 1. `install, --install`
 1. `config, --config`
 1. `logs, --logs`
@@ -1168,3 +1181,4 @@ and duration of all script at the end.
 
 Added "Bail if restic is already running" so if there's a previous
 job that is not finished it doesn't mess it up and just let it finish.
+</details>
