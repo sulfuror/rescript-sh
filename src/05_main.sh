@@ -374,6 +374,10 @@ esac
 
 job_done
 
+if [[ "$simulate_flag" == "true" ]]; then
+  echo -e "${c_yellow}SIMULATE: End of simulation.${c_reset}"
+fi
+
 shopt -u nocasematch
 
 # Allow async logging processes (like tee) to finish flushing before returning to shell

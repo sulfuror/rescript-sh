@@ -129,13 +129,13 @@ function print_line {
 
 function _send_email {
   local subject="${1:-}"
-  if [[ "$simulate_flag" == "true" ]]; then
-    echo -e "${c_yellow}SIMULATE: Would send email to [$EMAIL] with subject: [$subject]${c_reset}"
-    return 0
-  fi
   if [[ -n "$EMAIL" ]] ; then
     if [[ "$(command -v mail)" ]] ; then
       if [[ "$int" = "false" || "${force_email:-}" = "true" ]] ; then
+        if [[ "$simulate_flag" == "true" ]]; then
+          echo -e "${c_yellow}SIMULATE: Would send email to [$EMAIL] with subject: [[SIMULATION] $subject]${c_reset}"
+          return 0
+        fi
         if [[ -n "${log:-}" && -e "$log" ]] ; then
           logmessage="Logfile: $log"
           catlog=$(sed -E "s/$(printf '\033')\[([0-9]{1,2}(;[0-9]{1,2})?)?[mGK]//g" "$log")
@@ -165,12 +165,12 @@ function _send_email {
 function _send_webhook {
   local subject="${1:-}"
   if [[ -n "${WEBHOOK_URL:-}" ]] ; then
-    if [[ "$simulate_flag" == "true" ]]; then
-      echo -e "${c_yellow}SIMULATE: Would send webhook to [$WEBHOOK_URL] with subject: [$subject]${c_reset}"
-      return 0
-    fi
     if [[ "$int" = "false" || "${force_webhook:-}" = "true" ]] ; then
       if [[ "$(command -v curl)" ]] ; then
+        if [[ "$simulate_flag" == "true" ]]; then
+          echo -e "${c_yellow}SIMULATE: Would send webhook to [$WEBHOOK_URL] with subject: [[SIMULATION] $subject]${c_reset}"
+          return 0
+        fi
         local target_log=""
         local attach_file=""
         
@@ -4237,6 +4237,10 @@ case "$cmd" in
 esac
 
 job_done
+
+if [[ "$simulate_flag" == "true" ]]; then
+  echo -e "${c_yellow}SIMULATE: End of simulation.${c_reset}"
+fi
 
 shopt -u nocasematch
 

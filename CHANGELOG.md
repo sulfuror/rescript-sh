@@ -6,10 +6,16 @@
 
 #### 🛠️ Refactoring & Architecture
 
-* **Commands Restructure:** Completely modularized the internal architecture. Every Rescript command (including `config`, `editor`, and `init`) now has its own strictly dedicated file inside `src/commands/`.
-* **Core Cleanup:** Migrated internal utilities out of the commands directory into `02_utils.sh` to ensure `src/commands/` exclusively hosts user-accessible CLI actions.
-* **Standardization:** Unified headers and file numbering across the entire `src/` directory to improve codebase navigation and build logic readability.
-* **Docs & Comments:** Polished internal file comments and eliminated legacy code artifacts to accurately reflect the new 100% modular structure.
+* **Commands Restructure:** Modularized the internal architecture further. Rescript commands (including `config`, `editor`, and `init`) now have their own dedicated files inside `src/commands/`.
+* **Core Cleanup:** Migrated internal utilities out of the commands directory into `02_utils.sh` to ensure `src/commands/` focuses on user-accessible CLI actions.
+* **Standardization:** Unified headers and file numbering across the `src/` directory to improve codebase navigation and build logic readability.
+* **Docs & Comments:** Updated internal file comments and eliminated legacy code artifacts to reflect the current structure.
+
+#### 🐛 Bugfixes
+
+* **Simulation Logic:** Fixed a logic bug where `--simulate` (-S) would attempt to output a simulation message for email and webhooks even in interactive modes where notifications wouldn't be sent anyway. The logic now properly respects `$int` (interactive terminal) and forced flags (`-E`/`-W`) before triggering simulation outputs.
+* **Simulation UI Consistency:** Added an explicit "End of simulation." printout at the end of the execution flow to cleanly close the `SIMULATE:` console block.
+* **Misleading Subjects:** In dry-run modes, email and webhook subjects now properly include the `[SIMULATION]` prefix to avoid misleading users into thinking a dry-run actually modified their repository.
 
 ## v7.0.0
 
