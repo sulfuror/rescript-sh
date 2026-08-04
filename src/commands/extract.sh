@@ -43,15 +43,6 @@ function extract {
     exit 1
   fi
   
-  local dest_name
-  dest_name="$(basename "$file")"
-  if [[ -e "./$dest_name" ]] ; then
-    dest_name="${dest_name}_extracted"
-  fi
-  
-  echo "Extracting [$file] to [./$dest_name]..."
-  
-  local restic_args=()
   if [[ -z "$snap_id" ]] ; then
     echo "Auto-detecting latest snapshot for this file..."
     
@@ -70,15 +61,50 @@ function extract {
     find_flags+=( "${extract_rest[@]}" )
     
     debug_start
-    snap_id=$(run_restic_with_retry find "${find_flags[@]}" "$file" 2>/dev/null | tr -d '\r' | sed 's/\x1B\[[0-9;]*[a-zA-Z]//g' | awk '/Found matching entries in snapshot/ { for(i=1;i<=NF;i++) if($i=="snapshot") snap=$(i+1) } END { print snap }')
+    snap_id=$(run_restic_with_retry find "${find_flags[@]}" "$file" 2>/dev/null | tr -d '\r' | sed 's/\x1B\[[0-9;]*[a-zA-Z]//g' | awk '/Found matching entries in snapshot/ { for(i=1;i<=NF;i++) if($i=="snapshot") { print $(i+1); exit } }')
     debug_stop
     if [[ -z "$snap_id" ]] ; then
       echo "Extraction failed. File [$file] not found in any snapshot."
       exit 1
     fi
+  else
+    echo "Using provided snapshot ID [${snap_id}]..."
+  fi
+
+  local dest_name
+  dest_name="$(basename "$file")"
+  if [[ -e "./$dest_name" ]] ; then
+    # Add snapshot ID to filename to prevent collision and provide context
+    local filename="${dest_name%.*}"
+    local extension="${dest_name##*.}"
+    
+    # Calculate short snapshot ID (8 characters)
+    local short_snap="${snap_id:0:8}"
+    
+    local base_dest_name
+    if [[ "$filename" == "$extension" ]]; then
+      base_dest_name="${dest_name}_snap_${short_snap}"
+      dest_name="$base_dest_name"
+    else
+      base_dest_name="${filename}_snap_${short_snap}"
+      dest_name="${base_dest_name}.${extension}"
+    fi
+    
+    # Fallback to append (1), (2), etc. if the file still exists
+    local counter=1
+    while [[ -e "./$dest_name" ]] ; do
+      if [[ "$filename" == "$extension" ]]; then
+        dest_name="${base_dest_name} (${counter})"
+      else
+        dest_name="${base_dest_name} (${counter}).${extension}"
+      fi
+      ((counter++))
+    done
   fi
   
-  restic_args=( "$snap_id" "$file" "${extract_rest[@]}" )
+  echo "Extracting [$file] to [./$dest_name]..."
+  
+  local restic_args=( "$snap_id" "$file" "${extract_rest[@]}" )
   
   local err_file="/tmp/rescript_extract_err_$$"
   (

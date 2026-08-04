@@ -15,9 +15,12 @@ rescript my_repo extract 3a4b5c6d /home/user/Documents/report.pdf
 ```
 *Output:*
 ```text
+Using provided snapshot ID [3a4b5c6d]...
 Extracting [/home/user/Documents/report.pdf] to [./report.pdf]...
 [0:02] 100.00%  1 / 1 files extracted
 ```
+
+> **Safety Feature:** If `./report.pdf` already exists in your current directory, Rescript will automatically extract it as `report_snap_3a4b5c6d.pdf` to prevent overwriting your local file. If you extract it multiple times, it will safely append `(1)`, `(2)`, etc.
 
 **Auto-detect the latest snapshot and extract a folder:**
 ```bash
