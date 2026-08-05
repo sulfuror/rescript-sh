@@ -69,6 +69,11 @@ function print_line {
   echo -ne "${c_gray}${line}${c_reset}\n"
 }
 
+function format_log_output {
+  local target_log="$1"
+  sed -E "s/$(printf '\033')\[[0-9;?]*[a-zA-Z]//g" "$target_log" | sed 's/.*\r//' | tr -d '\r' | sed -E -e 's/={60,}/============================================================/g' -e 's/-{60,}/------------------------------------------------------------/g' -e 's/^[ \t]+(Rescript Execution Context)/                          \1/'
+}
+
 function _send_email {
   local subject="${1:-}"
   if [[ -n "$EMAIL" ]] ; then
@@ -78,21 +83,20 @@ function _send_email {
           echo -e "${c_yellow}SIMULATE: Would send email to [$EMAIL] with subject: [[SIMULATION] $subject]${c_reset}"
           return 0
         fi
+        local text_line="============================================================"
         if [[ -n "${log:-}" && -e "$log" ]] ; then
-          logmessage="Logfile: $log"
-          catlog=$(sed -E "s/$(printf '\033')\[([0-9]{1,2}(;[0-9]{1,2})?)?[mGK]//g" "$log")
+          logmessage="Logfile: $log\n$text_line"
+          catlog=$(format_log_output "$log")
         else
-          logmessage="Output for this job:"
-          catlog=$(sed -E "s/$(printf '\033')\[([0-9]{1,2}(;[0-9]{1,2})?)?[mGK]//g" "$tmplog")
+          logmessage=""
+          catlog=$(format_log_output "$tmplog")
         fi
         local mail_err
         mail_err=$(mktemp)
         local mail_status=0
-        if [[ "$time_flag" = "true" ]] ; then
-          echo -e "$logmessage\n\n$catlog" | mail -s "$subject" "$EMAIL" 2> "$mail_err" || mail_status=$?
-        else
-          echo -e "Date: $(date +%a\ %b\ %d\ %Y\ %r)\nSystem: $(opsys)\nHostname: $rhost\nRepository Location: $dest\nRestic Version: $(restic version | awk '{print $2}')\n\n$logmessage\n$(print_line)\n$catlog\n$(print_line)\nEnd: $(date +%a\ %b\ %d\ %Y\ %r)\nDuration: $(duration)" | mail -s "$subject" "$EMAIL" 2> "$mail_err" || mail_status=$?
-        fi
+        
+        echo -e "${logmessage}\n${catlog}" | mail -s "$subject" "$EMAIL" 2> "$mail_err" || mail_status=$?
+        
         if [[ $mail_status -ne 0 ]]; then
           echo -e "\n${c_yellow}WARNING: Rescript could not send the email. Make sure your system's mail agent (MTA) is installed and configured correctly.${c_reset}"
         fi
@@ -124,7 +128,7 @@ function _send_webhook {
         
         if [[ -n "$target_log" ]]; then
           attach_file="/tmp/rescript_webhook_$$.txt"
-          sed -E "s/$(printf '\033')\[([0-9]{1,2}(;[0-9]{1,2})?)?[mGK]//g" "$target_log" | tr -d '\r' | sed -E -e 's/={60,}/============================================================/g' -e 's/-{60,}/------------------------------------------------------------/g' -e 's/^[ \t]+(Rescript Execution Context)/                          \1/' > "$attach_file"
+          format_log_output "$target_log" > "$attach_file"
           
           curl -s -X POST -F "payload_json={\"content\": \"**$subject**\"}" -F "file=@$attach_file" "$WEBHOOK_URL" >/dev/null 2>&1 || true
           rm -f "$attach_file"
@@ -226,12 +230,14 @@ function job_done {
     return 0
   fi
 
+  local success_msg="✅ rescript: [$repo] $cmd finished successfully on [$(hostname)]!"
+
   if [[ "${CONFIRMATION_EMAIL:-}" = "y" || "${CONFIRMATION_EMAIL:-}" = "yes" ]] ; then
-    _send_email "rescript: [$repo] $cmd finished successfully!"
+    _send_email "$success_msg"
   fi
   if [[ "${CONFIRMATION_WEBHOOK:-}" = "y" || "${CONFIRMATION_WEBHOOK:-}" = "yes" ]] ; then
     if [[ -n "${WEBHOOK_URL:-}" ]] ; then
-      _send_webhook "✅ rescript: [$repo] $cmd finished successfully on [$(hostname)]!"
+      _send_webhook "$success_msg"
     fi
   fi
 }
@@ -251,8 +257,9 @@ function report_errors {
       echo -e "${c_red}${c_white}WARNING!${c_reset}"
       echo -e "${c_red}$error_message${c_reset}"
     fi
-    _send_email "rescript: [$repo] $cmd failed!"
-    _send_webhook "❌ rescript: [$repo] $cmd failed on [$(hostname)]!"
+    local error_msg="❌ rescript: [$repo] $cmd failed on [$(hostname)]!"
+    _send_email "$error_msg"
+    _send_webhook "$error_msg"
   fi
 }
 

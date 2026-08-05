@@ -61,7 +61,7 @@ function extract {
     find_flags+=( "${extract_rest[@]}" )
     
     debug_start
-    snap_id=$(run_restic_with_retry find "${find_flags[@]}" "$file" 2>/dev/null | tr -d '\r' | sed 's/\x1B\[[0-9;]*[a-zA-Z]//g' | awk '/Found matching entries in snapshot/ { for(i=1;i<=NF;i++) if($i=="snapshot") { print $(i+1); exit } }')
+    snap_id=$(run_restic_with_retry find "${find_flags[@]}" "$file" 2>/dev/null | tr -d '\r' | sed 's/\x1B\[[0-9;]*[a-zA-Z]//g' | awk '/Found matching entries in snapshot/ { for(i=1;i<=NF;i++) if($i=="snapshot") { print $(i+1); exit } }' || true)
     debug_stop
     if [[ -z "$snap_id" ]] ; then
       echo "Extraction failed. File [$file] not found in any snapshot."
@@ -73,7 +73,7 @@ function extract {
 
   local dest_name
   dest_name="$(basename "$file")"
-  if [[ -e "./$dest_name" ]] ; then
+  if [[ -e "./$dest_name" || -e "./${dest_name}.zip" ]] ; then
     # Add snapshot ID to filename to prevent collision and provide context
     local filename="${dest_name%.*}"
     local extension="${dest_name##*.}"
@@ -92,7 +92,7 @@ function extract {
     
     # Fallback to append (1), (2), etc. if the file still exists
     local counter=1
-    while [[ -e "./$dest_name" ]] ; do
+    while [[ -e "./$dest_name" || -e "./${dest_name}.zip" ]] ; do
       if [[ "$filename" == "$extension" ]]; then
         dest_name="${base_dest_name} (${counter})"
       else
@@ -104,12 +104,12 @@ function extract {
   
   echo "Extracting [$file] to [./$dest_name]..."
   
-  local restic_args=( "$snap_id" "$file" "${extract_rest[@]}" )
+  local restic_args=( "dump" "-a" "zip" "$snap_id" "$file" "${extract_rest[@]}" )
   
   local err_file="/tmp/rescript_extract_err_$$"
   (
     debug_start
-    run_restic_with_retry dump "${restic_args[@]}" > "./$dest_name" 2> "$err_file"
+    run_restic_with_retry "${restic_args[@]}" > "./$dest_name" 2> "$err_file"
     debug_stop
   ) &
   local pid=$!
@@ -130,7 +130,20 @@ function extract {
   
   if [[ $exit_code -eq 0 ]] ; then
     print_progress "Extracting file" 100
-    echo -ne "\n${c_green}Extraction complete.${c_reset}\n"
+    
+    # Check if restic dumped a directory as a zip archive
+    if file "./$dest_name" 2>/dev/null | grep -qi "zip archive data"; then
+      if [[ ! "$dest_name" == *.zip ]]; then
+        mv "./$dest_name" "./$dest_name.zip"
+        dest_name="$dest_name.zip"
+        echo -ne "\n${c_green}Directory successfully extracted as a zip archive.${c_reset}\n"
+      else
+        echo -ne "\n${c_green}Extraction complete.${c_reset}\n"
+      fi
+    else
+      echo -ne "\n${c_green}Extraction complete.${c_reset}\n"
+    fi
+    echo "Saved to: ./$dest_name"
   else
     echo -ne "\n${c_red}Extraction failed. Restic error:${c_reset}\n"
     cat "$err_file" 2>/dev/null

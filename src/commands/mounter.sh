@@ -44,7 +44,7 @@ function mounter {
       sleep 0.5
     fi
     
-    rm -rf "$rmount" 2>/dev/null
+    rmdir "${rmount:?}" 2>/dev/null
     
     if [ "$mounter_stopped" = "true" ]; then
       echo -e "\n${c_green}Mounter process stopped. Mount point cleaned up.${c_reset}"

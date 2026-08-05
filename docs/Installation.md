@@ -10,12 +10,10 @@ You can install the script using the following steps:
 curl -LO https://github.com/sulfuror/rescript-sh/releases/latest/download/rescript && chmod 700 rescript
 ```
 
-2. Run the installer (use `sudo` if you plan to install it system-wide):
+2. Run the installer:
 
 ```bash
 ./rescript install
-# or
-sudo ./rescript install
 ```
 
 |Options | Installation Directory |

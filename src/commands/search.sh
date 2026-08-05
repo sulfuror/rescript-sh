@@ -15,7 +15,7 @@ function search {
   
   local snaps_output
   debug_start
-  snaps_output=$(restic snapshots -q)
+  snaps_output=$(run_restic_with_retry snapshots -q)
   
   restic find "${rest[@]}" | awk -v snaps="$snaps_output" '
   BEGIN {

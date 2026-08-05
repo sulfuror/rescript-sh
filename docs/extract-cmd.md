@@ -22,7 +22,8 @@ Extracting [/home/user/Documents/report.pdf] to [./report.pdf]...
 
 > **Safety Feature:** If `./report.pdf` already exists in your current directory, Rescript will automatically extract it as `report_snap_3a4b5c6d.pdf` to prevent overwriting your local file. If you extract it multiple times, it will safely append `(1)`, `(2)`, etc.
 
-**Auto-detect the latest snapshot and extract a folder:**
+**Auto-detect the latest snapshot and extract a folder as a zip archive:**
+> **Note:** Because Rescript uses `restic dump` under the hood, directories are automatically streamed and packaged into a `.zip` archive to preserve their internal structure without cluttering your system with absolute paths. You can easily unpack it using standard zip tools.
 ```bash
 rescript my_repo extract /home/user/Photos
 ```
@@ -31,6 +32,8 @@ rescript my_repo extract /home/user/Photos
 Auto-detecting latest snapshot for this file...
 Extracting [/home/user/Photos] to [./Photos]...
 [0:02] 100.00%  1 / 1 files extracted
+Directory successfully extracted as a zip archive.
+Saved to: ./Photos.zip
 ```
 
 **[⇦ Commands & Options](Commands-and-Options)**

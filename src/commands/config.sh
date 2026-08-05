@@ -68,7 +68,7 @@ function edit_config_files {
 function new_config_file {
   new_repo="$config_dir/.new"
   touch "$new_repo"
-  trap 'rm -rf "$new_repo"' INT QUIT TERM EXIT
+  trap 'rm -f "$new_repo"' INT QUIT TERM EXIT
   config_file > "$new_repo"
   chmod 600 "$new_repo"
   read -rp "Write the name for your new repository (case sensitive): " repo_name
@@ -90,7 +90,7 @@ function new_config_file {
       *) clear ; echo "Invalid action..." ; config_menu ;;
     esac
   else
-    rm -rf "$new_repo"
+    rm -f "$new_repo"
     echo "Exiting..."
     exit
   fi
@@ -106,7 +106,7 @@ function delete_config_file {
       if [[ -f "$config_dir/$del.conf" ]] ; then
         read -rp "Are you sure you want to delete [$del]? y/n: " ans
         case $ans in
-          y|yes) rm -rf "$config_dir/$del.conf" ; rm -rf "$config_dir/$del-exclusions" ; rm -rf "$config_dir/$del-datefile" ; clear ; echo "[$del] repository configuration have been removed." ; delete_config_file ;;
+          y|yes) rm -f "$config_dir/$del.conf" ; rm -f "$config_dir/$del-exclusions" ; rm -f "$config_dir/$del-datefile" ; clear ; echo "[$del] repository configuration have been removed." ; delete_config_file ;;
           n|no) clear ; delete_config_file ;;
           exit) echo "Exiting..." ; exit ;;
           *) echo "No valid action indicated; exiting..." ; exit ;;

@@ -54,9 +54,10 @@ function history {
           last_date = date
       }
   }'
+  local pipe_status=("${PIPESTATUS[@]}")
   debug_stop
   
-  if [ "${PIPESTATUS[0]}" -ne 0 ]; then
+  if [ "${pipe_status[0]}" -ne 0 ]; then
     echo "History search failed due to a repository or connection error."
   fi
 }

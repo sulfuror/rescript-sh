@@ -4,7 +4,7 @@
 
 function snaps {
   if [[ "$cmd" != "snaps" ]] ; then
-    rm -rf "$lock"
+    rm -f "${lock:?}"
   fi
   rescript_lock
   debug_start

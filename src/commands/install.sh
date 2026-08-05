@@ -146,9 +146,15 @@ function install {
 
     if [[ "$target" == "system" ]]; then
       if [[ "$(whoami)" != "root" ]]; then
-        echo "You must be [root] for system-wide installation. e.g.:"
-        echo "  sudo rescript install --autocomplete-only system"
-        exit 1
+        echo ""
+        echo "The system-wide installation copies files to protected system"
+        echo "directories (like /usr/bin and /etc/bash_completion.d)."
+        echo "Administrative privileges are required to complete these actions."
+        echo ""
+        echo "Please enter your sudo password to proceed."
+        echo ""
+        sudo "$0" install --autocomplete-only system
+        exit $?
       fi
       if [[ "$unix_name" = "Darwin" ]] ; then
         install_autocomplete "/usr/local/etc/bash_completion.d"
@@ -184,10 +190,25 @@ function install {
         echo "Run [rescript config] to configure your repository."
         exit
       else
-        echo "You must be [root] for system-wide installation. e.g.:"
-        echo "  sudo ./rescript install"
         echo ""
-        echo "Nothing done; exiting..."
+        echo "The system-wide installation copies files to protected system"
+        echo "directories (like /usr/bin and /etc/bash_completion.d)."
+        echo "Administrative privileges are required to complete these actions."
+        echo ""
+        echo "Please enter your sudo password to proceed."
+        echo ""
+        
+        if [[ "$unix_name" = "Darwin" ]] ; then
+          sudo cp "$(basename "$0")" /usr/local/bin/rescript
+          sudo /usr/local/bin/rescript install --autocomplete-only system
+        else
+          sudo cp "$(basename "$0")" /usr/bin/rescript
+          sudo /usr/bin/rescript install --autocomplete-only system
+        fi
+        
+        echo ""
+        echo "Installation successful!"
+        echo "Run [rescript config] to configure your repository."
         exit
       fi
       ;;

@@ -30,7 +30,7 @@ function logs {
   elif [[ "$removelogs" = "true" ]] ; then
     if [[ "$logfile" = "all" ]] ; then
       if ls "$logs_dir/$repo"-* 1> /dev/null 2>&1 ; then
-        rm -rfv "${logs_dir:?}/$repo"-*
+        rm -fv "${logs_dir:?}/$repo"-*
         echo -e "${c_green}Log files removed for [$repo].${c_reset}"
         exit 0
       else
@@ -39,7 +39,7 @@ function logs {
       fi
     else
       if ls "$logs_dir/$logfile" 1> /dev/null 2>&1 ; then
-        rm -rfv "${logs_dir:?}/$logfile"
+        rm -fv "${logs_dir:?}/$logfile"
         echo "[$logfile] removed."
         exit 0
       else

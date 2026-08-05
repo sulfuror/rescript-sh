@@ -4,6 +4,11 @@
 
 ### Pending Release
 
+#### ✨ Features
+
+* **Install Command:** Improved UX for system-wide installation by dynamically requesting `sudo` elevation with an informative message instead of abruptly exiting when executed by a standard user.
+* **Uninstall Command:** Added a pre-uninstallation validation check to prevent accidental execution when the chosen installation scope does not match the actual installation state. Also implemented dynamic `sudo` request for system-wide removals.
+
 #### 🛠️ Refactoring & Architecture
 
 * **Commands Restructure:** Modularized the internal architecture further. Rescript commands (including `config`, `editor`, and `init`) now have their own dedicated files inside `src/commands/`.
@@ -11,8 +16,19 @@
 * **Standardization:** Unified headers and file numbering across the `src/` directory to improve codebase navigation and build logic readability.
 * **Docs & Comments:** Updated internal file comments and eliminated legacy code artifacts to reflect the current structure.
 
+* **Security Hardening:** Audited the codebase to prevent accidental data loss. Replaced dangerous `rm -rf` calls with safer alternatives (`rm -f`, `rmdir`) in transient directories and lock management (`mounter.sh`, `logs.sh`, `snaps.sh`, `config.sh`). Variables in paths are now strictly protected against empty expansions using `${var:?}` to prevent recursive deletions at the root or user home directory levels.
+* **Network Resilience:** The `search` command now routes its snapshot queries through the global `run_restic_with_retry` wrapper, ensuring automatic retries if a transient network failure occurs during repository lookups.
+* **History Command Check:** Fixed a subtle bug in `history` where the `PIPESTATUS` check inadvertently evaluated the success of an internal bash function (`debug_stop`) instead of the actual `restic find` operation, which could cause silent failures to be ignored.
+
 #### 🐛 Bugfixes
 
+* **Email Notifications:** Overhauled the formatting for email notifications. 
+  * Extracted a centralized `format_log_output` function to aggressively clean ANSI escape codes (including cursor control characters) and carriage returns, eliminating the "repeated spinner lines" bug in email clients.
+  * Removed redundant hardcoded legacy headers from the email body to perfectly match the clean format sent by Webhooks, relying entirely on the modern `Rescript Execution Context` block.
+  * Unified the subject line strings across Webhooks and Emails.
+
+* **Extract Command Crash:** Fixed a critical bug where `rescript extract` would abruptly crash when searching for the latest snapshot of a file/directory. The crash occurred because `awk` exited early upon finding the first match, causing a `SIGPIPE` in `restic find`, which triggered a script abort due to `set -euo pipefail`.
+* **Extract Command:** Fixed an issue where extracting a directory using `extract` would output a zip archive without a `.zip` extension, confusing users. Rescript now explicitly passes `-a zip` to `restic dump` and dynamically inspects the file stream using `file` to correctly append `.zip` if it detects an archive.
 * **Simulation Logic:** Fixed a logic bug where `--simulate` (-S) would attempt to output a simulation message for email and webhooks even in interactive modes where notifications wouldn't be sent anyway. The logic now properly respects `$int` (interactive terminal) and forced flags (`-E`/`-W`) before triggering simulation outputs.
 * **Simulation UI Consistency:** Added an explicit "End of simulation." printout at the end of the execution flow to cleanly close the `SIMULATE:` console block.
 * **Misleading Subjects:** In dry-run modes, email and webhook subjects now properly include the `[SIMULATION]` prefix to avoid misleading users into thinking a dry-run actually modified their repository.

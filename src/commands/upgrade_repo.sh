@@ -11,9 +11,3 @@ function upgrade_repo {
   debug_stop
   latest_error
 }
-if [[ ! $(command -v restic) ]] ; then
-  echo "***$(basename "$0") warning***"
-  echo "[restic] not found..."
-  echo ""
-  exit 1
-fi
