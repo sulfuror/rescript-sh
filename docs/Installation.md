@@ -4,13 +4,18 @@
 
 You can install the script using the following steps:
 
-1. Download the latest `rescript` binary from the [Releases page](https://github.com/sulfuror/rescript-sh/releases).
-2. Open a terminal where you downloaded the file.
-3. Run the installer:
+1. Download the latest `rescript` binary and make it executable:
 
 ```bash
-~$ chmod 700 rescript
-~$ ./rescript install
+curl -LO https://github.com/sulfuror/rescript-sh/releases/latest/download/rescript && chmod 700 rescript
+```
+
+2. Run the installer (use `sudo` if you plan to install it system-wide):
+
+```bash
+./rescript install
+# or
+sudo ./rescript install
 ```
 
 |Options | Installation Directory |
