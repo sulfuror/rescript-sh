@@ -31,7 +31,8 @@ function backup {
       echo -e "${c_yellow}SIMULATE: $PRE_CMD${c_reset}"
     else
       run_with_spinner "$PRE_CMD" "${c_cyan}Running PRE_CMD...${c_reset}"
-      if [[ $? -ne 0 ]] ; then
+      local spinner_rc=$?
+      if [[ $spinner_rc -ne 0 ]] ; then
         exit 1
       fi
     fi
@@ -39,11 +40,12 @@ function backup {
   debug_start
   set_sim_flag "Backup"
   if [[ "$skip_flag" = "true" ]] ; then
-    run_restic_with_retry backup $sim_flag --verbose "${bu_opts[@]}" --exclude-file=<(find "${BACKUP_DIR[@]}" -iname ".~lock.*" 2> /dev/null | sed -e 's/.~lock.//g' | sed -e 's/#//g') --exclude=".~lock.*" "${rest[@]}" "${BACKUP_DIR[@]}"
+    run_restic_with_retry backup "${sim_flags[@]}" --verbose "${bu_opts[@]}" --exclude-file=<(find "${BACKUP_DIR[@]}" -iname ".~lock.*" 2> /dev/null | sed -e 's/.~lock.//g' | sed -e 's/#//g') --exclude=".~lock.*" "${rest[@]}" "${BACKUP_DIR[@]}"
   else
-    run_restic_with_retry backup $sim_flag --verbose "${bu_opts[@]}" "${rest[@]}" "${BACKUP_DIR[@]}"
+    run_restic_with_retry backup "${sim_flags[@]}" --verbose "${bu_opts[@]}" "${rest[@]}" "${BACKUP_DIR[@]}"
   fi
-  check_restic_error $?
+  local restic_rc=$?
+  check_restic_error $restic_rc
   debug_stop
 
   if [[ -n "$POST_CMD" && "${RESCRIPT_SKIP_HOOKS:-}" != "true" ]] ; then

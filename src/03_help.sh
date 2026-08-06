@@ -169,7 +169,7 @@ EOF
 
 function config-help {
 cat <<EOF
-[config] is an interactive command to make easy the to set up rescript
+[config] is an interactive command to make it easy to set up rescript
 configuration and exclusions files. You can create, edit, list
 and open your configuration and exclusions files.
 
@@ -491,7 +491,7 @@ When rescript is running it will create a temporary lock file
 to prevent the interruption of other processes that could be active
 at the moment of executing another command within the same instance
 (e.g. scheduled jobs). If you are sure there are not any other
-processes running in the backgroup, then you can safely remove the
+processes running in the background, then you can safely remove the
 created by rescript using this command.
 
 Usage:

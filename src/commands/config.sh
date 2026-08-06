@@ -76,10 +76,9 @@ function new_config_file {
     mv "$new_repo" "$config_dir/$repo_name.conf"
     touch "$config_dir/$repo_name-exclusions"
     touch "$config_dir/$repo_name-datefile"
-    touch "$config_dir/$repo_name-datefile"
     simple_exclusions > "$config_dir/$repo_name-exclusions"
-    date -R > "$config_dir/$repo_name-datefile"
-    echo "[$repo_name] config file have been created. If this is a new repository,"
+    date +"%s" > "$config_dir/$repo_name-datefile"
+    echo "[$repo_name] config file has been created. If this is a new repository,"
     echo "you must run [rescript $repo_name init] to initialize your new repository"
     echo "before executing any other command. You also need to edit your new config"
     echo "file to proceed."
@@ -98,7 +97,7 @@ function new_config_file {
 
 function delete_config_file {
   _list_files "Config Files" "\.conf" "\.conf$"
-  read -rp "Type the name of the repo file you wish to delete or one of the optinos above [ 1 - 2 ]: " del
+  read -rp "Type the name of the repo file you wish to delete or one of the options above [ 1 - 2 ]: " del
   case $del in
     1|back) clear ; config_menu ;;
     2|exit) echo "Exiting..." ; exit ;;
@@ -106,14 +105,14 @@ function delete_config_file {
       if [[ -f "$config_dir/$del.conf" ]] ; then
         read -rp "Are you sure you want to delete [$del]? y/n: " ans
         case $ans in
-          y|yes) rm -f "$config_dir/$del.conf" ; rm -f "$config_dir/$del-exclusions" ; rm -f "$config_dir/$del-datefile" ; clear ; echo "[$del] repository configuration have been removed." ; delete_config_file ;;
+          y|yes) rm -f "$config_dir/$del.conf" ; rm -f "$config_dir/$del-exclusions" ; rm -f "$config_dir/$del-datefile" ; clear ; echo "[$del] repository configuration has been removed." ; delete_config_file ;;
           n|no) clear ; delete_config_file ;;
           exit) echo "Exiting..." ; exit ;;
           *) echo "No valid action indicated; exiting..." ; exit ;;
         esac
       else
         clear
-        echo "There is no configuration files called [$del}; try again..."
+        echo "There is no configuration file called [$del]; try again..."
         delete_config_file
       fi
       ;;
@@ -218,7 +217,7 @@ function config_wizard {
   touch "$config_dir/$w_name-exclusions"
   touch "$config_dir/$w_name-datefile"
   simple_exclusions > "$config_dir/$w_name-exclusions"
-  date -R > "$config_dir/$w_name-datefile"
+  date +"%s" > "$config_dir/$w_name-datefile"
   
   echo -e "\nConfiguration [$w_name] created successfully!"
   echo "Tip: You can edit your global configuration at any time by running: rescript config --global"

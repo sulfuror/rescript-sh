@@ -177,13 +177,13 @@ function install {
   read -rp "Select an option and press Enter [ 1 - 3 ]: " installation
   case "$installation" in
     1|system)
-      chmod 755 "$(basename "$0")"
+      chmod 755 "$0"
       if [[ "$(whoami)" = "root" ]] ; then
         if [[ "$unix_name" = "Darwin" ]] ; then
-          cp "$(basename "$0")" /usr/local/bin/rescript
+          cp "$0" /usr/local/bin/rescript
           install_autocomplete "/usr/local/etc/bash_completion.d"
         else
-          cp "$(basename "$0")" /usr/bin/rescript
+          cp "$0" /usr/bin/rescript
           install_autocomplete "/etc/bash_completion.d"
         fi
         echo "Installation successful!"
@@ -199,10 +199,10 @@ function install {
         echo ""
         
         if [[ "$unix_name" = "Darwin" ]] ; then
-          sudo cp "$(basename "$0")" /usr/local/bin/rescript
+          sudo cp "$0" /usr/local/bin/rescript
           sudo /usr/local/bin/rescript install --autocomplete-only system
         else
-          sudo cp "$(basename "$0")" /usr/bin/rescript
+          sudo cp "$0" /usr/bin/rescript
           sudo /usr/bin/rescript install --autocomplete-only system
         fi
         
@@ -213,15 +213,15 @@ function install {
       fi
       ;;
     2|user)
-      chmod 700 "$(basename "$0")"
+      chmod 700 "$0"
       if [[ -d "$HOME/bin" ]] ; then
-        cp "$(basename "$0")" "$HOME/bin/rescript"
+        cp "$0" "$HOME/bin/rescript"
         install_autocomplete "$HOME/.local/share/bash-completion/completions"
         echo "Installation successful!"
         echo "Run [rescript config] to configure your repository."
         exit
       elif [[ -d "$HOME/.local/bin" ]] ; then
-        cp "$(basename "$0")" "$HOME/.local/bin/rescript"
+        cp "$0" "$HOME/.local/bin/rescript"
         install_autocomplete "$HOME/.local/share/bash-completion/completions"
         echo "Installation successful!"
         echo "Run [rescript config] to configure your repository."
@@ -232,7 +232,7 @@ function install {
         case $ans_install in
           y|yes)
             mkdir -p "$HOME/.local/bin"
-            cp "$(basename "$0")" "$HOME/.local/bin/rescript"
+            cp "$0" "$HOME/.local/bin/rescript"
             install_autocomplete "$HOME/.local/share/bash-completion/completions"
             echo "Installation successful!"
             echo "Run [rescript config] to configure your repository."

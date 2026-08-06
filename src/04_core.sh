@@ -152,7 +152,8 @@ if [[ "${1:-}" == "all" ]]; then
       echo -e "${c_yellow}SIMULATE: $PRE_CMD${c_reset}"
     else
       run_with_spinner "$PRE_CMD" "${c_cyan}Running Global PRE_CMD...${c_reset}"
-      if [[ $? -ne 0 ]] ; then
+      spinner_rc=$?
+      if [[ $spinner_rc -ne 0 ]] ; then
         exit 1
       fi
     fi
@@ -283,55 +284,55 @@ case "${1:-}" in
     echo "You have not indicated any repo for [$1]..."
     echo ""
     history-help
-    exit
+    exit 1
     ;;
   info)
     echo "You have not indicated any repo for [$1]..."
     echo ""
     info-help
-    exit
+    exit 1
     ;;
   logs)
     echo "You have not indicated any repo for [$1]..."
     echo ""
     logs-help
-    exit
+    exit 1
     ;;
   mounter)
     echo "You have not indicated any repo for [$1]..."
     echo ""
     mounter-help
-    exit
+    exit 1
     ;;
   restorer)
     echo "You have not indicated any repo for [$1]..."
     echo ""
     restorer-help
-    exit
+    exit 1
     ;;
   size)
     echo "You have not indicated any repo for [$1]..."
     echo ""
     size-help
-    exit
+    exit 1
     ;;
   snaps)
     echo "You have not indicated any repo for [$1]..."
     echo ""
     snaps-help
-    exit
+    exit 1
     ;;
   umounter)
     echo "You have not indicated any repo for [$1]..."
     echo ""
     umounter-help
-    exit
+    exit 1
     ;;
   unlocker)
     echo "You have not indicated any repo for [$1]..."
     echo ""
     unlocker-help
-    exit
+    exit 1
     ;;
   update)
     _check_help_or_error "${1:-}" "${2:-}"
@@ -405,7 +406,7 @@ esac
 case "${RESTIC_REPO:-}" in
   sftp*) ping_target=${RESTIC_REPO#sftp*@} ; ping_target=${ping_target%:*} ; ping -c 1 "$ping_target" > /dev/null || true ; ping_code="$?" ;;
   rclone*) ping_target=${RESTIC_REPO#rclone:} ; rclone about "$ping_target" > /dev/null || true ; ping_code="$?" ;;
-  /*) dir "$RESTIC_REPO" 2>/dev/null 1>/dev/null || true ; ping_code="$?" ;;
+  /*) [[ -d "$RESTIC_REPO" ]] || true ; ping_code="$?" ;;
 esac
 
 if [[ "$ping_code" -gt "0" ]] ; then

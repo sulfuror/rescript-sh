@@ -4,13 +4,14 @@
 
 function logs {
   if [[ "$catlogs" = "false" && "$removelogs" = "false" ]] ; then
-    if ls "$logs_dir/$repo"-* 1> /dev/null 2>&1 ; then
+    local -a check_logs=( "$logs_dir/$repo"-* )
+    if [[ -e "${check_logs[0]}" ]] ; then
       local log_count
-      log_count=$(find "$logs_dir" -maxdepth 1 -type f -name "*$repo*" | wc -l)
+      log_count=$(find "$logs_dir" -maxdepth 1 -type f -name "${repo}-*" | wc -l)
       print_line "="
       echo -e "${c_white}Log Files for Context:${c_reset} ${c_cyan}$repo${c_reset}"
       print_line "="
-      find "$logs_dir" -maxdepth 1 -type f -name "*$repo*" -exec basename {} \; | sort | column
+      find "$logs_dir" -maxdepth 1 -type f -name "${repo}-*" -exec basename {} \; | sort | column
       print_line "-"
       echo -e "${c_cyan}Total log files: $log_count${c_reset}"
       echo -e "${c_blue}Your logs are saved at $logs_dir${c_reset}"
@@ -20,16 +21,25 @@ function logs {
       exit 0
     fi
   elif [[ "$catlogs" = "true" && "$removelogs" = "true" ]] ; then
-    echo "You cannot use '--cat' and '--remove' at the same time"
+    echo "You cannot use '--view' and '--remove' at the same time"
     echo ""
     logs-help
     exit 1
   fi
   if [[ "$catlogs" = "true" ]] ; then
-    cat "$logs_dir/$logfile"
+    if [[ -z "${logfile:-}" ]]; then
+      echo "You must specify a log file to view."
+      exit 1
+    elif [[ ! -f "$logs_dir/$logfile" ]]; then
+      echo "There is no log file called [$logfile]."
+      exit 1
+    else
+      cat "$logs_dir/$logfile"
+    fi
   elif [[ "$removelogs" = "true" ]] ; then
-    if [[ "$logfile" = "all" ]] ; then
-      if ls "$logs_dir/$repo"-* 1> /dev/null 2>&1 ; then
+    if [[ -z "${logfile:-}" || "$logfile" = "all" ]] ; then
+      local -a check_logs=( "$logs_dir/$repo"-* )
+      if [[ -e "${check_logs[0]}" ]] ; then
         rm -fv "${logs_dir:?}/$repo"-*
         echo -e "${c_green}Log files removed for [$repo].${c_reset}"
         exit 0
@@ -38,12 +48,12 @@ function logs {
         exit 0
       fi
     else
-      if ls "$logs_dir/$logfile" 1> /dev/null 2>&1 ; then
+      if [[ -f "$logs_dir/$logfile" ]] ; then
         rm -fv "${logs_dir:?}/$logfile"
         echo "[$logfile] removed."
         exit 0
       else
-        echo "There are is log file called [$logfile]."
+        echo "There is no log file called [$logfile]."
         exit 1
       fi
     fi

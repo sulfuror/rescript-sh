@@ -75,7 +75,6 @@ cleanup_flag="false"
 debug_flag="false"
 info_flag="false"
 log_flag="false"
-metadata_flag="false"
 skip_flag="false"
 time_flag="false"
 catlogs="false"
@@ -201,7 +200,7 @@ case "$cmd" in
       echo "unless you change the CLEAN variable at the beginning of this script."
       echo "The number indicated in the CLEAN variable must be in days."
       echo "For more information about the usage check out the following link:"
-      echo "https://gitlab.com/sulfuror/rescript.sh/blob/master/README.md#usage"
+      echo "https://github.com/sulfuror/rescript-sh/blob/master/README.md#usage"
     else
       cleanup-next
     fi
@@ -265,7 +264,7 @@ case "$cmd" in
       esac
       shift
     done
-    execute_with_metrics run_quietly logs
+    run_quietly logs
     ;;
   mounter|umounter)
     parse_generic_args "$cmd-help" "$@"

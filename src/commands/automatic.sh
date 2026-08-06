@@ -2,9 +2,21 @@
 #                       COMMAND: AUTOMATIC                       #
 # ============================================================== #
 
+function _run_auto_cleanup {
+  if [[ -n "${policies[*]}" ]] ; then
+    print_line
+    echo -e "${c_cyan}Cleaning Repo...${c_reset}"
+    cleanup
+    print_line
+    echo -e "${c_cyan}Checking for Errors in Repo...${c_reset}"
+    run_restic_with_retry check --cleanup-cache
+    check_restic_error $?
+  fi
+}
+
 function automatic {
   rescript_lock
-  case "$LOGGING" in
+  case "${LOGGING:-}" in
     y|yes)
       log_flag="true"
       ;;
@@ -15,22 +27,8 @@ function automatic {
   time_start
   print_context
   context_flag="false"
-
-
-
-  function _run_auto_cleanup {
-    if [[ -n "${policies[*]}" ]] ; then
-      print_line
-      echo -e "${c_cyan}Cleaning Repo...${c_reset}"
-      cleanup
-      print_line
-      echo -e "${c_cyan}Checking for Errors in Repo...${c_reset}"
-      run_restic_with_retry check --cleanup-cache
-      check_restic_error $?
-    fi
-  }
   # Backup
-  case "$SKIP_OFFICE" in
+  case "${SKIP_OFFICE:-}" in
     y|yes)
       echo -e "${c_cyan}Taking a Snapshot...${c_reset}" ; skip_flag="true" ; backup ;;
     *)
@@ -41,7 +39,7 @@ function automatic {
     echo -e "${c_green}There are $exclusions exclusion rules...${c_reset}"
   fi
   # Snapshot List
-  case "$SHOW_SNAPS" in
+  case "${SHOW_SNAPS:-}" in
     y|yes)
       print_line
       echo -e "${c_cyan}Snapshots List...${c_reset}"
@@ -83,7 +81,7 @@ function automatic {
       _run_auto_cleanup
   fi
   # Stats
-  case "$SHOW_STATS" in
+  case "${SHOW_STATS:-}" in
     y|yes) 
       print_line
       statinfo 
@@ -100,10 +98,10 @@ function automatic {
     echo "it can't execute it if you have not set the KEEP variables; please set your"
     echo "desired KEEP values in order to perform the 'cleanup' every $clean_num $clean_unit. If you"
     echo "don't want [rescript] to 'cleanup' your repo automatically every $clean_num $clean_unit,"
-    echo "just leave the CLEAN variable blank in your cofiguration file and this"
+    echo "just leave the CLEAN variable blank in your configuration file and this"
     echo "message will not appear again."
     echo ""
     echo "For more info about this subject:"
-    echo "https://gitlab.com/sulfuror/rescript.sh/blob/master/README.md#usage"
+    echo "https://github.com/sulfuror/rescript-sh/blob/master/README.md#usage"
   fi
 }

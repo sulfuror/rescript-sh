@@ -10,17 +10,17 @@ function cleanup {
 
   if [[ -n "${policies[*]}" ]] ; then
     debug_start
-    run_restic_with_retry forget $sim_flag "${policies[@]}" "${rest[@]}"
+    run_restic_with_retry forget "${sim_flags[@]}" "${policies[@]}" "${rest[@]}"
     check_restic_error $?
     debug_stop
     debug_start
-    run_restic_with_retry prune $sim_flag --cleanup-cache
+    run_restic_with_retry prune "${sim_flags[@]}" --cleanup-cache
     check_restic_error $?
     debug_stop
   else
     echo "You have not indicated any policy value..."
     echo "If you want to use [cleanup] option you need to set the [KEEP] variables."
-    echo "For more information about the Usage check out the following link:"
-    echo "https://gitlab.com/sulfuror/rescript.sh/blob/master/README.md#usage"
+    echo "For more information about the usage check out the following link:"
+    echo "https://github.com/sulfuror/rescript-sh/blob/master/README.md#usage"
   fi
 }

@@ -39,7 +39,8 @@ function global_status {
   else
     for conf in "$config_dir"/*.conf; do
       [ -e "$conf" ] || continue
-      local r_name=$(basename "$conf" .conf)
+      local r_name
+      r_name=$(basename "$conf" .conf)
       if [[ "$r_name" != "global" ]]; then
         if ! array_contains "$r_name" "${excluded_repos[@]}"; then
           repos+=("$r_name")
@@ -87,7 +88,8 @@ function global_status {
     
     if [[ "$full_mode" == "true" ]]; then
       hide_cursor
-      local base_row=$(printf "%-15s | %-10s | %-21s | " "$repo" "$num_snaps" "$latest_date")
+      local base_row
+      base_row=$(printf "%-15s | %-10s | %-21s | " "$repo" "$num_snaps" "$latest_date")
       
       (
         size_str="N/A"
@@ -98,7 +100,8 @@ function global_status {
         raw_stats=$(restic -r "$RESTIC_REPO" stats --mode raw-data 2>/dev/null)
         debug_stop
         if [[ -n "$raw_stats" ]]; then
-          local size_raw=$(echo "$raw_stats" | awk '/Total Size:/{print $3$4}')
+          local size_raw
+          size_raw=$(echo "$raw_stats" | awk '/Total Size:/{print $3$4}')
           if [[ -n "$size_raw" ]]; then
             size_str="$size_raw"
           fi
@@ -115,6 +118,7 @@ function global_status {
       ) &
       local pid=$!
       trap 'kill "$pid" 2>/dev/null; rm -f "/tmp/rescript_status_$repo" 2>/dev/null; exit 130' INT
+      trap 'kill "$pid" 2>/dev/null; rm -f "/tmp/rescript_status_$repo" 2>/dev/null' EXIT
       
       local spin='-\|/'
       local i=0

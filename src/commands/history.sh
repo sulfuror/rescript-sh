@@ -13,14 +13,13 @@ function history {
   local col_snap=10
   local col_date=21
   local col_size=12
-  local col_path=$(( cols - col_no - col_snap - col_date - col_size - 7 ))
   
   print_line "="
   printf "${c_white}%-4s | %-10s | %-21s | %-12s | %s${c_reset}\n" "No" "Snapshot" "Date" "Size" "Path"
   print_line "="
   
   debug_start
-  run_restic_with_retry find -l "${rest[@]}" | awk -v path_len="$col_path" '
+  run_restic_with_retry find -l "${rest[@]}" | awk '
   {
     gsub(/\x1b\[[0-9;]*[a-zA-Z]/, "")
     gsub(/\r/, "")

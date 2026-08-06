@@ -22,6 +22,18 @@
 
 #### 🐛 Bugfixes
 
+* **Install Command Bug:** Fixed a critical bug in `install.sh` that broke the installation process when the command was run from outside the script's native directory. Replaced `$(basename "$0")` with `"$0"` to preserve robust absolute/relative paths.
+* **Strict Mode Crashes (`set -euo pipefail`):** Fixed script crashes during `automatic` runs where optional config variables (`LOGGING`, `SKIP_OFFICE`, `SHOW_SNAPS`, `SHOW_STATS`) were undefined in the configuration file. Safely defaulted these variables using Bash parameter expansion (`:-`).
+* **Context UI Syntax Error:** Fixed a syntax error (`[[: 0 \n 0: syntax error`) in `02_utils.sh` that occurred when printing the execution context UI while the exclusions file existed but was completely empty.
+* **Editor Configurator Robustness:** Enhanced the `editor` command (`editor.sh`) to actually verify if the text editor is installed (`command -v`) before saving it as the default. Fixed option numbers in the prompt.
+* **Logs Command Warning:** Corrected an outdated warning message in the `logs` command that incorrectly referenced the deprecated `--cat` flag instead of `--view`.
+* **Logs Command UX & Logic:**
+  * Fixed an issue where viewing a log with `--view` without specifying a filename would cause a native `cat` crash.
+  * Fixed a bug where using `--remove` without arguments failed silently instead of deleting all logs as documented.
+  * Tightened the log counting regex (`find`) to avoid falsely counting logs from similarly named repositories.
+  * Removed unnecessary background logging (`logger`) from the interactive `logs` command, resolving an asynchronous terminal race condition where error outputs would print over the user's bash prompt after the script exited.
+* **Typo Cleanup:** Performed a massive spelling check and corrected dozens of historical typos and misspellings throughout the `CHANGELOG.md`, `03_help.sh`, `cleanup.sh` and the GitHub Wiki `docs/`.
+
 * **Email Notifications:** Overhauled the formatting for email notifications. 
   * Extracted a centralized `format_log_output` function to aggressively clean ANSI escape codes (including cursor control characters) and carriage returns, eliminating the "repeated spinner lines" bug in email clients.
   * Removed redundant hardcoded legacy headers from the email body to perfectly match the clean format sent by Webhooks, relying entirely on the modern `Rescript Execution Context` block.
@@ -333,7 +345,7 @@ This is a major release marking the evolution of Rescript from a monolithic scri
 
 **Additions**:
 
-1. Change `which` command; now using `commnand -v` for compatibility.
+1. Change `which` command; now using `command -v` for compatibility.
 
 ## v.4.6
 
@@ -345,9 +357,9 @@ This is a major release marking the evolution of Rescript from a monolithic scri
 
 1. Added a new function to send email confirmation when job is done. This function will not always send you an email. There is a new option for the configuration file called `CONFIRMATION_EMAIL`. You can add it to your configuration file like this `CONFIRMATION_EMAIL="yes"` to receive an email every time a job is successfully done via cron. If you don't set this variable it will not send you an email. Also, you need to install `mailutils` and `ssmtp` (not working on Debian buster), [nullmailer](https://christopherbaek.wordpress.com/2016/05/22/nullmailer-send-mail/) or something that cand allow you to send emails outside your network via `mail` from `mailutils`. If you need a simple tool to send emails outside your network, I would go for `nullmailer`; really easy to configure.
 2. Added a new global flag called `-e, --email`. This option will force the script to send the output via email (again, `mailutils` needs to be installed and configured to send emails).
-3. Added a way to determine the size of the terminal in session. This way the `rescript` output will rezise itself. This is useful (at least for me) because somethimes, depending on the machine, the output lines and stuff looks kind of messed and now it will adjust to the terminal emulator size.
+3. Added a way to determine the size of the terminal in session. This way the `rescript` output will resize itself. This is useful (at least for me) because sometimes, depending on the machine, the output lines and stuff looks kind of messed and now it will adjust to the terminal emulator size.
 4. Added a new flag for `backup`: `-C, --check`. This flag will execute `check` after `backup`.
-5. Added the abbility to check if target is present. This small part of the code works for `sftp`, `rclone` backends and if the repository is located locally (meaning `/path/to/my/repository`). If the repository you're using `sftp`, then `rescript` will ping your remote server to make sure is reachable and proceed; if the repository is not reachable it will display an error message and exit. If you're using `rclone` backend then it will first execute `rclone about remote:directory`; if that fails it will display an error message and exit. If the repository is stored locally, it will first check if the directory exists and if it doesn't it will display an error message and exit.
+5. Added the ability to check if target is present. This small part of the code works for `sftp`, `rclone` backends and if the repository is located locally (meaning `/path/to/my/repository`). If the repository you're using `sftp`, then `rescript` will ping your remote server to make sure is reachable and proceed; if the repository is not reachable it will display an error message and exit. If you're using `rclone` backend then it will first execute `rclone about remote:directory`; if that fails it will display an error message and exit. If the repository is stored locally, it will first check if the directory exists and if it doesn't it will display an error message and exit.
 6. Added `--host` flag for `info` command. It works just for "Latest Snapshots" and this is not because of the script; `restic` only accept `--host` flag when the snapshot is latest.
 7. Added credential variables in configuration file for Azure and Google Cloud Storage; B2 and AWS were already in older versions of this script. For Minio Server, AWS credentials can be used. If you need to setup other services, they can be exported in the configuration file, for example, OpenStack Swift has a lot of different variables that can be used; you can export those in the configuration file.
 8. Added `EXCLUDE_FILE="yes"` in the configuration file. Just for compatibility with previous versions, if this variable doesn't exists in the configuration file it will still use the exclusion list created unless you add this variable to the configuration file and set it to "no".
@@ -374,12 +386,12 @@ This is a major release marking the evolution of Rescript from a monolithic scri
 12. Improvements in columns printing.
 13. Improvements in `backup` function managing options.
 14. Improvements in `env` command.
-15. `rescript` will now save a log no matter if the `--log` option is used or not. The difference is that when the `--log` option is used, the log is saved to the logs directory (`~/.rescript/logs`). If the option is not used, `rescript` will create a temporary log file in `/tmp` using `mktmp`. Why? Because that's the only way I figure out to send the output via email if `--email` is used without the `--log` option. To send the output via email I needed to retrieve the output from somewhere and if a log was not present I could't send the output. This temporary log gets always deleted at the end.
+15. `rescript` will now save a log no matter if the `--log` option is used or not. The difference is that when the `--log` option is used, the log is saved to the logs directory (`~/.rescript/logs`). If the option is not used, `rescript` will create a temporary log file in `/tmp` using `mktmp`. Why? Because that's the only way I figure out to send the output via email if `--email` is used without the `--log` option. To send the output via email I needed to retrieve the output from somewhere and if a log was not present I couldn't send the output. This temporary log gets always deleted at the end.
 16. The time functions were simplified a lot.
 17. `getopt` is now called once instead of calling it for every command (except when calling `restic` commands instead of the script's commands).
 18. Simplified the `duration` function; it will display the same but now it is shorter.
 19. Minor changes in the lock function because if there was a lock created by `rescript` and you're not looking at the terminal, you were never gonna receive an message about that; now it can send an email or log the error with the output telling you that maybe there's another instance running.
-20. When you run a `restic` command (no the commands from the script) like check and use something like this: `rescript reponame -t -- --repo /path/to/repo backup ...` and there was an error, the command displayed in the error message was `[--repo] failed...`; now it's fixeded so it display the correct command.
+20. When you run a `restic` command (no the commands from the script) like check and use something like this: `rescript reponame -t -- --repo /path/to/repo backup ...` and there was an error, the command displayed in the error message was `[--repo] failed...`; now it's fixed so it display the correct command.
 
 The new features to test/ping the remote server and to send emails when job is done are thanks to ***killmasta93*** (user from restic forum). I'm still looking new ways to improve the script and any suggestion is really welcome.
 
@@ -394,15 +406,15 @@ The new features to test/ping the remote server and to send emails when job is d
 1. The entire script itself is less cluttered; 1,428 additions, 1,702 removed lines and a total of 274 lines less than version 4.4.
 2. Now the script uses `getopt` to manage flags, options, etc. It helped a lot reducing a lot of cluttered lines and simplifying the whole script.
 3. Help was modified. It is now shorter since every command have its own help explaining the command and flags.
-4. Added the abbility to report errros. Since `restic` is a backup tool and backups are really important,
+4. Added the ability to report errors. Since `restic` is a backup tool and backups are really important,
    the first error detected will trigger an exit and a message with the failed command and exit code.
    For this purpose there is also a new variable used named EMAIL. You can add this variable EMAIL="<user@example.com>"
    in your configuration file to use it. `rescript` will use `mail` (from `mailutils`) to send an email
-   if an error ocurred. This is useful if you use `rescript` with `cron`. If you're using `rescript` from
-   a terminal and an error ocurred it will not send an email but it will display the error message. If you don't want
+   if an error occurred. This is useful if you use `rescript` with `cron`. If you're using `rescript` from
+   a terminal and an error occurred it will not send an email but it will display the error message. If you don't want
    any email, don't add this variable or leave it blank. It will still send an error message but without attempting
    to send an email. For the emails to work you need to setup `mail` to send emails. I would
-   reccomend to install `mailutils` and setup `ssmtp`. You can follow [this tutorial](https://www.howtogeek.com/51819/how-to-setup-email-alerts-on-linux-using-gmail/).
+   recommend to install `mailutils` and setup `ssmtp`. You can follow [this tutorial](https://www.howtogeek.com/51819/how-to-setup-email-alerts-on-linux-using-gmail/).
 5. There is a new command named `info`. This command will display a small three column table with the latest
    snapshot size (restore-size and raw-data) and all snapshots size (restore-size and raw-data).
 6. `-d, --debug` flag added. This will debug the script, not restic.
@@ -444,13 +456,13 @@ The new features to test/ping the remote server and to send emails when job is d
    supported in the default MacOS `getopt`. If you want to use long options you can install `gnu-getopt` with the following command: `brew install gnu-getopt`.
    The script will automatically use the correct path for the new `gnu-getopt` installation, so you don't have to do anything else
    besides installing it.
-1. `-d, --debug | -h, --help | -l, --log | -q,--quiet | -t, --time` flags are really now "glogal". They can be used with any command.
+1. `-d, --debug | -h, --help | -l, --log | -q,--quiet | -t, --time` flags are really now "global". They can be used with any command.
     Well... except for `config, editor, help, install, update, version, env, logs` because there's not point for those to
     have flags like that.
 1. ***About FreeBSD***: I really tried but didn't get the `gnu-getopt` to work. `rescript` will still work but using only short options.
-1. ***Other miscelaneous improvements***: simplify functions to use or re-use existing code/commands. For example, now the automatic function will use other functions
+1. ***Other miscellaneous improvements***: simplify functions to use or re-use existing code/commands. For example, now the automatic function will use other functions
     such as the backup, cleanup, info functions and so on. There was a lot of repeated code, so now it will make use of the existing one. Re-using commands/code makes functions like
-    `archive` are a bit faster since instead of checking for snapshots a couple of times, now it just does it two times and then use the ouptut of those two commands to proceed
+    `archive` are a bit faster since instead of checking for snapshots a couple of times, now it just does it two times and then use the output of those two commands to proceed
     and verify the output, and retrieve the information needed to know if it will proceed or not. This makes the function a little bit faster than before.
 
 **Note about `cron`**:
@@ -546,7 +558,7 @@ doing the "trick" for the command to run. If you are not having any problem at a
    "SKIP_OFFICE" to "yes" so when a backup is performed the "Office" documents
    in use at the moment will be excluded for this unique snapshot. Why exclude
    open documents? When restic is backing up at the moment an "Office Document" is
-   open, there is a posibility that restic saves a truncated/damaged file. For more
+   open, there is a possibility that restic saves a truncated/damaged file. For more
    about this subject check [this thread](https://forum.restic.net/t/excluding-in-use-files-necessary/1476)
    in the restic forum.
 3. Added `env` command. This command will display variable values in your configuration file.
@@ -577,7 +589,7 @@ doing the "trick" for the command to run. If you are not having any problem at a
    in the snapshot 1 but it was deleted after that snapshot, so snapshot 2 does not
    have the "ImportantFile.txt"; `archive` took care of it and saved it to the
    special "archive" snapshot. That is expected. Then the file was restored and edited
-   and after that a snapshot 3 happened. For some misterious reason the file was deleted
+   and after that a snapshot 3 happened. For some mysterious reason the file was deleted
    again and when restic took snapshot 4 the file was missing, so `archive` do its work
    again. You would think that now "archive" snapshot contains the latest "ImportantFile.txt"
    version, but that is not true; the file is in there but is the oldest version. Why this
@@ -588,7 +600,7 @@ doing the "trick" for the command to run. If you are not having any problem at a
    rsync -a /path/to/old/snapshot/* /tmp/archive
    ```
 
-   In theory it was working but for this specific unsusual behaviour it was taking
+   In theory it was working but for this specific unusual behaviour it was taking
    old files and deleting the new ones. Now rsync will execute twice and it will sync
    the old snapshot first and then the new one, so all newly edited files would be
    there but it needs to create a new directory instead of 2, which at the end are deleted;
@@ -638,9 +650,9 @@ doing the "trick" for the command to run. If you are not having any problem at a
    to use this function; the script will not display any errors but it will not work correctly.
 4. Added flags `-a, --archive` to `backup` and `cleanup` commands.
 5. Added `-e, --exec` to `mounter` so you could pass flags like `--allow-other, --allow-root, --host, --path`
-   and others but it is sill using tha variables in your configuragion file.
+   and others but it is sill using tha variables in your configuration file.
 6. Added `-e, --exec` to `backup` so you could pass flags like `--no-lock, --no-cache`
-   and others but it is sill using tha variables in your configuragion file.
+   and others but it is sill using tha variables in your configuration file.
 7. Fixed `stats` output for the "automatic" function, so now will display the hostname and use
    `restic stats --host [hostname]` for original and deduplicated size for latest snapshot.
 8. Fixed `changes` command. Now if there is no host, path, tag, etc., it will display
@@ -703,7 +715,7 @@ doing the "trick" for the command to run. If you are not having any problem at a
 
 1. Changes in the editor menu that removes a bit part of the menu code making
    it a little bit simple. This change remove the need to use `sudo rescript editor`
-   when the script is istalled in `/usr/bin`. There is also a new `.deb` package
+   when the script is installed in `/usr/bin`. There is also a new `.deb` package
    for an easier installation that you can find in the [release page](https://github.com/sulfuror/rescript-sh/releases).
 
 ## v.3.6
@@ -762,7 +774,7 @@ doing the "trick" for the command to run. If you are not having any problem at a
 8. Change function for displaying the next `cleanup` time (it doesn't change the behavior,
    just simplify the code a little bit).
 9. Added an array for keep policies to improve script behaviour preventing it to
-   pass unneded blank keep policies (see point number 3).
+   pass unneeded blank keep policies (see point number 3).
 10. Added new message if CLEAN is greater than 0 and keep policies are not set.
 11. An error message was being displayed if the "datefile" was deleted from the `config` directory.
     Added code to create one if CLEAN if greater than 0 so it doesn't display the
@@ -803,7 +815,7 @@ doing the "trick" for the command to run. If you are not having any problem at a
    display this output unless specified; version 3.3 displays the output for all
    commands automatically even when it doesn't make any sense. This flag must be
    indicated before any command and it can be combined with `--log`.
-3. Changed the behavior for `--log` flag; for version 3.3 and erlier this flag
+3. Changed the behavior for `--log` flag; for version 3.3 and earlier this flag
    was only available for `rescript` commands. Changing the behavior means that
    from now on it will be indicated before any commands and options and now it can
    be used for `restic` commands too and it can be combined with `--time`.
@@ -845,7 +857,7 @@ alone.
 
 1. Fixed some issues with the output with Mac OS and FreeBSD when displaying the
    Operating System.
-2. Fixed some issues with the ouptput when running the `automatic` function for
+2. Fixed some issues with the output when running the `automatic` function for
    FreeBSD and Mac OS.
 
 **To do**:
@@ -904,7 +916,7 @@ Now the script use functions, a whole new menu in `config`, new commands and fla
 1. Added dialog when you run `rescript config` to choose the text editor and
    open configuration files.
 2. Fixed `logs` command when running `--list` or `--remove`. From now on if your
-   `recript` instance doesn't have any log it will display a message telling you
+   `rescript` instance doesn't have any log it will display a message telling you
    that there are not any log files to list or remove.
 
 ## v.1.9
@@ -992,7 +1004,7 @@ except for `-r` (restore). The only restic commands that are not "available"
    restic (I consider this a fix too because to display the restic
    help is not the best approach because commands may vary).
 3. Added "flags" for "user options". Now every user option have its
-   own "--help" flag wich will display how to use every option.
+   own "--help" flag which will display how to use every option.
    Also, added the ability to pass restic options for those "user
    options" (all explained in the `--help` flag).
 
@@ -1027,7 +1039,7 @@ options that I mostly use to make my life easier.
    saying that it will be run "on the next run". Also, if you have not
    set the "CLEAN" variable it will display an explanation on how to do it
    and give you the "usage" link for more information.
-6. Any atempt to pass an "User Option" (requires one argument) will tell you
+6. Any attempt to pass an "User Option" (requires one argument) will tell you
    that "No argument value was indicated for..." the option you chose and it will
    display the "help".
 7. The "cleanup" process was changed a little to display the days, hours or minutes

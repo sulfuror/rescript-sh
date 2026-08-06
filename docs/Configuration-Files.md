@@ -35,7 +35,7 @@ rescript config --global
 * `KEEP_TAG=""`: Indicate the tag you want to keep; for example, if you have one specific
    snapshot that you want to keep forever, you can tag that snapshot with `keep-forever`
    and then put the `keep-forever` tag inside the "" for this variable so next `cleanup` onwards
-   it will pass this specfic policy and keep all snapshots with this tag.
+   it will pass this specific policy and keep all snapshots with this tag.
 
 ### Optional variables
 

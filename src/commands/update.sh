@@ -9,7 +9,7 @@ function update {
     echo ""
     echo "[$repo] works with [curl] to download the updated script."
     echo "Please, install [curl] to proceed."
-    exit
+    exit 1
   fi
 
   echo "Checking for the latest official release..."
@@ -45,7 +45,7 @@ function update {
         if [[ $rescript_bin == /usr/bin/rescript || $rescript_bin == /bin/rescript || $rescript_bin == /usr/local/bin/rescript ]] ; then
           if [[ "$(whoami)" = "root" ]] ; then
             mv "$rescript_latest" "$rescript_bin"
-            echo "Rescript have been updated to the latest version!"
+            echo "Rescript has been updated to the latest version!"
             read -rp "Do you want to install/update the bash autocomplete feature? (y/N): " ans_auto
             if [[ "$ans_auto" =~ ^[Yy] ]]; then
               "$rescript_bin" install --autocomplete-only
@@ -62,7 +62,7 @@ function update {
         else
           chmod 700 "$rescript_latest"
           mv "$rescript_latest" "$rescript_bin"
-          echo "Rescript have been updated to the latest version!"
+          echo "Rescript has been updated to the latest version!"
           read -rp "Do you want to install/update the bash autocomplete feature? (y/N): " ans_auto
           if [[ "$ans_auto" =~ ^[Yy] ]]; then
             "$rescript_bin" install --autocomplete-only

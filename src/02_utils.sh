@@ -12,7 +12,7 @@ function show_cursor {
 
 function handle_interrupt {
   echo ""
-  echo "################ Proccess interrupted ################"
+  echo "################ Process interrupted ################"
   echo ""
   exit 130
 }
@@ -32,9 +32,9 @@ rescript_editor="$(cat "$config_dir/.editor")"
 # Set PATH so it includes user's private bin if it exists (cron jobs may require this)
 PATH="$HOME/bin:$HOME/.local/bin:$PATH"
 
-tput_columns=$(tput cols 2>/dev/null)
+tput_columns=$(tput cols 2>/dev/null || echo "")
 
-if [[ "$tput_columns" -gt "0" ]] ; then
+if [[ -n "$tput_columns" && "$tput_columns" -gt "0" ]] ; then
   cols="$tput_columns"
 else
   cols="80"
@@ -59,7 +59,8 @@ function array_contains {
 
 function print_line {
   local char=${1:--}
-  local cols=$(tput cols 2>/dev/null || echo 80)
+  local cols
+  cols=$(tput cols 2>/dev/null || echo 80)
   [[ -z "$cols" || ! "$cols" =~ ^[0-9]+$ ]] && cols=80
   
   local line=""
@@ -191,7 +192,8 @@ function print_context {
     backup|automatic)
       printf "  ${c_white}%-15s${c_reset}: ${c_cyan}%s${c_reset}\n" "Backup Source" "${BACKUP_DIR[*]}"
       local excl_count
-      excl_count=$(grep -E -v -c '(^#|^\s*$|^\s*\t*#)' "$excludes" 2>/dev/null || echo 0)
+      excl_count=$(grep -E -v -c '(^#|^\s*$|^\s*\t*#)' "$excludes" 2>/dev/null || true)
+      excl_count="${excl_count:-0}"
       if [[ "$excl_count" -gt 0 ]] ; then
         printf "  ${c_white}%-15s${c_reset}: ${c_cyan}%s${c_reset}\n" "Exclusions" "$excl_count rules applied"
       fi
@@ -230,7 +232,8 @@ function job_done {
     return 0
   fi
 
-  local success_msg="✅ rescript: [$repo] $cmd finished successfully on [$(hostname)]!"
+  local success_msg
+  success_msg="✅ rescript: [$repo] $cmd finished successfully on [$(hostname)]!"
 
   if [[ "${CONFIRMATION_EMAIL:-}" = "y" || "${CONFIRMATION_EMAIL:-}" = "yes" ]] ; then
     _send_email "$success_msg"
@@ -257,7 +260,8 @@ function report_errors {
       echo -e "${c_red}${c_white}WARNING!${c_reset}"
       echo -e "${c_red}$error_message${c_reset}"
     fi
-    local error_msg="❌ rescript: [$repo] $cmd failed on [$(hostname)]!"
+    local error_msg
+    error_msg="❌ rescript: [$repo] $cmd failed on [$(hostname)]!"
     _send_email "$error_msg"
     _send_webhook "$error_msg"
   fi
@@ -439,7 +443,8 @@ function run_with_spinner {
   printf "%b " "$label"
   
   # Execute the command in the background, suppressing stdout/stderr
-  eval "$cmd" > /dev/null 2>&1 &
+  local err_file="/tmp/rescript_hook_err_$$"
+  bash -c "$cmd" > "$err_file" 2>&1 &
   local pid=$!
   
   local spin='-\|/'
@@ -461,7 +466,13 @@ function run_with_spinner {
     printf "\r%b %bDone!%b \n" "$label" "$c_green" "$c_reset"
   else
     printf "\r%b %bFailed!%b \n" "$label" "$c_red" "$c_reset"
+    if [[ -s "$err_file" ]]; then
+      echo -e "${c_yellow}--- Error Output ---${c_reset}"
+      cat "$err_file"
+      echo -e "${c_yellow}--------------------${c_reset}"
+    fi
   fi
+  rm -f "$err_file"
   
   return $exit_code
 }
@@ -516,7 +527,8 @@ function rescript_lock {
     latest_error
   else
     touch "$lock"
-    trap 'rm -rf "${lock:?}" ; rm -rf "${tmplog:?}"' INT QUIT TERM EXIT
+    trap 'rm -f "${lock:?}" "${tmplog:?}" 2>/dev/null; handle_interrupt' INT QUIT TERM
+    trap 'rm -f "${lock:?}" "${tmplog:?}" 2>/dev/null' EXIT
     rescript_lock_created="true"
   fi
 }
@@ -535,11 +547,13 @@ function debug_stop {
 
 function set_sim_flag {
   local cmd_name="${1:-}"
-  local default_flag="${2:-}"
-  sim_flag="$default_flag"
+  sim_flags=()
+  if [[ -n "${2:-}" ]]; then
+    sim_flags=( "$2" )
+  fi
   if [[ "$simulate_flag" == "true" ]]; then
     echo -e "${c_yellow}SIMULATE: $cmd_name running in dry-run mode.${c_reset}"
-    sim_flag="--dry-run"
+    sim_flags=( --dry-run )
   fi
 }
 
