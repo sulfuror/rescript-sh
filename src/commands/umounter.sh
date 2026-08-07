@@ -3,6 +3,12 @@
 # ============================================================== #
 
 function umounter {
+  if [[ ${#rest[@]} -gt 0 ]]; then
+    echo "Invalid option [${rest[0]}]..."
+    echo ""
+    umounter-help
+    exit 1
+  fi
   rescript_lock
   debug_start
   local pid_file="/tmp/rescript_mount_${repo}.pid"

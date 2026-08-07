@@ -3,6 +3,12 @@
 # ============================================================== #
 
 function cleanup-next {
+  if [[ ${#rest[@]} -gt 0 ]]; then
+    echo "Invalid option [${rest[0]}]..."
+    echo ""
+    next-help
+    exit 1
+  fi
   if [[ ! -f "$config_dir/$repo-datefile" ]] ; then
     touch "$config_dir/$repo-datefile"
   fi
