@@ -2,7 +2,7 @@
 
 ## [Unreleased]
 
-### Pending Release
+## v7.1.0
 
 #### ✨ Features
 
