@@ -200,12 +200,9 @@ case "$cmd" in
       shift
     done
     if [[ -z "${CLEAN:-}" ]] ; then
-      echo "You have not indicated any policy for the CLEAN value..."
-      echo "The script will run check, forget and prune every time it runs"
-      echo "unless you change the CLEAN variable at the beginning of this script."
-      echo "The number indicated in the CLEAN variable must be in days."
-      echo "For more information about the usage check out the following link:"
-      echo "https://github.com/sulfuror/rescript-sh/blob/master/README.md#usage"
+      echo "You have not configured a policy for the CLEAN variable..."
+      echo "For more information, please visit:"
+      echo "https://github.com/sulfuror/rescript-sh/wiki/Configuration-Files#optional-variables"
     else
       cleanup-next
     fi

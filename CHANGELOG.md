@@ -6,6 +6,7 @@
 
 #### ✨ Features
 
+* **Strict Mode Argument Parsing:** The entire CLI architecture has been hardened to robustly validate global and command-specific flags across all native Rescript commands (like `next`, `umounter`, `unlocker`). Unrecognized options now cleanly throw an "Invalid option" error rather than being silently ignored or causing undefined behavior.
 * **Install Command:** Improved UX for system-wide installation by dynamically requesting `sudo` elevation with an informative message instead of abruptly exiting when executed by a standard user.
 * **Uninstall Command:** Added a pre-uninstallation validation check to prevent accidental execution when the chosen installation scope does not match the actual installation state. Also implemented dynamic `sudo` request for system-wide removals.
 * **Update Command:** The self-updater now dynamically requests `sudo` for system-wide installations instead of halting the process.
