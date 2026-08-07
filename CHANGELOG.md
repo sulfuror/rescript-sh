@@ -23,6 +23,7 @@
 
 * **Commands Restructure:** Modularized the internal architecture further. Rescript commands (including `config`, `editor`, and `init`) now have their own dedicated files inside `src/commands/`.
 * **Core Cleanup:** Migrated internal utilities out of the commands directory into `02_utils.sh` to ensure `src/commands/` focuses on user-accessible CLI actions.
+* **Minimalist Configuration:** Cleaned up `global.conf` and repository configuration templates. Long inline documentation blocks were removed in favor of a direct wiki link. Cloud credentials are now commented out by default, and repository overrides were structured to cleanly mirror the global template as a quick "cheat sheet".
 * **Standardization:** Unified headers and file numbering across the `src/` directory to improve codebase navigation and build logic readability.
 * **Docs & Comments:** Updated internal file comments and eliminated legacy code artifacts to reflect the current structure.
 

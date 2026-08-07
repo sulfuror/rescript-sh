@@ -82,9 +82,11 @@ These variables are optional because the script will still work if you don't wan
 * `LOG_RETENTION=""`: Native log rotation. Set a number of days (e.g. `30`) and Rescript will automatically prune `.rescript/logs` older than that amount.
 * `PRE_CMD=""`: Arbitrary system commands to run *before* the automatic backup process (e.g. `docker stop mycontainer`).
 * `POST_CMD=""`: Arbitrary system commands to run *after* the automatic backup process completes.
+* `RESTIC_COMPRESSION="auto"`: Set to "auto", "max" or "off" to configure data compression (requires restic 0.14.0+).
+* `SHOW_SNAPS="yes"`: Set to "yes" to show a list of snapshots at the end of the backup.
+* `SHOW_STATS="yes"`: Set to "yes" to calculate and display repository stats at the end of the backup.
 
-The configuration file also has variables for B2 and AWS ID's and Keys. If not required
-just leave it blank.
+The configuration file also has variables for Cloud Credentials (AWS, Azure, B2, Google Cloud). They are commented out by default. If you are using local storage or standard SFTP, simply ignore them. If you need them, uncomment the ones for your provider and add your keys.
 
 ### Exclusions
 
