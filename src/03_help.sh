@@ -160,8 +160,6 @@ Usage:
 
 Global flags:
   -h, --help            Display usage.
-  -T, --timer           Display output with date, time and duration.
-  -W, --webhook         Force to send webhook notification with output.
 EOF
 }
 

@@ -192,7 +192,13 @@ case "$cmd" in
     ;;
   next)
     shopt -u nocasematch
-    parse_generic_args "next-help" "$@"
+    while [[ $# -gt 0 ]] ; do
+      case "$1" in
+        -h|--help) next-help ; exit 0 ;;
+        *) echo "Invalid option [$1]..." ; echo "" ; next-help ; exit 1 ;;
+      esac
+      shift
+    done
     if [[ -z "${CLEAN:-}" ]] ; then
       echo "You have not indicated any policy for the CLEAN value..."
       echo "The script will run check, forget and prune every time it runs"
@@ -265,9 +271,20 @@ case "$cmd" in
     done
     run_quietly logs
     ;;
-  mounter|umounter)
-    parse_generic_args "$cmd-help" "$@"
-    execute_with_metrics run_quietly "$cmd"
+  mounter)
+    parse_generic_args "mounter-help" "$@"
+    execute_with_metrics run_quietly mounter
+    ;;
+  umounter)
+    shopt -u nocasematch
+    while [[ $# -gt 0 ]] ; do
+      case "$1" in
+        -h|--help) umounter-help ; exit 0 ;;
+        *) echo "Invalid option [$1]..." ; echo "" ; umounter-help ; exit 1 ;;
+      esac
+      shift
+    done
+    execute_with_metrics run_quietly umounter
     ;;
   restorer)
     shopt -u nocasematch
