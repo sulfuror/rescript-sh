@@ -22,7 +22,10 @@ function global_status {
         fi
         ;;
       *)
-        shift
+        echo "Invalid option [$1]..."
+        echo ""
+        status-help
+        exit 1
         ;;
     esac
   done
