@@ -517,9 +517,6 @@ cat <<EOF
 Usage:
   rescript update
 
-If script is located in /usr/bin:
-  sudo rescript update
-
 Global flags:
   -h, --help            Display usage.
 

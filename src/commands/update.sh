@@ -43,21 +43,21 @@ function update {
     case "$updater" in
       y|yes)
         if [[ $rescript_bin == /usr/bin/rescript || $rescript_bin == /bin/rescript || $rescript_bin == /usr/local/bin/rescript ]] ; then
-          if [[ "$(whoami)" = "root" ]] ; then
-            mv "$rescript_latest" "$rescript_bin"
-            echo "Rescript has been updated to the latest version!"
-            read -rp "Do you want to install/update the bash autocomplete feature? (y/N): " ans_auto
-            if [[ "$ans_auto" =~ ^[Yy] ]]; then
-              "$rescript_bin" install --autocomplete-only
-            fi
-          else
-            echo "Rescript is located at $rescript_bin."
-            echo "To update in this location you need to run [update] again as [root]:"
+          if [[ "$(whoami)" != "root" ]] ; then
+            echo -e "\n${c_yellow}The update process modifies files in protected system directories (${rescript_bin}).${c_reset}"
+            echo "Administrative privileges are required to complete these actions."
             echo ""
-            echo "  sudo rescript update"
-            echo "" 
-            echo "Nothing done... exiting."
-            exit 0
+            echo "Please enter your sudo password to proceed."
+            echo ""
+            sudo mv "$rescript_latest" "$rescript_bin"
+          else
+            mv "$rescript_latest" "$rescript_bin"
+          fi
+
+          echo "Rescript has been updated to the latest version!"
+          read -rp "Do you want to install/update the bash autocomplete feature? (y/N): " ans_auto
+          if [[ "$ans_auto" =~ ^[Yy] ]]; then
+            "$rescript_bin" install --autocomplete-only
           fi
         else
           chmod 700 "$rescript_latest"
