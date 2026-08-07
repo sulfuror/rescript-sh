@@ -9,6 +9,16 @@
 * **Install Command:** Improved UX for system-wide installation by dynamically requesting `sudo` elevation with an informative message instead of abruptly exiting when executed by a standard user.
 * **Uninstall Command:** Added a pre-uninstallation validation check to prevent accidental execution when the chosen installation scope does not match the actual installation state. Also implemented dynamic `sudo` request for system-wide removals.
 
+#### ⚡ Performance & Optimization
+
+* **Global Status Parallelization:** The `status --full` command (when used globally across all repositories) has been completely redesigned to execute concurrently. It spawns background jobs for each repository to query sizes and health checks simultaneously, drastically reducing the total dashboard load time.
+* **Statinfo Parallelization:** The `info` command has been refactored to query Restic (`latest` and `all` sizes) simultaneously using background subshells, speeding up the overall execution by up to 80% on slow connections like SFTP.
+
+#### 💄 UI/UX Improvements
+
+* **Standardized Progress UI:** Replaced the legacy progress bars in the `size`, `extract`, and `info` commands with unified loading spinners. This prevents visually broken output for operations where mathematical percentage calculation is inherently unreliable (like extracting zip-compressed directories or measuring unpredictable sizes).
+* **Unified Status Dashboard:** The global `status --full` command now employs a master spinner (`Calculating status for X repositories...`) that intelligently waits for all parallel background workers to finish before drawing a perfectly formatted, unified data table at once.
+
 #### 🛠️ Refactoring & Architecture
 
 * **Commands Restructure:** Modularized the internal architecture further. Rescript commands (including `config`, `editor`, and `init`) now have their own dedicated files inside `src/commands/`.

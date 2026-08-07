@@ -98,8 +98,7 @@ case "$cmd" in
     ;;
   status)
     parse_generic_args status-help "$@"
-    logger
-    run_quietly global_status "${rest[@]}"
+    execute_with_metrics run_quietly global_status "${rest[@]}"
     ;;
   backup)
     shopt -u nocasematch

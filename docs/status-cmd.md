@@ -34,7 +34,7 @@ system_etc      | 1          | 2026-07-10 09:15:00
 ```bash
 rescript status --full
 ```
-*In full mode, Rescript calculates total repository sizes and runs a health check in the background. While this happens, you will see a clean loading spinner (`Calc \`) instead of raw Restic output. Once finished, the full table is printed:*
+*In full mode, Rescript calculates total repository sizes and runs a health check across all your repositories **in parallel**. This concurrent execution dramatically reduces total wait time. While this happens, you will see a unified loading spinner (`Calculating status for X repositories... \`) instead of raw Restic output. Once all background tasks finish, the full table is printed at once:*
 
 ```text
 ========================================================================================

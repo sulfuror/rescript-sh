@@ -17,7 +17,7 @@ function search {
   debug_start
   snaps_output=$(run_restic_with_retry snapshots -q)
   
-  restic find "${rest[@]}" | awk -v snaps="$snaps_output" '
+  run_restic_with_retry find "${rest[@]}" | awk -v snaps="$snaps_output" '
   BEGIN {
     n = split(snaps, lines, "\n")
     for (i=1; i<=n; i++) {

@@ -16,7 +16,7 @@ function snaps {
     fi
   done
 
-  restic snapshots --compact "${rest[@]}" | awk -v w="$cols" -v cw="${c_white}" -v cr="${c_reset}" -v cg="${c_gray}" -v gb="$group_by" '
+  run_restic_with_retry snapshots --compact "${rest[@]}" | awk -v w="$cols" -v cw="${c_white}" -v cr="${c_reset}" -v cg="${c_gray}" -v gb="$group_by" '
     { gsub(/\r/, "") }
     gb == 1 { print; next }
     /^-+$/ {

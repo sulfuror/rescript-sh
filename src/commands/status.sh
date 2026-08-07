@@ -54,50 +54,45 @@ function global_status {
     exit 0
   fi
   
-  print_line "="
-  if [[ "$full_mode" == "true" ]]; then
-    printf "${c_white}%-15s | %-10s | %-21s | %-12s | %s${c_reset}\n" "Repository" "Snapshots" "Latest Date" "Size" "Health"
-  else
-    printf "${c_white}%-15s | %-10s | %-21s${c_reset}\n" "Repository" "Snapshots" "Latest Date"
-  fi
-  print_line "="
+  local pids=()
+  local tmp_files=()
+  hide_cursor
   
   for repo in "${repos[@]}"; do
-    source_config "$config_dir/$repo.conf"
-    export RESTIC_PASSWORD
-    export RESTIC_PASSWORD_COMMAND
+    local tmp_file="/tmp/rescript_status_${repo}_$$"
+    tmp_files+=("$tmp_file")
     
-    local num_snaps=0
-    local latest_date="Never"
-    
-    local raw_snapshots
-    debug_start
-    raw_snapshots=$(restic -r "$RESTIC_REPO" snapshots 2>/dev/null || true)
-    debug_stop
-    
-    if [[ -n "$raw_snapshots" ]]; then
-      local snap_count_str
-      snap_count_str=$(echo "$raw_snapshots" | awk '/snapshots/{print $1}' | tail -n1 || true)
-      if [[ -n "$snap_count_str" && "$snap_count_str" -gt 0 ]] 2>/dev/null; then
-        num_snaps="$snap_count_str"
-        debug_start
-        latest_date=$(restic -r "$RESTIC_REPO" snapshots --latest 1 2>/dev/null | awk 'NR==3 {print $2, $3}' || true)
-        debug_stop
-      fi
-    fi
-    
-    if [[ "$full_mode" == "true" ]]; then
-      hide_cursor
-      local base_row
-      base_row=$(printf "%-15s | %-10s | %-21s | " "$repo" "$num_snaps" "$latest_date")
+    (
+      source_config "$config_dir/$repo.conf"
+      export RESTIC_PASSWORD
+      export RESTIC_PASSWORD_COMMAND
       
-      (
-        size_str="N/A"
-        health_str="${c_red}Error${c_reset}"
-        
+      local num_snaps=0
+      local latest_date="Never"
+      local size_str="N/A"
+      local health_str="${c_red}Error${c_reset}"
+      
+      local raw_snapshots
+      debug_start
+      raw_snapshots=$(run_restic_with_retry -r "$RESTIC_REPO" snapshots 2>/dev/null || true)
+      debug_stop
+      
+      if [[ -n "$raw_snapshots" ]]; then
+        local snap_count_str
+        snap_count_str=$(echo "$raw_snapshots" | awk '/snapshots/{print $1}' | tail -n1 || true)
+        if [[ -n "$snap_count_str" && "$snap_count_str" -gt 0 ]] 2>/dev/null; then
+          num_snaps="$snap_count_str"
+          debug_start
+          latest_date=$(run_restic_with_retry -r "$RESTIC_REPO" snapshots --latest 1 2>/dev/null | awk 'NR==3 {print $2, $3}' || true)
+          debug_stop
+        fi
+      fi
+      
+      if [[ "$full_mode" == "true" ]]; then
         # Stats
         debug_start
-        raw_stats=$(restic -r "$RESTIC_REPO" stats --mode raw-data 2>/dev/null)
+        local raw_stats
+        raw_stats=$(run_restic_with_retry -r "$RESTIC_REPO" stats --mode raw-data 2>/dev/null)
         debug_stop
         if [[ -n "$raw_stats" ]]; then
           local size_raw
@@ -109,38 +104,71 @@ function global_status {
         
         # Check
         debug_start
-        if restic -r "$RESTIC_REPO" check --quiet >/dev/null 2>&1; then
+        if run_restic_with_retry -r "$RESTIC_REPO" check --quiet >/dev/null 2>&1; then
           health_str="${c_green}OK${c_reset}"
         fi
         debug_stop
         
-        echo "$size_str|$health_str" > "/tmp/rescript_status_$repo"
-      ) &
-      local pid=$!
-      trap 'kill "$pid" 2>/dev/null; rm -f "/tmp/rescript_status_$repo" 2>/dev/null; exit 130' INT
-      trap 'kill "$pid" 2>/dev/null; rm -f "/tmp/rescript_status_$repo" 2>/dev/null' EXIT
-      
-      local spin='-\|/'
-      local i=0
-      while kill -0 $pid 2>/dev/null; do
-        i=$(( (i+1) % 4 ))
-        printf "\r%b %-12s | %s" "$base_row" "Calc ${spin:$i:1}" "Calc ${spin:$i:1}"
-        sleep 0.1
-      done
-      wait $pid
-      
-      local size_str="N/A"
-      local health_str="${c_red}Error${c_reset}"
-      if [[ -f "/tmp/rescript_status_$repo" ]]; then
-        IFS='|' read -r size_str health_str < "/tmp/rescript_status_$repo"
-        rm -f "/tmp/rescript_status_$repo"
+        echo "$repo|$num_snaps|$latest_date|$size_str|$health_str" > "$tmp_file"
+      else
+        echo "$repo|$num_snaps|$latest_date" > "$tmp_file"
       fi
-      
-      show_cursor
-      printf "\r%b %-12s | %b\e[K\n" "$base_row" "$size_str" "$health_str"
-      
+    ) &
+    pids+=($!)
+  done
+  
+  # Trap for all PIDs
+  # shellcheck disable=SC2064
+  trap "kill ${pids[*]} 2>/dev/null; rm -f ${tmp_files[*]} 2>/dev/null; exit 130" INT
+  
+  local spin='-\|/'
+  local i=0
+  while true; do
+    local all_done=true
+    for pid in "${pids[@]}"; do
+      if kill -0 "$pid" 2>/dev/null; then
+        all_done=false
+        break
+      fi
+    done
+    if $all_done; then break; fi
+    
+    i=$(( (i+1) % 4 ))
+    printf "\r${c_cyan}Calculating status for %d repositories... %s${c_reset}" "${#repos[@]}" "${spin:$i:1}"
+    sleep 0.1
+  done
+  
+  wait "${pids[@]}" 2>/dev/null || true
+  trap - INT
+  
+  printf "\r\e[K"
+  show_cursor
+  
+  print_line "="
+  if [[ "$full_mode" == "true" ]]; then
+    printf "${c_white}%-15s | %-10s | %-21s | %-12s | %s${c_reset}\n" "Repository" "Snapshots" "Latest Date" "Size" "Health"
+  else
+    printf "${c_white}%-15s | %-10s | %-21s${c_reset}\n" "Repository" "Snapshots" "Latest Date"
+  fi
+  print_line "="
+  
+  for repo in "${repos[@]}"; do
+    local tmp_file="/tmp/rescript_status_${repo}_$$"
+    if [[ -f "$tmp_file" ]]; then
+      if [[ "$full_mode" == "true" ]]; then
+        IFS='|' read -r r_name num_snaps latest_date size_str health_str < "$tmp_file"
+        printf "%-15s | %-10s | %-21s | %-12s | %b\n" "$repo" "$num_snaps" "$latest_date" "$size_str" "$health_str"
+      else
+        IFS='|' read -r r_name num_snaps latest_date < "$tmp_file"
+        printf "%-15s | %-10s | %-21s\n" "$repo" "$num_snaps" "$latest_date"
+      fi
+      rm -f "$tmp_file" 2>/dev/null
     else
-      printf "%-15s | %-10s | %-21s\n" "$repo" "$num_snaps" "$latest_date"
+      if [[ "$full_mode" == "true" ]]; then
+        printf "%-15s | %-10s | %-21s | %-12s | %b\n" "$repo" "Error" "Unknown" "N/A" "${c_red}Failed${c_reset}\n"
+      else
+        printf "%-15s | %-10s | %-21s\n" "$repo" "Error" "Unknown"
+      fi
     fi
   done
   print_line "="

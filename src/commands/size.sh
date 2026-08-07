@@ -23,31 +23,48 @@ function size {
   local host_args=()
   if [[ "$snapshot_id" == "latest" ]]; then
     host_args=("--host" "$target_host")
-    echo -e "${c_white}Target Host:${c_reset} ${c_cyan}${target_host}${c_reset}\n"
+    echo -e "${c_white}Target Host:${c_reset} ${c_cyan}${target_host}${c_reset}"
   else
-    echo -e "${c_white}Snapshot ID:${c_reset} ${c_cyan}${snapshot_id}${c_reset}\n"
+    echo -e "${c_white}Snapshot ID:${c_reset} ${c_cyan}${snapshot_id}${c_reset}"
   fi
   
-  print_progress "Calculating total size" 50
-  debug_start
-
+  local tmp_size="/tmp/rescript_size_$$"
+  (
+    debug_start
+    run_restic_with_retry ls -l --recursive "${host_args[@]}" "$snapshot_id" "${rest[@]}" 2>/dev/null | awk '
+      /^[-dcbp](r|-)[w|-](x|-)(r|-)[w|-](x|-)(r|-)[w|-](x|-)/ { sum += $4 }
+      END {
+        if (sum >= 1024^3) printf "%.2f GB\n", sum / (1024^3)
+        else if (sum >= 1024^2) printf "%.2f MB\n", sum / (1024^2)
+        else if (sum >= 1024) printf "%.2f KB\n", sum / 1024
+        else printf "%d B\n", sum
+      }
+    ' > "$tmp_size"
+    debug_stop
+  ) & local pid=$!
+  
+  # shellcheck disable=SC2064
+  trap "kill $pid 2>/dev/null; rm -f \"$tmp_size\" 2>/dev/null; exit 130" INT
+  
+  local spin='-\|/'
+  local i=0
+  while kill -0 $pid 2>/dev/null; do
+    i=$(( (i+1) % 4 ))
+    printf "\r${c_cyan}Calculating total size... %s${c_reset}" "${spin:$i:1}"
+    sleep 0.1
+  done
+  wait $pid
+  trap - INT
+  
   local total_size
-  total_size=$(restic ls -l --recursive "${host_args[@]}" "$snapshot_id" "${rest[@]}" 2>/dev/null | awk '
-    /^[-dcbp](r|-)[w|-](x|-)(r|-)[w|-](x|-)(r|-)[w|-](x|-)/ { sum += $4 }
-    END {
-      if (sum >= 1024^3) printf "%.2f GB\n", sum / (1024^3)
-      else if (sum >= 1024^2) printf "%.2f MB\n", sum / (1024^2)
-      else if (sum >= 1024) printf "%.2f KB\n", sum / 1024
-      else printf "%d B\n", sum
-    }
-  ' || true)
-  debug_stop
-  print_progress "Calculating total size" 100
-  echo -ne '\n'
+  total_size=$(cat "$tmp_size" 2>/dev/null)
+  rm -f "$tmp_size" 2>/dev/null
+  
+  printf "\r\e[K"
   
   if [[ -z "$total_size" || "$total_size" == "0 B" ]] ; then
     echo -e "${c_red}Path not found or empty.${c_reset}"
   else
-    echo -e "\n${c_white}Total size for [${rest[*]}] in snapshot ${snapshot_id}:${c_reset} ${c_green}${total_size}${c_reset}"
+    echo -e "${c_white}Total size for [${rest[*]}] in snapshot ${snapshot_id}:${c_reset} ${c_green}${total_size}${c_reset}"
   fi
 }

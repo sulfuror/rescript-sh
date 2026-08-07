@@ -113,35 +113,36 @@ function extract {
     debug_stop
   ) &
   local pid=$!
-  trap 'kill "$pid" 2>/dev/null; rm -f "./$dest_name" "$err_file" 2>/dev/null; exit 130' INT
-  local progress=0
+  # shellcheck disable=SC2064
+  trap "kill $pid 2>/dev/null; rm -f \"./$dest_name\" \"$err_file\" 2>/dev/null; exit 130" INT
   
+  local spin='-\|/'
+  local i=0
   while kill -0 "$pid" 2>/dev/null; do
-    print_progress "Extracting file" "$progress"
-    progress=$(( progress + 5 ))
-    if [[ $progress -ge 100 ]]; then
-      progress=0
-    fi
-    sleep 0.2
+    i=$(( (i+1) % 4 ))
+    printf "\r${c_cyan}Extracting file... %s${c_reset}" "${spin:$i:1}"
+    sleep 0.1
   done
   
   wait "$pid" || exit_code=$?
+  trap - INT
   exit_code=${exit_code:-0}
   
+  printf "\r\e[K"
+  
   if [[ $exit_code -eq 0 ]] ; then
-    print_progress "Extracting file" 100
     
     # Check if restic dumped a directory as a zip archive
     if file "./$dest_name" 2>/dev/null | grep -qi "zip archive data"; then
       if [[ ! "$dest_name" == *.zip ]]; then
         mv "./$dest_name" "./$dest_name.zip"
         dest_name="$dest_name.zip"
-        echo -ne "\n${c_green}Directory successfully extracted as a zip archive.${c_reset}\n"
+        echo -e "${c_green}Directory successfully extracted as a zip archive.${c_reset}"
       else
-        echo -ne "\n${c_green}Extraction complete.${c_reset}\n"
+        echo -e "${c_green}Extraction complete.${c_reset}"
       fi
     else
-      echo -ne "\n${c_green}Extraction complete.${c_reset}\n"
+      echo -e "${c_green}Extraction complete.${c_reset}"
     fi
     echo "Saved to: ./$dest_name"
   else
