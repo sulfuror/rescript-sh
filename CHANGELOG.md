@@ -6,6 +6,7 @@
 
 #### 🐛 Bugfixes
 
+* **Config Template Expansion:** Fixed a bug where `config_template.sh` prevented the `$HOME` variable from being natively evaluated by Bash during template creation. Config files will now correctly hardcode the user's absolute path (e.g., `/home/user`) instead of using `$HOME`, preventing critical path evaluation errors when the script is executed via `sudo` or `cron`.
 * **Global Commands Routing:** Fixed a bug where global commands (`config`, `editor`, `install`, `uninstall`, `update`, `version`) passed with a repository prefix (e.g. `rescript [repo] editor`) would fall through to the restic wrapper, resulting in an "unknown command for restic" error. These are now explicitly blocked and will display their respective help menus.
 * **Orchestrator Validation:** The `all` orchestrator now cleanly intercepts globally-scoped commands (e.g., `rescript all status`, `rescript all editor`) before iterating through repositories, immediately returning a clean error message and usage instructions.
 * **Status Flags Parsing:** The `status` command now properly routes through the global argument parser, ensuring full support for global flags like `-T` (timer) and `-M` (metadata).

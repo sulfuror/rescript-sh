@@ -21,7 +21,7 @@ rescript config --global
 * `RESTIC_PASSWORD=""`: Put your restic password.
 * `RESTIC_PASSWORD_COMMAND=""`: (v6.0+) Use an external password manager (e.g., `pass`, `bitwarden-cli`) to dynamically extract the repository password. If this is set, `RESTIC_PASSWORD` can be left empty.
 * `RESTIC_REPO=""`: Put your repository directory.
-* `BACKUP_DIR="$HOME"`: This is what you're backing up; by default is your home directory.
+* `BACKUP_DIR="/home/user"`: This is what you're backing up. By default, it automatically resolves to your absolute home directory when creating the configuration. You can use string syntax for a single path, or bash array syntax for multiple paths (e.g. `BACKUP_DIR=("/home/user/Documents" "/home/user/Pictures")`). **Important:** Always use absolute paths. Avoid using variables like `$HOME` inside your generated `.conf` files to prevent issues with cron or sudo.
 * `KEEP_LAST=""`: Indicate the number of "last" backups you want to keep.
 * `KEEP_HOURLY="8"`: Indicate the number of hourly backups you want to keep.
 * `KEEP_DAILY="7"`: Indicate the number of daily backups you want to keep.
