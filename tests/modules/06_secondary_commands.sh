@@ -41,3 +41,5 @@ run_test "Command: status (-X flag)" "$RESCRIPT status -X test"
 
 # Test Raw Restic Command with Global Rescript Flags
 run_test "Command: raw restic with global flags (check -T -M -Q)" "$RESCRIPT test check -T -M -Q"
+
+run_test "Command: version-help" "$RESCRIPT version-help"

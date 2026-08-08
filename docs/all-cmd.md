@@ -9,6 +9,9 @@ rescript all [command] [flags] ...
 - `-P, --parallel`: (v6.0+) launch all configured repositories simultaneously in the background (enforces quiet mode `-Q`).
 - `-X, --ignore-repo`: skips a specific repository during the run.
 
+### Limitations
+Global-scoped commands (such as `status`, `config`, `editor`, `update`, `install`, `uninstall`) cannot be used with the `all` orchestrator. If you attempt to run `rescript all status`, the CLI will gracefully intercept it and display an error.
+
 ### Examples
 
 **Run a sequential backup on all repositories:**

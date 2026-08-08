@@ -20,3 +20,24 @@ run_test "Orchestrator: all exclusion (--ignore-repo)" "$RESCRIPT all info --ign
 
 # Test Orchestrator executing raw commands
 run_test "Orchestrator: all raw command (check)" "$RESCRIPT all check"
+
+# Orchestrator validation for global commands (v7.1.0+)
+echo -ne " ${c_cyan}Test:${c_reset} Orchestrator rejection of global command (status) "
+eval "$RESCRIPT all status > $TEST_ENV/out_all_status.log 2>&1"
+exit_code=$?
+if [ $exit_code -ne 0 ] && grep -q "Invalid option for \[all\]" $TEST_ENV/out_all_status.log; then
+  echo -e "[${c_green}PASS${c_reset}] (Successfully rejected all status)"
+else
+  echo -e "[${c_red}FAIL${c_reset}] (Failed to reject all status)"
+  cat "$TEST_ENV/out_all_status.log"
+fi
+
+echo -ne " ${c_cyan}Test:${c_reset} Orchestrator rejection of global command (editor) "
+eval "$RESCRIPT all editor > $TEST_ENV/out_all_editor.log 2>&1"
+exit_code=$?
+if [ $exit_code -ne 0 ] && grep -q "is a global command" $TEST_ENV/out_all_editor.log; then
+  echo -e "[${c_green}PASS${c_reset}] (Successfully rejected all editor)"
+else
+  echo -e "[${c_red}FAIL${c_reset}] (Failed to reject all editor)"
+  cat "$TEST_ENV/out_all_editor.log"
+fi
