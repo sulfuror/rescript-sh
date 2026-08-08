@@ -414,23 +414,50 @@ function now_next {
 
 # UI and Progress Utilities
 
-function print_progress {
-  local label="${1:-}"
-  local percent="${2:-}"
-  local length=20
-  local fill=$(( (percent * length) / 100 ))
-  local empty=$(( length - fill ))
-  
-  printf "%-30s: [" "$label"
-  
-  if [[ $fill -gt 0 ]]; then
-    printf "%${fill}s" "" | tr ' ' '#'
+function wait_with_spinner {
+  local label="$1"
+  shift
+  local pids=("$@")
+  local spin='-\|/'
+  local i=0
+  while true; do
+    local any_running=false
+    for pid in "${pids[@]}"; do
+      kill -0 "$pid" 2>/dev/null && any_running=true && break
+    done
+    "$any_running" || break
+    i=$(( (i+1) % 4 ))
+    printf "\r${c_cyan}%s %s${c_reset}" "$label" "${spin:$i:1}"
+    sleep 0.1
+  done
+  wait "${pids[@]}" 2>/dev/null || true
+}
+
+function _require_sudo {
+  local action_desc="${1:-operation}"
+  if [[ "$(whoami)" != "root" ]]; then
+    echo -e "\n${c_yellow}The $action_desc requires elevated privileges.${c_reset}"
+    echo "Please enter your sudo password to proceed."
+    echo ""
+    return 1
   fi
-  if [[ $empty -gt 0 ]]; then
-    printf "%${empty}s" "" | tr ' ' '-'
-  fi
-  
-  printf "](%s%%)\r" "$percent"
+  return 0
+}
+
+function get_repo_list {
+  local -n _result=$1
+  shift
+  local excluded=("$@")
+  _result=()
+  for conf in "$config_dir"/*.conf; do
+    [ -e "$conf" ] || continue
+    local name
+    name=$(basename "$conf" .conf)
+    [[ "$name" == "global" ]] && continue
+    if ! array_contains "$name" "${excluded[@]}"; then
+      _result+=("$name")
+    fi
+  done
 }
 
 function run_with_spinner {
@@ -580,4 +607,50 @@ function source_config {
     exit 2
   fi
   source "$conf_file"
+}
+
+function _parse_standard_flags {
+  case "$1" in
+    -D|--debug) debug_flag="true" ; return 0 ;;
+    -E|--email) force_email="true" ; CONFIRMATION_EMAIL="y" ; return 0 ;;
+    -L|--log) log_flag="true" ; return 0 ;;
+    -M|--metadata) context_flag="true" ; return 0 ;;
+    -Q|--quiet) quiet_flag="true" ; return 0 ;;
+    -T|--timer) time_flag="true" ; return 0 ;;
+    -W|--webhook) force_webhook="true" ; CONFIRMATION_WEBHOOK="y" ; return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+function parse_generic_args {
+  local help_func="$1"
+  shift
+  while [[ $# -gt 0 ]] ; do
+    if _parse_standard_flags "$1" ; then shift ; continue ; fi
+    case "$1" in
+      -h|--help) "$help_func" ; exit 0 ;;
+      -S|--simulate) 
+        echo "[$1] is not a valid option..."
+        echo ""
+        "$help_func"
+        exit 1
+        ;;
+      --) shift ; rest+=( "$@" ) ; break ;;
+      -*) rest+=( "$1" ) ;;
+      *) rest+=( "$1" ) ;;
+    esac
+    shift
+  done
+}
+
+function run_quietly {
+  "$@"
+}
+
+function execute_with_metrics {
+  logger
+  print_context
+  time_start
+  "$@"
+  time_end
 }

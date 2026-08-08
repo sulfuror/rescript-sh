@@ -53,21 +53,6 @@ else
   echo -e "[${c_red}FAIL${c_reset}] (Output did not match expected math)"
 fi
 
-# Test print_progress calculation
-echo -ne " ${c_cyan}Test:${c_reset} print_progress math "
-cmd=$(cat << 'EOF'
-source "$DIR/01_globals.sh" >/dev/null 2>&1
-source "$DIR/02_utils.sh" >/dev/null 2>&1
-res=$(print_progress "Test" 25)
-if [[ "$res" == *"25%"* ]]; then exit 0; else exit 1; fi
-EOF
-)
-bash -c "$cmd"
-if [ $? -eq 0 ]; then
-  echo -e "[${c_green}PASS${c_reset}]"
-else
-  echo -e "[${c_red}FAIL${c_reset}]"
-fi
 
 # Test run_with_spinner to ensure it doesn't crash on simple commands
 echo -ne " ${c_cyan}Test:${c_reset} run_with_spinner basic execution "

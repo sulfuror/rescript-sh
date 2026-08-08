@@ -98,19 +98,7 @@ if [[ "${1:-}" == "all" ]]; then
     exit 1
   fi
   
-  repos=()
-  for conf in "$config_dir"/*.conf; do
-    [ -e "$conf" ] || continue
-    repo_name=$(basename "$conf" .conf)
-    
-    if [[ "$repo_name" == "global" ]]; then
-      continue
-    fi
-    
-    if ! array_contains "$repo_name" "${excluded_repos[@]}"; then
-      repos+=("$repo_name")
-    fi
-  done
+  get_repo_list repos "${excluded_repos[@]}"
   
   if [[ ${#repos[@]} -eq 0 ]]; then
     echo "No repositories found or all were excluded."
@@ -135,6 +123,20 @@ if [[ "${1:-}" == "all" ]]; then
     if [[ "$arg" == "automatic" ]]; then
       is_automatic=true
     fi
+    case "$arg" in
+      status)
+        echo "Invalid option for [all]: [$arg]..."
+        echo ""
+        status-help
+        exit 1
+        ;;
+      config|editor|install|uninstall|update|version)
+        echo "[$arg] is a global command..."
+        echo ""
+        "$arg-help"
+        exit 1
+        ;;
+    esac
   done
   
   if [[ ${#forward_args[@]} -eq 0 ]]; then
@@ -154,6 +156,7 @@ if [[ "${1:-}" == "all" ]]; then
       run_with_spinner "$PRE_CMD" "${c_cyan}Running Global PRE_CMD...${c_reset}"
       spinner_rc=$?
       if [[ $spinner_rc -ne 0 ]] ; then
+        echo -e "${c_red}The Global PRE_CMD [$PRE_CMD] has failed.${c_reset}"
         exit 1
       fi
     fi
@@ -192,6 +195,11 @@ if [[ "${1:-}" == "all" ]]; then
       echo -e "${c_yellow}SIMULATE: $POST_CMD${c_reset}"
     else
       run_with_spinner "$POST_CMD" "${c_cyan}Running Global POST_CMD...${c_reset}"
+      spinner_rc=$?
+      if [[ $spinner_rc -ne 0 ]] ; then
+        echo -e "${c_red}The Global POST_CMD [$POST_CMD] has failed.${c_reset}"
+        exit 1
+      fi
     fi
   fi
   
@@ -231,15 +239,13 @@ case "${1:-}" in
     exit 1
     ;;
   status)
-    if [[ "${2:-}" == "-h" || "${2:-}" == "--help" ]]; then
-      status-help 2>/dev/null || echo "Usage: rescript status [-F|--full] [-X|--ignore-repo <repo>]"
-      exit 0
-    fi
-    global_status "${@:2}"
+    parse_generic_args status-help "${@:2}"
+    execute_with_metrics run_quietly global_status "${rest[@]}"
     exit 0
     ;;
   config)
-    rescript_config "${@:2}"
+    parse_generic_args config-help "${@:2}"
+    execute_with_metrics run_quietly rescript_config "${rest[@]}"
     exit 0
     ;;
   editor)
@@ -399,9 +405,7 @@ export RESTIC_PASSWORD_COMMAND="${RESTIC_PASSWORD_COMMAND:-}"
 export RESTIC_COMPRESSION="${RESTIC_COMPRESSION:-auto}"
 SECONDS=0
 
-case "${2:-}" in
-  init) restic init ; exit 0 ;;
-esac
+
 
 case "${RESTIC_REPO:-}" in
   sftp*) ping_target=${RESTIC_REPO#sftp*@} ; ping_target=${ping_target%:*} ; ping -c 1 "$ping_target" > /dev/null || true ; ping_code="$?" ;;

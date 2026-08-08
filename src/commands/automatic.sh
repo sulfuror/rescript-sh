@@ -34,7 +34,7 @@ function automatic {
     *)
       echo -e "${c_cyan}Taking a Snapshot...${c_reset}" ; backup ;;
   esac
-  exclusions=$(grep -E -v -n -c '(^#|^\s*$|^\s*\t*#)' "$excludes")
+  exclusions=$(grep -E -v -n -c '(^#|^\s*$|^\s*\t*#)' "$excludes" 2>/dev/null || true)
   if [[ "$exclusions" -gt "0" ]] ; then
     echo -e "${c_green}There are $exclusions exclusion rules...${c_reset}"
   fi
@@ -57,28 +57,28 @@ function automatic {
       print_line
       cleanup-next
     else 
-        _run_auto_cleanup
-        if [[ -n "${CLEAN:-}" ]] ; then
-          clean_num="${CLEAN//[A-Za-z]/}"
-          clean_unit="${CLEAN//[0-9]/}"
-          case "$unix_name" in
-            Linux|GNU)
-              date -d "now+${CLEAN:-}" +%s 2>/dev/null > "$config_dir/$repo-datefile"
-              ;;
-            *)
-              gdate -d "now+${CLEAN:-}" +%s 2>/dev/null > "$config_dir/$repo-datefile"
-              ;;
-          esac
-          exit_code="$?"
-          if [[ "$exit_code" -gt "0" ]] ; then
-            echo -e "WARNING: \nCLEAN is set to ${CLEAN:-} in your configuration file; please use the correct syntax as follows: \n1. CLEAN=\"${CLEAN}days\"     <---setup cleanup every ${CLEAN:-} days\n2. CLEAN=\"${CLEAN}hours\"    <---setup cleanup every ${CLEAN:-} hours\n3. CLEAN=\"${CLEAN}minutes\"  <---setup cleanup every ${CLEAN:-} minutes"
-          else
-            echo -e "${c_green}Done Cleaning; Next Cleanup and Check Will Be Done in $clean_num $clean_unit...${c_reset}"
-          fi
+      _run_auto_cleanup
+      if [[ -n "${CLEAN:-}" ]] ; then
+        clean_num="${CLEAN//[A-Za-z]/}"
+        clean_unit="${CLEAN//[0-9]/}"
+        case "$unix_name" in
+          Linux|GNU)
+            date -d "now+${CLEAN:-}" +%s 2>/dev/null > "$config_dir/$repo-datefile"
+            ;;
+          *)
+            gdate -d "now+${CLEAN:-}" +%s 2>/dev/null > "$config_dir/$repo-datefile"
+            ;;
+        esac
+        local exit_code="$?"
+        if [[ "$exit_code" -gt "0" ]] ; then
+          echo -e "WARNING: \nCLEAN is set to ${CLEAN:-} in your configuration file; please use the correct syntax as follows: \n1. CLEAN=\"${CLEAN}days\"     <---setup cleanup every ${CLEAN:-} days\n2. CLEAN=\"${CLEAN}hours\"    <---setup cleanup every ${CLEAN:-} hours\n3. CLEAN=\"${CLEAN}minutes\"  <---setup cleanup every ${CLEAN:-} minutes"
+        else
+          echo -e "${c_green}Done Cleaning; Next Cleanup and Check Will Be Done in $clean_num $clean_unit...${c_reset}"
+        fi
       fi
     fi
   else 
-      _run_auto_cleanup
+    _run_auto_cleanup
   fi
   # Stats
   case "${SHOW_STATS:-}" in

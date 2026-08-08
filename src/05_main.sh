@@ -24,64 +24,7 @@ else
   shift 2
 fi
 
-function _parse_standard_flags {
-  case "$1" in
-    -D|--debug) debug_flag="true" ; return 0 ;;
-    -E|--email) force_email="true" ; CONFIRMATION_EMAIL="y" ; return 0 ;;
-    -L|--log) log_flag="true" ; return 0 ;;
-    -M|--metadata) context_flag="true" ; return 0 ;;
-    -Q|--quiet) quiet_flag="true" ; return 0 ;;
-    -T|--timer) time_flag="true" ; return 0 ;;
-    -W|--webhook) force_webhook="true" ; CONFIRMATION_WEBHOOK="y" ; return 0 ;;
-    *) return 1 ;;
-  esac
-}
 
-function parse_generic_args {
-  local help_func="$1"
-  shift
-  while [[ $# -gt 0 ]] ; do
-    if _parse_standard_flags "$1" ; then shift ; continue ; fi
-    case "$1" in
-      -h|--help) "$help_func" ; exit 0 ;;
-      -S|--simulate) 
-        echo "[$1] is not a valid option..."
-        echo ""
-        "$help_func"
-        exit 1
-        ;;
-      --) shift ; rest+=( "$@" ) ; break ;;
-      -*) rest+=( "$1" ) ;;
-      *) rest+=( "$1" ) ;;
-    esac
-    shift
-  done
-}
-
-function run_quietly {
-  "$@"
-}
-
-function execute_with_metrics {
-  logger
-  print_context
-  time_start
-  "$@"
-  time_end
-}
-
-check_flag="false"
-cleanup_flag="false"
-debug_flag="false"
-info_flag="false"
-log_flag="false"
-skip_flag="false"
-time_flag="false"
-catlogs="false"
-removelogs="false"
-quiet_flag="false"
-simulate_flag="false"
-rest=()
 
 case "$cmd" in
   automatic)
@@ -364,6 +307,12 @@ case "$cmd" in
       shift
     done
     run_quietly init
+    ;;
+  config|editor|install|uninstall|update|version)
+    echo "[$cmd] is a global command..."
+    echo ""
+    "$cmd-help"
+    exit 1
     ;;
   *)
     shopt -u nocasematch

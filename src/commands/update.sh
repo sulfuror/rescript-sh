@@ -30,9 +30,9 @@ function update {
   rescript_bin=$(command -v rescript || echo "$0")
 
   local current_version
-  current_version=$(grep '^version=' "$rescript_bin" | head -n 1 | cut -d'"' -f2 || echo "unknown")
+  current_version=$(bash -c 'source "$1" 2>/dev/null; echo "${version:-unknown}"' _ "$rescript_bin")
   local remote_version
-  remote_version=$(grep '^version=' "$rescript_latest" | head -n 1 | cut -d'"' -f2 || echo "unknown")
+  remote_version=$(bash -c 'source "$1" 2>/dev/null; echo "${version:-unknown}"' _ "$rescript_latest")
 
   if [[ "$current_version" == "$remote_version" ]] ; then
     echo "You are already running rescript $version, which is the latest version."
@@ -43,12 +43,7 @@ function update {
     case "$updater" in
       y|yes)
         if [[ $rescript_bin == /usr/bin/rescript || $rescript_bin == /bin/rescript || $rescript_bin == /usr/local/bin/rescript ]] ; then
-          if [[ "$(whoami)" != "root" ]] ; then
-            echo -e "\n${c_yellow}The update process modifies files in protected system directories (${rescript_bin}).${c_reset}"
-            echo "Administrative privileges are required to complete these actions."
-            echo ""
-            echo "Please enter your sudo password to proceed."
-            echo ""
+          if ! _require_sudo "update process"; then
             sudo mv "$rescript_latest" "$rescript_bin"
           else
             mv "$rescript_latest" "$rescript_bin"
@@ -57,7 +52,11 @@ function update {
           echo "Rescript has been updated to the latest version!"
           read -rp "Do you want to install/update the bash autocomplete feature? (y/N): " ans_auto
           if [[ "$ans_auto" =~ ^[Yy] ]]; then
-            "$rescript_bin" install --autocomplete-only
+            if [[ "$(whoami)" != "root" ]] ; then
+              sudo "$rescript_bin" install --autocomplete-only system
+            else
+              "$rescript_bin" install --autocomplete-only system
+            fi
           fi
         else
           chmod 700 "$rescript_latest"
@@ -65,7 +64,7 @@ function update {
           echo "Rescript has been updated to the latest version!"
           read -rp "Do you want to install/update the bash autocomplete feature? (y/N): " ans_auto
           if [[ "$ans_auto" =~ ^[Yy] ]]; then
-            "$rescript_bin" install --autocomplete-only
+            "$rescript_bin" install --autocomplete-only user
           fi
         fi
         ;;

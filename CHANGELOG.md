@@ -2,6 +2,21 @@
 
 ## [Unreleased]
 
+### Pending Release
+
+#### 🐛 Bugfixes
+
+* **Global Commands Routing:** Fixed a bug where global commands (`config`, `editor`, `install`, `uninstall`, `update`, `version`) passed with a repository prefix (e.g. `rescript [repo] editor`) would fall through to the restic wrapper, resulting in an "unknown command for restic" error. These are now explicitly blocked and will display their respective help menus.
+* **Orchestrator Validation:** The `all` orchestrator now cleanly intercepts globally-scoped commands (e.g., `rescript all status`, `rescript all editor`) before iterating through repositories, immediately returning a clean error message and usage instructions.
+* **Status Flags Parsing:** The `status` command now properly routes through the global argument parser, ensuring full support for global flags like `-T` (timer) and `-M` (metadata).
+* **Hooks Error Reporting:** Added explicit error warnings when `PRE_CMD` or `POST_CMD` execution fails, preventing silent failures and confusion before the script gracefully exits.
+* **Version Help Menu:** Added a missing `version-help` menu to ensure the `version` command behaves consistently with the rest of the CLI when used incorrectly.
+* **Unbound Variables:** Initialized standard global flag variables in the core script to prevent `set -u` (unbound variable) crashes during generic argument parsing.
+
+#### 💄 UI/UX Improvements
+
+* **Status Dashboard UI:** Removed the trailing separator line from the `status` dashboard tables to ensure visual consistency with the `info` command and avoid double-line rendering glitches when appending the `-T` timer block.
+
 ## v7.1.0
 
 #### ✨ Features
@@ -47,7 +62,7 @@
   * Removed unnecessary background logging (`logger`) from the interactive `logs` command, resolving an asynchronous terminal race condition where error outputs would print over the user's bash prompt after the script exited.
 * **Typo Cleanup:** Performed a massive spelling check and corrected dozens of historical typos and misspellings throughout the `CHANGELOG.md`, `03_help.sh`, `cleanup.sh` and the GitHub Wiki `docs/`.
 
-* **Email Notifications:** Overhauled the formatting for email notifications. 
+* **Email Notifications:** Overhauled the formatting for email notifications.
   * Extracted a centralized `format_log_output` function to aggressively clean ANSI escape codes (including cursor control characters) and carriage returns, eliminating the "repeated spinner lines" bug in email clients.
   * Removed redundant hardcoded legacy headers from the email body to perfectly match the clean format sent by Webhooks, relying entirely on the modern `Rescript Execution Context` block.
   * Unified the subject line strings across Webhooks and Emails.

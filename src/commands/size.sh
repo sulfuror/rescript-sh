@@ -46,18 +46,16 @@ function size {
   # shellcheck disable=SC2064
   trap "kill $pid 2>/dev/null; rm -f \"$tmp_size\" 2>/dev/null; exit 130" INT
   
-  local spin='-\|/'
-  local i=0
-  while kill -0 $pid 2>/dev/null; do
-    i=$(( (i+1) % 4 ))
-    printf "\r${c_cyan}Calculating total size... %s${c_reset}" "${spin:$i:1}"
-    sleep 0.1
-  done
-  wait $pid
+  wait_with_spinner "Calculating total size..." "$pid"
+  
+  local exit_code=0
+  wait "$pid" || exit_code=$?
   trap - INT
   
-  local total_size
-  total_size=$(cat "$tmp_size" 2>/dev/null)
+  local total_size=""
+  if [[ $exit_code -eq 0 ]]; then
+    total_size=$(cat "$tmp_size" 2>/dev/null)
+  fi
   rm -f "$tmp_size" 2>/dev/null
   
   printf "\r\e[K"

@@ -7,11 +7,12 @@ function cleanup-next {
     touch "$config_dir/$repo-datefile"
   fi
   now_next
-  result=$((next-now))
-  days=$((result / 86400))
-  hours=$(((result / 3600) % 24))
-  minutes=$(((result / 60) % 60))
-  seconds=$((result % 60))
+  local result=$((next-now))
+  local days=$((result / 86400))
+  local hours=$(((result / 3600) % 24))
+  local minutes=$(((result / 60) % 60))
+  local seconds=$((result % 60))
+  local d h m s
   if [[ "$days" = "1" ]] ; then
     d="day"
   else

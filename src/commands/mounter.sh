@@ -14,7 +14,7 @@ function mounter {
     fi
   done
 
-  rmount="$HOME/$repo-repo-$(date +%s)"
+  local rmount="$HOME/$repo-repo-$(date +%s)"
   mkdir -p "$rmount"
   
   if [[ "$bg" == "true" ]]; then

@@ -27,7 +27,6 @@ Repository      | Snapshots  | Latest Date
 home_backup     | 12         | 2026-07-14 10:00:00
 work_files      | 5          | 2026-07-13 18:30:00
 system_etc      | 1          | 2026-07-10 09:15:00
-======================================================
 ```
 
 **Full Dashboard with Advanced Stats:**
@@ -43,7 +42,6 @@ Repository      | Snapshots  | Latest Date           | Size         | Health
 home_backup     | 12         | 2026-07-14 10:00:00   | 150.45 GiB   | OK
 work_files      | 5          | 2026-07-13 18:30:00   | 12.30 GiB    | OK
 system_etc      | 1          | 2026-07-10 09:15:00   | 450.00 MiB   | OK
-========================================================================================
 ```
 
 **[⇦ Commands & Options](Commands-and-Options)**

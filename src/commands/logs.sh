@@ -57,8 +57,5 @@ function logs {
         exit 1
       fi
     fi
-  else
-    echo "Something is not right."
-    exit 1
-  fi
+    fi
 }

@@ -21,13 +21,7 @@ function statinfo {
   # shellcheck disable=SC2064
   trap "kill $pid1 $pid2 $pid3 $pid4 2>/dev/null; rm -f \"$tmp1\" \"$tmp2\" \"$tmp3\" \"$tmp4\" 2>/dev/null; exit 130" INT
   
-  local spin='-\|/'
-  local i=0
-  while kill -0 $pid1 2>/dev/null || kill -0 $pid2 2>/dev/null || kill -0 $pid3 2>/dev/null || kill -0 $pid4 2>/dev/null; do
-    i=$(( (i+1) % 4 ))
-    printf "\r${c_cyan}Calculating repo stats... %s${c_reset}" "${spin:$i:1}"
-    sleep 0.1
-  done
+  wait_with_spinner "Calculating repo stats..." "$pid1" "$pid2" "$pid3" "$pid4"
   
   wait $pid1; local e1=$?
   wait $pid2; local e2=$?

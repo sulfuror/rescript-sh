@@ -634,7 +634,24 @@ Command flags:
   -X, --ignore-repo     Exclude specific repositories (e.g. -X foo -X bar).
 
 Global flags:
+  -D, --debug           Debug script.
+  -E, --email           Force to send email with output.
   -h, --help            Display usage.
+  -L, --log             Create log file with command output.
+  -M, --metadata        Display execution context metadata.
+  -Q, --quiet           Silence output.
+  -T, --timer           Display output with date, time and duration.
+  -W, --webhook         Force to send webhook notification with output.
 
 EOF
+}
+
+function version-help {
+  echo "[version] displays the current version of the rescript wrapper."
+  echo ""
+  echo "Usage:"
+  echo "  rescript version"
+  echo ""
+  echo "Global flags:"
+  echo "  -h, --help            Display usage."
 }

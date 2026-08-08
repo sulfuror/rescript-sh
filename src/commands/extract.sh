@@ -116,17 +116,10 @@ function extract {
   # shellcheck disable=SC2064
   trap "kill $pid 2>/dev/null; rm -f \"./$dest_name\" \"$err_file\" 2>/dev/null; exit 130" INT
   
-  local spin='-\|/'
-  local i=0
-  while kill -0 "$pid" 2>/dev/null; do
-    i=$(( (i+1) % 4 ))
-    printf "\r${c_cyan}Extracting file... %s${c_reset}" "${spin:$i:1}"
-    sleep 0.1
-  done
-  
+  local exit_code=0
+  wait_with_spinner "Extracting file..." "$pid"
   wait "$pid" || exit_code=$?
   trap - INT
-  exit_code=${exit_code:-0}
   
   printf "\r\e[K"
   

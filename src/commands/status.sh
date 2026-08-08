@@ -40,16 +40,7 @@ function global_status {
   if [[ -n "${repo:-}" && "${repo:-}" != "global" && -f "$config_dir/$repo.conf" ]]; then
     repos=("$repo")
   else
-    for conf in "$config_dir"/*.conf; do
-      [ -e "$conf" ] || continue
-      local r_name
-      r_name=$(basename "$conf" .conf)
-      if [[ "$r_name" != "global" ]]; then
-        if ! array_contains "$r_name" "${excluded_repos[@]}"; then
-          repos+=("$r_name")
-        fi
-      fi
-    done
+    get_repo_list repos "${excluded_repos[@]}"
   fi
   
   if [[ ${#repos[@]} -eq 0 ]]; then
@@ -124,22 +115,7 @@ function global_status {
   # shellcheck disable=SC2064
   trap "kill ${pids[*]} 2>/dev/null; rm -f ${tmp_files[*]} 2>/dev/null; exit 130" INT
   
-  local spin='-\|/'
-  local i=0
-  while true; do
-    local all_done=true
-    for pid in "${pids[@]}"; do
-      if kill -0 "$pid" 2>/dev/null; then
-        all_done=false
-        break
-      fi
-    done
-    if $all_done; then break; fi
-    
-    i=$(( (i+1) % 4 ))
-    printf "\r${c_cyan}Calculating status for %d repositories... %s${c_reset}" "${#repos[@]}" "${spin:$i:1}"
-    sleep 0.1
-  done
+  wait_with_spinner "Calculating status for ${#repos[@]} repositories..." "${pids[@]}"
   
   wait "${pids[@]}" 2>/dev/null || true
   trap - INT
@@ -160,10 +136,10 @@ function global_status {
     if [[ -f "$tmp_file" ]]; then
       if [[ "$full_mode" == "true" ]]; then
         IFS='|' read -r r_name num_snaps latest_date size_str health_str < "$tmp_file"
-        printf "%-15s | %-10s | %-21s | %-12s | %b\n" "$repo" "$num_snaps" "$latest_date" "$size_str" "$health_str"
+        printf "%-15s | %-10s | %-21s | %-12s | %b\n" "$r_name" "$num_snaps" "$latest_date" "$size_str" "$health_str"
       else
         IFS='|' read -r r_name num_snaps latest_date < "$tmp_file"
-        printf "%-15s | %-10s | %-21s\n" "$repo" "$num_snaps" "$latest_date"
+        printf "%-15s | %-10s | %-21s\n" "$r_name" "$num_snaps" "$latest_date"
       fi
       rm -f "$tmp_file" 2>/dev/null
     else
@@ -174,5 +150,4 @@ function global_status {
       fi
     fi
   done
-  print_line "="
 }

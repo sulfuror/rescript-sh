@@ -4,6 +4,7 @@
 
 function restorer {
   rescript_lock
+  declare -a restore_opts=()
   if [[ "${interactive_flag:-}" == "true" ]] ; then
     echo -e "${c_cyan}Fetching snapshot list...${c_reset}"
     mapfile -t snap_list < <(run_restic_with_retry snapshots 2>/dev/null | grep -E '^[0-9a-f]{8}')
@@ -27,13 +28,13 @@ function restorer {
     done
   elif [[ "$host_flag" ]] ; then
     restore_dir="$HOME/restore-latest-host-${host_flag}_$(date +%s)"
-    restore_opts="--host $host_flag"
+    restore_opts=("--host" "$host_flag")
   elif [[ "$path_flag" ]] ; then
     restore_dir="$HOME/restore-latest-by-path_$(date +%s)"
-    restore_opts="--path $path_flag"
+    restore_opts=("--path" "$path_flag")
   elif [[ "$tag_flag" ]] ; then
     restore_dir="$HOME/restore-latest-tag-${tag_flag}_$(date +%s)"
-    restore_opts="--tag $tag_flag"
+    restore_opts=("--tag" "$tag_flag")
   else
     restore_dir="$HOME/restore-ID-${snap_flag}_$(date +%s)"
     snap_id="$snap_flag"
@@ -51,8 +52,7 @@ function restorer {
     debug_stop
   else
     debug_start
-    # shellcheck disable=SC2086
-    run_restic_with_retry restore latest --target "$restore_dir" ${restore_opts:-} "${sim_flags[@]}"
+    run_restic_with_retry restore latest --target "$restore_dir" "${restore_opts[@]}" "${sim_flags[@]}"
     check_restic_error $?
     debug_stop
   fi

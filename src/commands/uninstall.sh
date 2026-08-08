@@ -22,19 +22,13 @@ function uninstall {
         echo "Nothing done; exiting..."
         exit 1
       fi
-      if [[ "$(whoami)" = "root" ]] ; then
+      if _require_sudo "system-wide uninstallation"; then
         if [[ -f "/usr/local/bin/rescript" ]]; then rm -f "/usr/local/bin/rescript"; fi
         if [[ -f "/usr/bin/rescript" ]]; then rm -f "/usr/bin/rescript"; fi
         if [[ -f "/usr/local/etc/bash_completion.d/rescript" ]]; then rm -f "/usr/local/etc/bash_completion.d/rescript"; fi
         if [[ -f "/etc/bash_completion.d/rescript" ]]; then rm -f "/etc/bash_completion.d/rescript"; fi
         echo "System-wide uninstallation successful!"
       else
-        echo ""
-        echo "System-wide uninstallation requires elevated privileges"
-        echo "to remove files from /usr/bin and /etc/bash_completion.d/."
-        echo ""
-        echo "Please enter your sudo password to proceed."
-        echo ""
         if [[ -f "/usr/local/bin/rescript" ]]; then sudo rm -f "/usr/local/bin/rescript"; fi
         if [[ -f "/usr/bin/rescript" ]]; then sudo rm -f "/usr/bin/rescript"; fi
         if [[ -f "/usr/local/etc/bash_completion.d/rescript" ]]; then sudo rm -f "/usr/local/etc/bash_completion.d/rescript"; fi

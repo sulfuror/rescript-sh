@@ -105,7 +105,7 @@ _rescript_completions() {
   fi
 
   if [[ "$cur" == -* ]]; then
-    local all_flags="-C --check -D --debug -E --email -F --full -H --host -I --info -L --log -M --metadata -O --skip-office -P --path -Q --quiet -R --remove -S --simulate -T --tag --timer -U --cleanup -V --var --view -W --webhook -X --exclude -Z --snapshot -g --global -h --help -i --interactive --ignore-case --reset --wizard --version"
+    local all_flags="-C --check -D --debug -E --email -F --full -H --host -I --info -L --log -M --metadata -O --skip-office -P --path --parallel -Q --quiet -R --remove -S --simulate -T --tag --timer -U --cleanup -V --var --view -W --webhook -X --exclude --ignore-repo -Z --snapshot -g --global -h --help -i --interactive --ignore-case --reset --wizard --version --autocomplete-only"
     COMPREPLY=( $(compgen -W "${all_flags}" -- "${cur}") )
     return 0
   fi
@@ -114,7 +114,7 @@ _rescript_completions() {
     if [[ "$prev" == "config" || "$prev" == "status" || "$prev" == "install" || "$prev" == "uninstall" || "$prev" == "update" || "$prev" == "editor" || "$prev" == "version" || "$prev" == "help" ]]; then
       return 0
     else
-      local repo_commands="backup cleanup diff env extract history info logs mounter next restorer search size snaps status umounter unlocker upgrade"
+      local repo_commands="automatic backup cleanup diff env extract history info init logs mounter next restorer search size snaps status umounter unlocker upgrade"
       COMPREPLY=( $(compgen -W "${repo_commands}" -- "${cur}") )
       return 0
     fi
@@ -178,7 +178,7 @@ function install {
   case "$installation" in
     1|system)
       chmod 755 "$0"
-      if [[ "$(whoami)" = "root" ]] ; then
+      if _require_sudo "system-wide installation"; then
         if [[ "$unix_name" = "Darwin" ]] ; then
           cp "$0" /usr/local/bin/rescript
           install_autocomplete "/usr/local/etc/bash_completion.d"
@@ -190,14 +190,6 @@ function install {
         echo "Run [rescript config] to configure your repository."
         exit
       else
-        echo ""
-        echo "The system-wide installation copies files to protected system"
-        echo "directories (like /usr/bin and /etc/bash_completion.d)."
-        echo "Administrative privileges are required to complete these actions."
-        echo ""
-        echo "Please enter your sudo password to proceed."
-        echo ""
-        
         if [[ "$unix_name" = "Darwin" ]] ; then
           sudo cp "$0" /usr/local/bin/rescript
           sudo /usr/local/bin/rescript install --autocomplete-only system
