@@ -24,15 +24,23 @@ function update {
 
   curl -s -L "https://github.com/sulfuror/rescript-sh/releases/download/${latest_release}/rescript" -o "$tmp_dir/rescript" || true
   rescript_latest="$tmp_dir/rescript"
-  trap 'rm -rf "$rescript_latest" 2> /dev/null' INT QUIT TERM EXIT
+  trap 'rm -rf "$rescript_latest" 2> /dev/null; cleanup_on_exit; exit 130' INT QUIT TERM
+  trap 'rm -rf "$rescript_latest" 2> /dev/null; cleanup_on_exit' EXIT
 
   local rescript_bin
   rescript_bin=$(command -v rescript || echo "$0")
 
   local current_version
-  current_version=$(bash -c 'source "$1" 2>/dev/null; echo "${version:-unknown}"' _ "$rescript_bin")
+  current_version=$("$rescript_bin" -v 2>/dev/null | awk -F': ' '/^Version/{print $2}' || true)
+  if [[ -z "$current_version" ]]; then
+    current_version=$(grep -oE '^version="[^"]+"' "$rescript_bin" 2>/dev/null | head -n 1 | cut -d'"' -f2 || echo "unknown")
+  fi
+
   local remote_version
-  remote_version=$(bash -c 'source "$1" 2>/dev/null; echo "${version:-unknown}"' _ "$rescript_latest")
+  remote_version=$("$rescript_latest" -v 2>/dev/null | awk -F': ' '/^Version/{print $2}' || true)
+  if [[ -z "$remote_version" ]]; then
+    remote_version=$(grep -oE '^version="[^"]+"' "$rescript_latest" 2>/dev/null | head -n 1 | cut -d'"' -f2 || echo "unknown")
+  fi
 
   if [[ "$current_version" == "$remote_version" ]] ; then
     echo "You are already running rescript $version, which is the latest version."
@@ -50,22 +58,16 @@ function update {
           fi
 
           echo "Rescript has been updated to the latest version!"
-          read -rp "Do you want to install/update the bash autocomplete feature? (y/N): " ans_auto
-          if [[ "$ans_auto" =~ ^[Yy] ]]; then
-            if [[ "$(whoami)" != "root" ]] ; then
-              sudo "$rescript_bin" install --autocomplete-only system
-            else
-              "$rescript_bin" install --autocomplete-only system
-            fi
+          if [[ "$(whoami)" != "root" ]] ; then
+            sudo "$rescript_bin" install --autocomplete-only system
+          else
+            "$rescript_bin" install --autocomplete-only system
           fi
         else
           chmod 700 "$rescript_latest"
           mv "$rescript_latest" "$rescript_bin"
           echo "Rescript has been updated to the latest version!"
-          read -rp "Do you want to install/update the bash autocomplete feature? (y/N): " ans_auto
-          if [[ "$ans_auto" =~ ^[Yy] ]]; then
-            "$rescript_bin" install --autocomplete-only user
-          fi
+          "$rescript_bin" install --autocomplete-only user
         fi
         ;;
       *)

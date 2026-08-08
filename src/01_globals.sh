@@ -49,17 +49,17 @@ rescript_dir="$HOME/.rescript"
 config_dir="$rescript_dir/config"
 lock_dir="$rescript_dir/lock"
 logs_dir="$rescript_dir/logs"
-tmplog=$(mktemp)
+tmp_dir="$rescript_dir/tmp"
+
 excludes="$config_dir/${1:-}-exclusions"
 lock="$lock_dir/$repo.lock"
 config_global="$config_dir/global.conf"
 config_repo="$config_dir/$repo.conf"
 unix_name=$(uname -s)
 
-if [[ -d "/tmp" ]] ; then
-  tmp_dir="/tmp"
-else
-  tmp_dir="$TMPDIR"
-fi
+# Create Session Temp Directory
+mkdir -p "$tmp_dir"
+session_tmp=$(mktemp -d "$tmp_dir/run_XXXXXX")
+tmplog="$session_tmp/tmplog"
 
 shopt -s nocasematch

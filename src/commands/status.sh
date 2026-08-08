@@ -53,7 +53,7 @@ function global_status {
   hide_cursor
   
   for repo in "${repos[@]}"; do
-    local tmp_file="/tmp/rescript_status_${repo}_$$"
+    local tmp_file="$session_tmp/status_${repo}_$$"
     tmp_files+=("$tmp_file")
     
     (
@@ -113,7 +113,7 @@ function global_status {
   
   # Trap for all PIDs
   # shellcheck disable=SC2064
-  trap "kill ${pids[*]} 2>/dev/null; rm -f ${tmp_files[*]} 2>/dev/null; exit 130" INT
+  trap "kill ${pids[*]} 2>/dev/null; cleanup_on_exit; exit 130" INT
   
   wait_with_spinner "Calculating status for ${#repos[@]} repositories..." "${pids[@]}"
   
@@ -132,7 +132,7 @@ function global_status {
   print_line "="
   
   for repo in "${repos[@]}"; do
-    local tmp_file="/tmp/rescript_status_${repo}_$$"
+    local tmp_file="$session_tmp/status_${repo}_$$"
     if [[ -f "$tmp_file" ]]; then
       if [[ "$full_mode" == "true" ]]; then
         IFS='|' read -r r_name num_snaps latest_date size_str health_str < "$tmp_file"
@@ -141,7 +141,6 @@ function global_status {
         IFS='|' read -r r_name num_snaps latest_date < "$tmp_file"
         printf "%-15s | %-10s | %-21s\n" "$r_name" "$num_snaps" "$latest_date"
       fi
-      rm -f "$tmp_file" 2>/dev/null
     else
       if [[ "$full_mode" == "true" ]]; then
         printf "%-15s | %-10s | %-21s | %-12s | %b\n" "$repo" "Error" "Unknown" "N/A" "${c_red}Failed${c_reset}\n"

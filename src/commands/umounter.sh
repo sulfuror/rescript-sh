@@ -5,16 +5,23 @@
 function umounter {
   rescript_lock
   debug_start
-  local pid_file="/tmp/rescript_mount_${repo}.pid"
+  local pid_file="$lock_dir/mount_${repo}.pid"
 
   if [[ -f "$pid_file" ]]; then
-    IFS=':' read -r pid mount_point < "$pid_file"
-    if kill -0 "$pid" 2>/dev/null; then
-      echo -e "${c_cyan}Stopping mounter process (PID: $pid)...${c_reset}"
-      kill -15 "$pid"
+    local pid_info
+    pid_info=$(cat "$pid_file" 2>/dev/null || true)
+    local mount_pid="${pid_info%%:*}"
+    local mount_point="${pid_info##*:}"
+    
+    if ! is_pid_alive "$mount_pid"; then
+      echo "INFO: Stale mount file found (PID $mount_pid is dead). Assuming already unmounted."
+      rm -f "$pid_file"
+    else
+      echo -e "${c_cyan}Stopping mounter process (PID: $mount_pid)...${c_reset}"
+      kill -15 "$mount_pid" 2>/dev/null
       sleep 1
-      if kill -0 "$pid" 2>/dev/null; then
-        kill -9 "$pid"
+      if is_pid_alive "$mount_pid"; then
+        kill -9 "$mount_pid" 2>/dev/null
       fi
       echo -e "${c_green}Mounter process stopped.${c_reset}"
     fi

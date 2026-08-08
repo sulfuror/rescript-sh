@@ -106,7 +106,7 @@ function extract {
   
   local restic_args=( "dump" "-a" "zip" "$snap_id" "$file" "${extract_rest[@]}" )
   
-  local err_file="/tmp/rescript_extract_err_$$"
+  local err_file="$session_tmp/extract_err"
   (
     debug_start
     run_restic_with_retry "${restic_args[@]}" > "./$dest_name" 2> "$err_file"
@@ -114,7 +114,7 @@ function extract {
   ) &
   local pid=$!
   # shellcheck disable=SC2064
-  trap "kill $pid 2>/dev/null; rm -f \"./$dest_name\" \"$err_file\" 2>/dev/null; exit 130" INT
+  trap "kill $pid 2>/dev/null; cleanup_on_exit; exit 130" INT
   
   local exit_code=0
   wait_with_spinner "Extracting file..." "$pid"
@@ -143,5 +143,5 @@ function extract {
     cat "$err_file" 2>/dev/null
     rm -f "./$dest_name"
   fi
-  rm -f "$err_file"
+  
 }

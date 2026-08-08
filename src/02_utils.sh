@@ -16,8 +16,26 @@ function handle_interrupt {
   echo ""
   exit 130
 }
+function cleanup_on_exit {
+  if [[ "${rescript_lock_created:-}" == "true" ]]; then
+    rm -f "${lock:?}" 2>/dev/null
+  fi
+  if [[ -n "${tmplog:-}" ]]; then rm -f "${tmplog:?}" 2>/dev/null; fi
+  if [[ -n "${session_tmp:-}" && -d "$session_tmp" ]]; then
+    rm -rf "${session_tmp:?}" 2>/dev/null
+  fi
+}
 
-trap handle_interrupt INT HUP QUIT
+function is_pid_alive {
+  local target_pid="$1"
+  if [[ -n "$target_pid" ]] && kill -0 "$target_pid" 2>/dev/null; then
+    return 0
+  fi
+  return 1
+}
+
+trap 'cleanup_on_exit; handle_interrupt' INT HUP QUIT TERM
+trap 'cleanup_on_exit' EXIT
 
 # Create the rescript directories if they are not present
 mkdir -p "$rescript_dir" "$config_dir" "$lock_dir" "$logs_dir"
@@ -93,7 +111,7 @@ function _send_email {
           catlog=$(format_log_output "$tmplog")
         fi
         local mail_err
-        mail_err=$(mktemp)
+        local mail_err="$session_tmp/mail_err"
         local mail_status=0
         
         echo -e "${logmessage}\n${catlog}" | mail -s "$subject" "$EMAIL" 2> "$mail_err" || mail_status=$?
@@ -101,7 +119,6 @@ function _send_email {
         if [[ $mail_status -ne 0 ]]; then
           echo -e "\n${c_yellow}WARNING: Rescript could not send the email. Make sure your system's mail agent (MTA) is installed and configured correctly.${c_reset}"
         fi
-        rm -f "$mail_err"
       fi
     else
       echo "[rescript] can't send emails; install [mailutils] package to do so."
@@ -128,7 +145,7 @@ function _send_webhook {
         fi
         
         if [[ -n "$target_log" ]]; then
-          attach_file="/tmp/rescript_webhook_$$.txt"
+          attach_file="$session_tmp/webhook_$$.txt"
           format_log_output "$target_log" > "$attach_file"
           
           curl -s -X POST -F "payload_json={\"content\": \"**$subject**\"}" -F "file=@$attach_file" "$WEBHOOK_URL" >/dev/null 2>&1 || true
@@ -436,9 +453,12 @@ function wait_with_spinner {
 function _require_sudo {
   local action_desc="${1:-operation}"
   if [[ "$(whoami)" != "root" ]]; then
-    echo -e "\n${c_yellow}The $action_desc requires elevated privileges.${c_reset}"
-    echo "Please enter your sudo password to proceed."
-    echo ""
+    # Check if sudo requires a password
+    if ! sudo -n true 2>/dev/null; then
+      echo -e "\n${c_yellow}The $action_desc requires elevated privileges.${c_reset}"
+      echo "Please enter your sudo password to proceed."
+      echo ""
+    fi
     return 1
   fi
   return 0
@@ -470,7 +490,7 @@ function run_with_spinner {
   printf "%b " "$label"
   
   # Execute the command in the background, suppressing stdout/stderr
-  local err_file="/tmp/rescript_hook_err_$$"
+  local err_file="$session_tmp/hook_err"
   bash -c "$cmd" > "$err_file" 2>&1 &
   local pid=$!
   
@@ -499,7 +519,7 @@ function run_with_spinner {
       echo -e "${c_yellow}--------------------${c_reset}"
     fi
   fi
-  rm -f "$err_file"
+  
   
   return $exit_code
 }
@@ -540,23 +560,34 @@ function time_end {
 function rescript_lock {
   if [[ "${rescript_lock_created:-}" == "true" ]]; then return 0; fi
   if [ -e "$lock" ]; then
-    echo "WARNING: [$repo] repo is already running..."
-    echo "If you are sure $repo is not running, type"
-    echo " "
-    echo "  rescript $repo unlocker"
-    echo " "
-    echo "This will remove the lock for [$repo] repository."
-    echo ""
-    echo "Lock file info:"
-    stat "$lock_dir/$repo.lock"
-    latest_cmd="$cmd"
-    exit_code="1"
-    latest_error
-  else
-    touch "$lock"
-    trap 'rm -f "${lock:?}" "${tmplog:?}" 2>/dev/null; handle_interrupt' INT QUIT TERM
-    trap 'rm -f "${lock:?}" "${tmplog:?}" 2>/dev/null' EXIT
+    local existing_pid=""
+    existing_pid=$(cat "$lock" 2>/dev/null || true)
+    
+    if is_pid_alive "$existing_pid"; then
+      echo "WARNING: [$repo] repo is already running (PID: $existing_pid)..."
+      echo "If you are sure $repo is not running, type"
+      echo " "
+      echo "  rescript $repo unlocker"
+      echo " "
+      echo "This will remove the lock for [$repo] repository."
+      latest_cmd="$cmd"
+      exit_code="1"
+      latest_error
+    else
+      echo "INFO: Found stale lock file for [$repo] (PID: $existing_pid is dead). Overwriting..."
+      rm -f "$lock" 2>/dev/null
+    fi
+  fi
+  
+  # Atomic lock creation with PID
+  set -C
+  if echo "$$" > "$lock" 2>/dev/null; then
+    set +C
     rescript_lock_created="true"
+  else
+    set +C
+    echo "ERROR: Failed to acquire lock for [$repo]."
+    exit 1
   fi
 }
 

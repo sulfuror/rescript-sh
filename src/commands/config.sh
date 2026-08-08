@@ -68,7 +68,8 @@ function edit_config_files {
 function new_config_file {
   new_repo="$config_dir/.new"
   touch "$new_repo"
-  trap 'rm -f "$new_repo"' INT QUIT TERM EXIT
+  trap 'rm -f "$new_repo" 2>/dev/null; cleanup_on_exit; exit 130' INT QUIT TERM
+  trap 'rm -f "$new_repo" 2>/dev/null; cleanup_on_exit' EXIT
   config_file > "$new_repo"
   chmod 600 "$new_repo"
   read -rp "Write the name for your new repository (case sensitive): " repo_name

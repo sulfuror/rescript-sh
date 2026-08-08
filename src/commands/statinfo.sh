@@ -6,10 +6,10 @@ function statinfo {
   local target_host="${host_flag:-$rhost}"
   hide_cursor
   
-  local tmp1="/tmp/rescript_stat1_$$"
-  local tmp2="/tmp/rescript_stat2_$$"
-  local tmp3="/tmp/rescript_stat3_$$"
-  local tmp4="/tmp/rescript_stat4_$$"
+  local tmp1="$session_tmp/stat1"
+  local tmp2="$session_tmp/stat2"
+  local tmp3="$session_tmp/stat3"
+  local tmp4="$session_tmp/stat4"
   
   debug_start
   ( run_restic_with_retry stats --host "$target_host" latest > "$tmp1" 2>/dev/null ) & local pid1=$!
@@ -19,7 +19,7 @@ function statinfo {
   debug_stop
 
   # shellcheck disable=SC2064
-  trap "kill $pid1 $pid2 $pid3 $pid4 2>/dev/null; rm -f \"$tmp1\" \"$tmp2\" \"$tmp3\" \"$tmp4\" 2>/dev/null; exit 130" INT
+  trap "kill $pid1 $pid2 $pid3 $pid4 2>/dev/null; cleanup_on_exit; exit 130" INT
   
   wait_with_spinner "Calculating repo stats..." "$pid1" "$pid2" "$pid3" "$pid4"
   
@@ -44,7 +44,7 @@ function statinfo {
   stat_restore_size=$(awk -F': ' '/Total Size/{print $2}' "$tmp3" 2>/dev/null || echo "N/A")
   stat_raw_data=$(awk -F': ' '/Total Size/{print $2}' "$tmp4" 2>/dev/null || echo "N/A")
   
-  rm -f "$tmp1" "$tmp2" "$tmp3" "$tmp4" 2>/dev/null
+  
   
   show_cursor
   printf "\r\e[K"

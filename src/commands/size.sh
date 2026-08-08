@@ -28,7 +28,7 @@ function size {
     echo -e "${c_white}Snapshot ID:${c_reset} ${c_cyan}${snapshot_id}${c_reset}"
   fi
   
-  local tmp_size="/tmp/rescript_size_$$"
+  local tmp_size="$session_tmp/size"
   (
     debug_start
     run_restic_with_retry ls -l --recursive "${host_args[@]}" "$snapshot_id" "${rest[@]}" 2>/dev/null | awk '
@@ -44,7 +44,7 @@ function size {
   ) & local pid=$!
   
   # shellcheck disable=SC2064
-  trap "kill $pid 2>/dev/null; rm -f \"$tmp_size\" 2>/dev/null; exit 130" INT
+  trap "kill $pid 2>/dev/null; cleanup_on_exit; exit 130" INT
   
   wait_with_spinner "Calculating total size..." "$pid"
   
@@ -56,7 +56,7 @@ function size {
   if [[ $exit_code -eq 0 ]]; then
     total_size=$(cat "$tmp_size" 2>/dev/null)
   fi
-  rm -f "$tmp_size" 2>/dev/null
+  
   
   printf "\r\e[K"
   

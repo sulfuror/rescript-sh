@@ -105,7 +105,7 @@ _rescript_completions() {
   fi
 
   if [[ "$cur" == -* ]]; then
-    local all_flags="-C --check -D --debug -E --email -F --full -H --host -I --info -L --log -M --metadata -O --skip-office -P --path --parallel -Q --quiet -R --remove -S --simulate -T --tag --timer -U --cleanup -V --var --view -W --webhook -X --exclude --ignore-repo -Z --snapshot -g --global -h --help -i --interactive --ignore-case --reset --wizard --version --autocomplete-only"
+    local all_flags="-C --check -D --debug -E --email -F --full -H --host -I --info -L --log -M --metadata -O --skip-office -P --path --parallel -Q --quiet -R --remove -S --simulate -T --tag --timer -U --cleanup -V --var --view -W --webhook -X --exclude --ignore-repo -Z --snapshot -g --global -h --help -i --interactive --ignore-case --reset --wizard --version --autocomplete-only --background"
     COMPREPLY=( $(compgen -W "${all_flags}" -- "${cur}") )
     return 0
   fi

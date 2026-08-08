@@ -6,7 +6,7 @@ rescript [repo_name] mounter [--background]
 ```
 
 ### Flags
-- `--background`: mount the repository in the background without locking your terminal session. A PID file is created in `/tmp`.
+- `--background`: mount the repository in the background without locking your terminal session. A PID file is created in `~/.rescript/lock/`.
 
 ### Examples
 

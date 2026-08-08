@@ -12,6 +12,17 @@
 * **Hooks Error Reporting:** Added explicit error warnings when `PRE_CMD` or `POST_CMD` execution fails, preventing silent failures and confusion before the script gracefully exits.
 * **Version Help Menu:** Added a missing `version-help` menu to ensure the `version` command behaves consistently with the rest of the CLI when used incorrectly.
 * **Unbound Variables:** Initialized standard global flag variables in the core script to prevent `set -u` (unbound variable) crashes during generic argument parsing.
+* **Mounter Concurrency:** Fixed a bug where `mounter --background` could be executed multiple times on the same repository, leading to orphaned background processes. It now strictly enforces a single active background mount per repository via PID locks.
+* **Mounter TTY Detachment:** Fixed a critical bug where `mounter --background` failed to detach from the terminal `stdin`, causing it to inadvertently trigger an `exit` (EOF) in the user's shell session. Background mounts now use `setsid` and `</dev/null` for complete isolation.
+* **Update Command Crash:** Fixed a silent crash in the `update` command caused by strict mode (`set -e`) killing the script when older remote versions (which didn't support the native `-v` flag) exited with an error. 
+* **Update Version Parsing:** Replaced brittle source code parsing with native binary execution (`rescript -v`) to extract the remote version safely, with a resilient fallback for older versions.
+* **Sudo Prompt Spam:** Rebuilt the `_require_sudo` utility to silently probe the OS sudo cache (`sudo -n true`) before redundantly prompting the user for a password they had already entered in the same session.
+
+#### 🛠️ Architecture & Security
+
+* **Session Temporary Directory:** Eliminated all direct usages of the OS-level `/tmp/` directory across the codebase. Rescript now dynamically spins up a secured, isolated session directory (`~/.rescript/tmp/run_XXXXX`) for all transient operations, eliminating race conditions between parallel Rescript processes.
+* **PID-Based Locking:** The legacy file-existence lock system has been upgraded to a robust PID-based tracking system. Stale lock files from abrupt crashes or server reboots are now intelligently identified (using `kill -0`) and purged automatically, removing the need to manually run `unlocker`.
+* **Universal Cleanup Trap:** Centralized all trap cleanups into a unified `cleanup_on_exit` function, ensuring that the isolated session directories, temporary log files, and active PID locks are perfectly purged regardless of whether the script succeeds, fails, or is interrupted by the user (`Ctrl+C`).
 
 #### 💄 UI/UX Improvements
 
