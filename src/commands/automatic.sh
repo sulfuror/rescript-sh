@@ -48,10 +48,7 @@ function automatic {
       ;;
   esac
   # Check and Clean Repo Based on User's Policy
-  if [[ -f "$config_dir/$repo-datefile" || -n "${CLEAN:-}" ]]; then
-    if [[ ! -f "$config_dir/$repo-datefile" ]] ; then
-      touch "$config_dir/$repo-datefile"
-    fi
+  if [[ -f "$config_dir/$repo.state" || -f "$config_dir/$repo-datefile" || -n "${CLEAN:-}" ]]; then
     now_next
     if [[ "$now" -lt "$next" ]] ; then
       print_line
@@ -61,18 +58,20 @@ function automatic {
       if [[ -n "${CLEAN:-}" ]] ; then
         clean_num="${CLEAN//[A-Za-z]/}"
         clean_unit="${CLEAN//[0-9]/}"
-        case "$unix_name" in
-          Linux|GNU)
-            date -d "now+${CLEAN:-}" +%s 2>/dev/null > "$config_dir/$repo-datefile"
-            ;;
+        local add_seconds=0
+        case "$clean_unit" in
+          days|day|d) add_seconds=$((clean_num * 86400)) ;;
+          hours|hour|h) add_seconds=$((clean_num * 3600)) ;;
+          minutes|minute|m) add_seconds=$((clean_num * 60)) ;;
+          weeks|week|w) add_seconds=$((clean_num * 604800)) ;;
+          months|month|M) add_seconds=$((clean_num * 2592000)) ;;
           *)
-            gdate -d "now+${CLEAN:-}" +%s 2>/dev/null > "$config_dir/$repo-datefile"
+            echo -e "WARNING: \nCLEAN is set to ${CLEAN:-} in your configuration file; please use the correct syntax as follows: \n1. CLEAN=\"${CLEAN}days\"\n2. CLEAN=\"${CLEAN}hours\"\n3. CLEAN=\"${CLEAN}minutes\""
             ;;
         esac
-        local exit_code="$?"
-        if [[ "$exit_code" -gt "0" ]] ; then
-          echo -e "WARNING: \nCLEAN is set to ${CLEAN:-} in your configuration file; please use the correct syntax as follows: \n1. CLEAN=\"${CLEAN}days\"     <---setup cleanup every ${CLEAN:-} days\n2. CLEAN=\"${CLEAN}hours\"    <---setup cleanup every ${CLEAN:-} hours\n3. CLEAN=\"${CLEAN}minutes\"  <---setup cleanup every ${CLEAN:-} minutes"
-        else
+        if [[ "$add_seconds" -gt 0 ]]; then
+          local next_epoch=$((now + add_seconds))
+          set_state "NEXT_CLEANUP" "$next_epoch" "$config_dir/$repo.state"
           echo -e "${c_green}Done Cleaning; Next Cleanup and Check Will Be Done in $clean_num $clean_unit...${c_reset}"
         fi
       fi

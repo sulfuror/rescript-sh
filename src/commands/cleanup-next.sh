@@ -3,9 +3,6 @@
 # ============================================================== #
 
 function cleanup-next {
-  if [[ ! -f "$config_dir/$repo-datefile" ]] ; then
-    touch "$config_dir/$repo-datefile"
-  fi
   now_next
   local result=$((next-now))
   local days=$((result / 86400))

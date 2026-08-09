@@ -21,6 +21,8 @@
 
 #### 🛠️ Architecture & Security
 
+* **State File Migration:** Replaced the legacy single-value `datefile` system with an extensible Key-Value `.state` file architecture. This allows individual repositories to persistently store multiple execution states (like `NEXT_CLEANUP`) in a single organized database file, paving the way for future automated tasks without cluttering the configuration directory.
+* **Native Date Math:** Eliminated the script's dependency on GNU `date` (`-d`) and BSD `date` (`-r`) for calculating future execution epochs. The `automatic` scheduling logic now relies entirely on pure POSIX Bash arithmetic, eliminating cross-platform compatibility issues between Linux, macOS, and BSD environments.
 * **Session Temporary Directory:** Eliminated all direct usages of the OS-level `/tmp/` directory across the codebase. Rescript now dynamically spins up a secured, isolated session directory (`~/.rescript/tmp/run_XXXXX`) for all transient operations, eliminating race conditions between parallel Rescript processes.
 * **PID-Based Locking:** The legacy file-existence lock system has been upgraded to a robust PID-based tracking system. Stale lock files from abrupt crashes or server reboots are now intelligently identified (using `kill -0`) and purged automatically, removing the need to manually run `unlocker`.
 * **Universal Cleanup Trap:** Centralized all trap cleanups into a unified `cleanup_on_exit` function, ensuring that the isolated session directories, temporary log files, and active PID locks are perfectly purged regardless of whether the script succeeds, fails, or is interrupted by the user (`Ctrl+C`).

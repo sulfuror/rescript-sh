@@ -414,16 +414,55 @@ function duration {
   esac
 }
 
+function set_state {
+  local key="$1"
+  local value="$2"
+  local state_file="$3"
+  
+  if [[ ! -f "$state_file" ]]; then
+    echo "${key}=${value}" > "$state_file"
+    return
+  fi
+  
+  grep -v "^${key}=" "$state_file" > "${state_file}.tmp" 2>/dev/null || true
+  echo "${key}=${value}" >> "${state_file}.tmp"
+  mv "${state_file}.tmp" "$state_file"
+}
+
+function get_state {
+  local key="$1"
+  local state_file="$2"
+  
+  if [[ -f "$state_file" ]]; then
+    grep "^${key}=" "$state_file" | cut -d'=' -f2
+  else
+    echo "0"
+  fi
+}
+
 function now_next {
   case "$unix_name" in
     Linux|GNU)
       now=$(date +"%s")
       ;;
     *)
-      now=$(gdate +"%s" 2>/dev/null || date +"%s")
+      now=$(date +"%s")
       ;;
   esac
-  next=$(cat "$config_dir/$repo-datefile" 2>/dev/null || echo "0")
+
+  local state_file="$config_dir/$repo.state"
+  local old_datefile="$config_dir/$repo-datefile"
+
+  # Seamless migration for existing users
+  if [[ ! -f "$state_file" && -f "$old_datefile" ]]; then
+    local old_val
+    old_val=$(cat "$old_datefile" 2>/dev/null || echo "0")
+    set_state "NEXT_CLEANUP" "$old_val" "$state_file"
+    rm -f "$old_datefile"
+  fi
+
+  next=$(get_state "NEXT_CLEANUP" "$state_file")
+  
   if ! [[ "$next" =~ ^[0-9]+$ ]] ; then
     next=0
   fi
