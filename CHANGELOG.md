@@ -1,8 +1,8 @@
 # Rescript Changelog
 
-## [Unreleased]
+## v7.1.1
 
-### Pending Release
+### August 10, 2026
 
 #### 🐛 Bugfixes
 
