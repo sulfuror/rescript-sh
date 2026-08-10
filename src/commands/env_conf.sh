@@ -7,7 +7,8 @@ function env_conf {
   local padding
 
   if [[ "${var_flag:-}" ]] ; then
-    upper_var=$(echo "${var_flag:-}" | tr '[:lower:]' '[:upper:]')
+    local upper_var="${var_flag^^}"
+    local search
     search=$(grep -E "^[[:space:]]*[A-Z0-9_]*${upper_var}[A-Z0-9_]*=" "$config_repo" || true)
     if [[ -z "$search" ]] ; then
       echo "There is no var named [$var_flag]..."

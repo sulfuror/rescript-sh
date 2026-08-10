@@ -26,7 +26,6 @@ function automatic {
   logger
   time_start
   print_context
-  context_flag="false"
   # Backup
   case "${SKIP_OFFICE:-}" in
     y|yes)
@@ -52,7 +51,7 @@ function automatic {
     now_next
     if [[ "$now" -lt "$next" ]] ; then
       print_line
-      cleanup-next
+      cleanup_next
     else 
       _run_auto_cleanup
       if [[ -n "${CLEAN:-}" ]] ; then

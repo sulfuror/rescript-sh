@@ -13,6 +13,7 @@ function extract {
   local snap_id=""
   local extract_rest=()
   local args_done=false
+  local arg
   
   for arg in "${rest[@]}"; do
     if [[ "$arg" == -* ]]; then

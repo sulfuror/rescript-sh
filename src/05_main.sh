@@ -86,12 +86,16 @@ case "$cmd" in
         -I|--info) info_flag="true" ;;
 
         --reset)
-          if [[ -f "$config_dir/$repo-datefile" ]] ; then
+          if [[ -f "$config_dir/$repo.state" ]] ; then
+            echo "Removing state file for [$repo]:"
+            rm -v "${config_dir:?}/$repo.state"
+            exit 0
+          elif [[ -f "$config_dir/$repo-datefile" ]] ; then
             echo "Removing datefile for [$repo]:"
             rm -v "${config_dir:?}/$repo-datefile"
             exit 0
           else
-            echo "There is no datefile for [$repo]... nothing to do."
+            echo "There is no state file for [$repo]... nothing to do."
             exit 0
           fi
           ;;
@@ -147,7 +151,7 @@ case "$cmd" in
       echo "For more information, please visit:"
       echo "https://github.com/sulfuror/rescript-sh/wiki/Configuration-Files#optional-variables"
     else
-      cleanup-next
+      cleanup_next
     fi
     ;;
   extract)

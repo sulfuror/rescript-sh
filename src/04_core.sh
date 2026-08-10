@@ -231,7 +231,7 @@ function _check_help_or_error {
 }
 
 case "${1:-}" in
-  backup|cleanup|diff|extract|search|init)
+  backup|cleanup|diff|extract|search|init|history|info|logs|mounter|restorer|size|snaps|umounter|unlocker)
     _check_help_or_error "${1:-}" "${2:-}"
     echo "You have not indicated any repo for [$1]..."
     echo ""
@@ -286,60 +286,7 @@ case "${1:-}" in
     uninstall
     exit
     ;;
-  history)
-    echo "You have not indicated any repo for [$1]..."
-    echo ""
-    history-help
-    exit 1
-    ;;
-  info)
-    echo "You have not indicated any repo for [$1]..."
-    echo ""
-    info-help
-    exit 1
-    ;;
-  logs)
-    echo "You have not indicated any repo for [$1]..."
-    echo ""
-    logs-help
-    exit 1
-    ;;
-  mounter)
-    echo "You have not indicated any repo for [$1]..."
-    echo ""
-    mounter-help
-    exit 1
-    ;;
-  restorer)
-    echo "You have not indicated any repo for [$1]..."
-    echo ""
-    restorer-help
-    exit 1
-    ;;
-  size)
-    echo "You have not indicated any repo for [$1]..."
-    echo ""
-    size-help
-    exit 1
-    ;;
-  snaps)
-    echo "You have not indicated any repo for [$1]..."
-    echo ""
-    snaps-help
-    exit 1
-    ;;
-  umounter)
-    echo "You have not indicated any repo for [$1]..."
-    echo ""
-    umounter-help
-    exit 1
-    ;;
-  unlocker)
-    echo "You have not indicated any repo for [$1]..."
-    echo ""
-    unlocker-help
-    exit 1
-    ;;
+
   update)
     _check_help_or_error "${1:-}" "${2:-}"
     update
@@ -408,9 +355,9 @@ SECONDS=0
 
 
 case "${RESTIC_REPO:-}" in
-  sftp*) ping_target=${RESTIC_REPO#sftp*@} ; ping_target=${ping_target%:*} ; ping -c 1 "$ping_target" > /dev/null || true ; ping_code="$?" ;;
-  rclone*) ping_target=${RESTIC_REPO#rclone:} ; rclone about "$ping_target" > /dev/null || true ; ping_code="$?" ;;
-  /*) [[ -d "$RESTIC_REPO" ]] || true ; ping_code="$?" ;;
+  sftp*) ping_target=${RESTIC_REPO#sftp*@} ; ping_target=${ping_target%:*} ; ping_code=0; ping -c 1 "$ping_target" > /dev/null 2>&1 || ping_code=$? ;;
+  rclone*) ping_target=${RESTIC_REPO#rclone:} ; ping_code=0; rclone about "$ping_target" > /dev/null 2>&1 || ping_code=$? ;;
+  /*) ping_code=0; [[ -d "$RESTIC_REPO" ]] || ping_code=1 ;;
 esac
 
 if [[ "$ping_code" -gt "0" ]] ; then

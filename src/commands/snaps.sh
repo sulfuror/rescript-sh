@@ -8,7 +8,7 @@ function snaps {
   fi
   rescript_lock
   debug_start
-  local group_by=0
+  local group_by=0 arg
   for arg in "${rest[@]}"; do
     if [[ "$arg" == "--group-by" || "$arg" == "--group-by="* ]]; then
       group_by=1

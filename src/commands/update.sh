@@ -22,8 +22,12 @@ function update {
     exit 1
   fi
 
-  curl -s -L "https://github.com/sulfuror/rescript-sh/releases/download/${latest_release}/rescript" -o "$tmp_dir/rescript" || true
   rescript_latest="$tmp_dir/rescript"
+  if ! curl -s -L "https://github.com/sulfuror/rescript-sh/releases/download/${latest_release}/rescript" -o "$rescript_latest" || ! grep -q "^#!/usr/bin/env bash" "$rescript_latest" 2>/dev/null; then
+    echo -e "\n${c_red}Failed to download the latest release or the file is corrupted.${c_reset}"
+    rm -f "$rescript_latest"
+    exit 1
+  fi
   trap 'rm -rf "$rescript_latest" 2> /dev/null; cleanup_on_exit; exit 130' INT QUIT TERM
   trap 'rm -rf "$rescript_latest" 2> /dev/null; cleanup_on_exit' EXIT
 

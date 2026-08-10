@@ -36,7 +36,7 @@ function global_status {
     exit 1
   fi
   
-  repos=()
+  local repos=()
   if [[ -n "${repo:-}" && "${repo:-}" != "global" && -f "$config_dir/$repo.conf" ]]; then
     repos=("$repo")
   else
@@ -52,7 +52,8 @@ function global_status {
   local tmp_files=()
   hide_cursor
   
-  for repo in "${repos[@]}"; do
+  for current_repo in "${repos[@]}"; do
+    local repo="$current_repo"
     local tmp_file="$session_tmp/status_${repo}_$$"
     tmp_files+=("$tmp_file")
     
@@ -131,7 +132,9 @@ function global_status {
   fi
   print_line "="
   
-  for repo in "${repos[@]}"; do
+  local r_name num_snaps latest_date size_str health_str
+  for current_repo in "${repos[@]}"; do
+    local repo="$current_repo"
     local tmp_file="$session_tmp/status_${repo}_$$"
     if [[ -f "$tmp_file" ]]; then
       if [[ "$full_mode" == "true" ]]; then

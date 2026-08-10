@@ -17,6 +17,7 @@ function _list_files {
 }
 
 function config_menu {
+  local cfgopt
   echo "$ui_line_eq"
   echo "       Options        "
   echo "$ui_line_eq"
@@ -76,9 +77,7 @@ function new_config_file {
   if [[ $repo_name ]] ; then
     mv "$new_repo" "$config_dir/$repo_name.conf"
     touch "$config_dir/$repo_name-exclusions"
-    touch "$config_dir/$repo_name-datefile"
     simple_exclusions > "$config_dir/$repo_name-exclusions"
-    date +"%s" > "$config_dir/$repo_name-datefile"
     echo "[$repo_name] config file has been created. If this is a new repository,"
     echo "you must run [rescript $repo_name init] to initialize your new repository"
     echo "before executing any other command. You also need to edit your new config"
@@ -97,6 +96,7 @@ function new_config_file {
 }
 
 function delete_config_file {
+  local del ans
   _list_files "Config Files" "\.conf" "\.conf$"
   read -rp "Type the name of the repo file you wish to delete or one of the options above [ 1 - 2 ]: " del
   case $del in
@@ -106,7 +106,7 @@ function delete_config_file {
       if [[ -f "$config_dir/$del.conf" ]] ; then
         read -rp "Are you sure you want to delete [$del]? y/n: " ans
         case $ans in
-          y|yes) rm -f "$config_dir/$del.conf" ; rm -f "$config_dir/$del-exclusions" ; rm -f "$config_dir/$del-datefile" ; clear ; echo "[$del] repository configuration has been removed." ; delete_config_file ;;
+          y|yes) rm -f "$config_dir/$del.conf" ; rm -f "$config_dir/$del-exclusions" ; rm -f "$config_dir/$del.state" ; rm -f "$config_dir/$del-datefile" ; clear ; echo "[$del] repository configuration has been removed." ; delete_config_file ;;
           n|no) clear ; delete_config_file ;;
           exit) echo "Exiting..." ; exit ;;
           *) echo "No valid action indicated; exiting..." ; exit ;;
@@ -216,9 +216,7 @@ function config_wizard {
   
   chmod 600 "$new_conf"
   touch "$config_dir/$w_name-exclusions"
-  touch "$config_dir/$w_name-datefile"
   simple_exclusions > "$config_dir/$w_name-exclusions"
-  date +"%s" > "$config_dir/$w_name-datefile"
   
   echo -e "\nConfiguration [$w_name] created successfully!"
   echo "Tip: You can edit your global configuration at any time by running: rescript config --global"
@@ -235,6 +233,7 @@ function config_wizard {
 
 # Exclusions menu
 function exclusion_menu {
+  local excl_opt
   echo "$ui_line_eq"
   echo "  Exclusions Options  "
   echo "$ui_line_eq"
@@ -254,6 +253,7 @@ function exclusion_menu {
 }
 
 function edit_exclusions {
+  local excl_edit
   _list_files "Exclusion Files" "-exclusions" "-exclusions$"
   read -rp "Type the name of the exclusions file you wish to open or one of the options above [ 1 - 2 ]: " excl_edit
   case "$excl_edit" in
@@ -275,6 +275,7 @@ function edit_exclusions {
 
 function _build_exclusions_action {
   local excl_cmd="$1"
+  local excl_file ans_excl
   clear
   _list_files "Exclusion Files" "-exclusions" "-exclusions$"
   read -rp "Type the name of the exclusion file you want to build or one of the options above [ 1 - 2 ]: " excl_file
@@ -305,6 +306,7 @@ function _build_exclusions_action {
 }
 
 function build_exclusions {
+  local excl_bld
   echo "$ui_line_eq"
   echo "    Build Options     "
   echo "$ui_line_eq"
@@ -357,6 +359,7 @@ function rescript_config {
 }
 # Main menu
 function main_menu {
+  local main
   echo "$ui_line_eq"
   echo "        Menu          "
   echo "$ui_line_eq"

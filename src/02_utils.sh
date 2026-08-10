@@ -45,7 +45,7 @@ if [[ ! -f "$config_dir/.editor" ]] ; then
   touch "$config_dir/.editor"
 fi
 
-rescript_editor="$(cat "$config_dir/.editor")"
+rescript_editor="$(<"$config_dir/.editor")"
 
 # Set PATH so it includes user's private bin if it exists (cron jobs may require this)
 PATH="$HOME/bin:$HOME/.local/bin:$PATH"
@@ -77,12 +77,10 @@ function array_contains {
 
 function print_line {
   local char=${1:--}
-  local cols
-  cols=$(tput cols 2>/dev/null || echo 80)
-  [[ -z "$cols" || ! "$cols" =~ ^[0-9]+$ ]] && cols=80
+  local current_cols="${cols:-80}"
   
   local line=""
-  for (( i=0; i<cols; i++ )); do
+  for (( i=0; i<current_cols; i++ )); do
     line="${line}${char}"
   done
   echo -ne "${c_gray}${line}${c_reset}\n"
@@ -95,8 +93,9 @@ function format_log_output {
 
 function _send_email {
   local subject="${1:-}"
+  local logmessage catlog
   if [[ -n "$EMAIL" ]] ; then
-    if [[ "$(command -v mail)" ]] ; then
+    if command -v mail >/dev/null 2>&1 ; then
       if [[ "$int" = "false" || "${force_email:-}" = "true" ]] ; then
         if [[ "$simulate_flag" == "true" ]]; then
           echo -e "${c_yellow}SIMULATE: Would send email to [$EMAIL] with subject: [[SIMULATION] $subject]${c_reset}"
@@ -110,7 +109,6 @@ function _send_email {
           logmessage=""
           catlog=$(format_log_output "$tmplog")
         fi
-        local mail_err
         local mail_err="$session_tmp/mail_err"
         local mail_status=0
         
@@ -130,7 +128,7 @@ function _send_webhook {
   local subject="${1:-}"
   if [[ -n "${WEBHOOK_URL:-}" ]] ; then
     if [[ "$int" = "false" || "${force_webhook:-}" = "true" ]] ; then
-      if [[ "$(command -v curl)" ]] ; then
+      if command -v curl >/dev/null 2>&1 ; then
         if [[ "$simulate_flag" == "true" ]]; then
           echo -e "${c_yellow}SIMULATE: Would send webhook to [$WEBHOOK_URL] with subject: [[SIMULATION] $subject]${c_reset}"
           return 0
@@ -148,10 +146,18 @@ function _send_webhook {
           attach_file="$session_tmp/webhook_$$.txt"
           format_log_output "$target_log" > "$attach_file"
           
-          curl -s -X POST -F "payload_json={\"content\": \"**$subject**\"}" -F "file=@$attach_file" "$WEBHOOK_URL" >/dev/null 2>&1 || true
+          local webhook_status=0
+          curl -s -X POST -F "payload_json={\"content\": \"**$subject**\"}" -F "file=@$attach_file" "$WEBHOOK_URL" >/dev/null 2>&1 || webhook_status=$?
+          if [[ $webhook_status -ne 0 ]]; then
+            echo -e "${c_yellow}WARNING: Rescript could not send the webhook to the provided URL.${c_reset}"
+          fi
           rm -f "$attach_file"
         else
-          curl -s -X POST -H "Content-Type: application/json" -d "{\"content\": \"**$subject**\n\`\`\`text\nNo output captured.\n\`\`\`\"}" "$WEBHOOK_URL" >/dev/null 2>&1 || true
+          local webhook_status=0
+          curl -s -X POST -H "Content-Type: application/json" -d "{\"content\": \"**$subject**\n\`\`\`text\nNo output captured.\n\`\`\`\"}" "$WEBHOOK_URL" >/dev/null 2>&1 || webhook_status=$?
+          if [[ $webhook_status -ne 0 ]]; then
+            echo -e "${c_yellow}WARNING: Rescript could not send the webhook to the provided URL.${c_reset}"
+          fi
         fi
       else
         echo -e "${c_yellow}[rescript] can't send webhooks; install [curl] package to do so.${c_reset}"
@@ -341,7 +347,7 @@ function opsys {
         os_vers="$(getprop ro.build.version.release)"
         echo -e "$os" "$os_vers"
       else
-        if [[ $(command -v lsb_release) ]] ; then
+        if command -v lsb_release >/dev/null 2>&1 ; then
           lsb_release -ds
         elif [[ -s /etc/os-release ]] ; then
           (source /etc/os-release 2>/dev/null && echo "$PRETTY_NAME")
@@ -424,7 +430,7 @@ function set_state {
     return
   fi
   
-  grep -v "^${key}=" "$state_file" > "${state_file}.tmp" 2>/dev/null || true
+  grep -F -v "^${key}=" "$state_file" > "${state_file}.tmp" 2>/dev/null || true
   echo "${key}=${value}" >> "${state_file}.tmp"
   mv "${state_file}.tmp" "$state_file"
 }
@@ -434,21 +440,15 @@ function get_state {
   local state_file="$2"
   
   if [[ -f "$state_file" ]]; then
-    grep "^${key}=" "$state_file" | cut -d'=' -f2
+    grep -F "^${key}=" "$state_file" | cut -d'=' -f2
   else
     echo "0"
   fi
 }
 
 function now_next {
-  case "$unix_name" in
-    Linux|GNU)
-      now=$(date +"%s")
-      ;;
-    *)
-      now=$(date +"%s")
-      ;;
-  esac
+  local now
+  now=$(date +"%s")
 
   local state_file="$config_dir/$repo.state"
   local old_datefile="$config_dir/$repo-datefile"
@@ -456,11 +456,12 @@ function now_next {
   # Seamless migration for existing users
   if [[ ! -f "$state_file" && -f "$old_datefile" ]]; then
     local old_val
-    old_val=$(cat "$old_datefile" 2>/dev/null || echo "0")
+    old_val=$(<"$old_datefile" 2>/dev/null || echo "0")
     set_state "NEXT_CLEANUP" "$old_val" "$state_file"
     rm -f "$old_datefile"
   fi
 
+  local next
   next=$(get_state "NEXT_CLEANUP" "$state_file")
   
   if ! [[ "$next" =~ ^[0-9]+$ ]] ; then
@@ -481,7 +482,7 @@ function wait_with_spinner {
     for pid in "${pids[@]}"; do
       kill -0 "$pid" 2>/dev/null && any_running=true && break
     done
-    "$any_running" || break
+    [[ "$any_running" == "true" ]] || break
     i=$(( (i+1) % 4 ))
     printf "\r${c_cyan}%s %s${c_reset}" "$label" "${spin:$i:1}"
     sleep 0.1
@@ -492,12 +493,6 @@ function wait_with_spinner {
 function _require_sudo {
   local action_desc="${1:-operation}"
   if [[ "$(whoami)" != "root" ]]; then
-    # Check if sudo requires a password
-    if ! sudo -n true 2>/dev/null; then
-      echo -e "\n${c_yellow}The $action_desc requires elevated privileges.${c_reset}"
-      echo "Please enter your sudo password to proceed."
-      echo ""
-    fi
     return 1
   fi
   return 0
@@ -535,7 +530,7 @@ function run_with_spinner {
   
   local spin='-\|/'
   local i=0
-  while kill -0 $pid 2>/dev/null; do
+  while kill -0 "$pid" 2>/dev/null; do
     i=$(( (i+1) % 4 ))
     printf "\r%b %s" "$label" "${spin:$i:1}"
     sleep 0.1
@@ -600,7 +595,7 @@ function rescript_lock {
   if [[ "${rescript_lock_created:-}" == "true" ]]; then return 0; fi
   if [ -e "$lock" ]; then
     local existing_pid=""
-    existing_pid=$(cat "$lock" 2>/dev/null || true)
+    existing_pid=$(<"$lock" 2>/dev/null || true)
     
     if is_pid_alive "$existing_pid"; then
       echo "WARNING: [$repo] repo is already running (PID: $existing_pid)..."

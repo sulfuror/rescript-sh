@@ -9,7 +9,7 @@ function umounter {
 
   if [[ -f "$pid_file" ]]; then
     local pid_info
-    pid_info=$(cat "$pid_file" 2>/dev/null || true)
+    pid_info=$(<"$pid_file" 2>/dev/null || true)
     local mount_pid="${pid_info%%:*}"
     local mount_point="${pid_info##*:}"
     

@@ -2,7 +2,7 @@
 #                       COMMAND: NEXT                            #
 # ============================================================== #
 
-function cleanup-next {
+function cleanup_next {
   now_next
   local result=$((next-now))
   local days=$((result / 86400))

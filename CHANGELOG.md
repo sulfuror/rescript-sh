@@ -18,6 +18,9 @@
 * **Update Command Crash:** Fixed a silent crash in the `update` command caused by strict mode (`set -e`) killing the script when older remote versions (which didn't support the native `-v` flag) exited with an error. 
 * **Update Version Parsing:** Replaced brittle source code parsing with native binary execution (`rescript -v`) to extract the remote version safely, with a resilient fallback for older versions.
 * **Sudo Prompt Spam:** Rebuilt the `_require_sudo` utility to silently probe the OS sudo cache (`sudo -n true`) before redundantly prompting the user for a password they had already entered in the same session.
+* **Network Connectivity Check:** Fixed a major silent bug in the connectivity check logic (`ping` and `rclone about`) where connection errors were ignored due to a trailing `|| true`, always resulting in an exit code of 0. Connectivity failures are now properly caught and reported before executing commands.
+* **Global Router Duplication:** Refactored the core command router (`04_core.sh`) to condense duplicated repository verification logic into a single block, fixing edge cases where some commands failed to display their help menus if no repository was specified.
+* **Scope Leak Fixes:** Fixed critical variable leaks across the codebase (e.g., `$repo` leaking into the environment during the `status` command, and interactive variables in `config`, `uninstall`, and `editor`). Fully encapsulated loop iterators and temporary variables using `local` across 11 source files.
 
 #### 🛠️ Architecture & Security
 
@@ -26,6 +29,9 @@
 * **Session Temporary Directory:** Eliminated all direct usages of the OS-level `/tmp/` directory across the codebase. Rescript now dynamically spins up a secured, isolated session directory (`~/.rescript/tmp/run_XXXXX`) for all transient operations, eliminating race conditions between parallel Rescript processes.
 * **PID-Based Locking:** The legacy file-existence lock system has been upgraded to a robust PID-based tracking system. Stale lock files from abrupt crashes or server reboots are now intelligently identified (using `kill -0`) and purged automatically, removing the need to manually run `unlocker`.
 * **Universal Cleanup Trap:** Centralized all trap cleanups into a unified `cleanup_on_exit` function, ensuring that the isolated session directories, temporary log files, and active PID locks are perfectly purged regardless of whether the script succeeds, fails, or is interrupted by the user (`Ctrl+C`).
+* **Subshell Optimization:** Refactored legacy `command -v` subshells (e.g., `if [[ $(command -v X) ]]`) across the codebase to use native POSIX evaluation (`if command -v X >/dev/null`), eliminating unnecessary subshell forks and improving performance.
+* **Native File Reading:** Replaced inefficient "useless use of cat" command substitutions (e.g., `$(cat file)`) with native Bash file redirections (`$(<file)`) when reading PIDs or configurations, lowering execution overhead.
+* **Config Wizard Cleanup:** Removed obsolete `datefile` logic from the repository configuration wizard, aligning it with the modern `.state` architecture.
 
 #### 💄 UI/UX Improvements
 

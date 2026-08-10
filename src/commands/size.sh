@@ -54,7 +54,7 @@ function size {
   
   local total_size=""
   if [[ $exit_code -eq 0 ]]; then
-    total_size=$(cat "$tmp_size" 2>/dev/null)
+    total_size=$(<"$tmp_size" 2>/dev/null)
   fi
   
   

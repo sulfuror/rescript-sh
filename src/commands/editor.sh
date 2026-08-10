@@ -23,6 +23,7 @@ function select_editor {
   echo " [9] Other            "
   echo " [10] Exit            "
   echo "$ui_line_eq"
+  local texteditor
   read -rp "Select an option [ 1 - 10 ]: " texteditor
   
   local chosen=""

@@ -10,6 +10,7 @@ function uninstall {
   echo " [2] For this user    "
   echo " [3] Exit             "
   echo "$ui_line_eq"
+  local uninstallation
   read -rp "Select an option and press Enter [ 1 - 3 ]: " uninstallation
   case "$uninstallation" in
     1|system)
@@ -57,6 +58,7 @@ function uninstall {
   esac
 
   echo ""
+  local ans_clean
   read -rp "Do you also wish to delete your configurations and logs in [$HOME/.rescript]? (y/N): " ans_clean
   case ${ans_clean,,} in
     y|yes)

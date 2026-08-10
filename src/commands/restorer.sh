@@ -4,7 +4,9 @@
 
 function restorer {
   rescript_lock
-  declare -a restore_opts=()
+  local -a restore_opts=()
+  local -a snap_list=()
+  local sel_snap snap_id restore_dir
   if [[ "${interactive_flag:-}" == "true" ]] ; then
     echo -e "${c_cyan}Fetching snapshot list...${c_reset}"
     mapfile -t snap_list < <(run_restic_with_retry snapshots 2>/dev/null | grep -E '^[0-9a-f]{8}')
