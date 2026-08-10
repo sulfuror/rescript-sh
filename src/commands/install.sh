@@ -145,7 +145,7 @@ function install {
     fi
 
     if [[ "$target" == "system" ]]; then
-      if [[ "$(whoami)" != "root" ]]; then
+      if [[ "$EUID" -ne 0 ]]; then
         echo ""
         echo "The system-wide installation copies files to protected system"
         echo "directories (like /usr/bin and /etc/bash_completion.d)."

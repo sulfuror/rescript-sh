@@ -62,7 +62,7 @@ function update {
           fi
 
           echo "Rescript has been updated to the latest version!"
-          if [[ "$(whoami)" != "root" ]] ; then
+          if [[ "$EUID" -ne 0 ]] ; then
             sudo "$rescript_bin" install --autocomplete-only system
           else
             "$rescript_bin" install --autocomplete-only system

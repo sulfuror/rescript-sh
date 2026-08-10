@@ -2,7 +2,7 @@
 #                             MAIN                               #
 # ============================================================== #
 
-if [[ ! $(command -v restic) ]] ; then
+if ! command -v restic &>/dev/null ; then
   echo "This script is made to work with [restic]. Please, install"
   echo "[restic] package to proceed. If you have [restic] binary"
   echo "saved in some custom directory, move it to '/usr/bin' or"
@@ -16,15 +16,13 @@ if [[ ! $(command -v restic) ]] ; then
   exit
 fi
 
-if [[ ! "${2:-}" || "${2:-}" == -* ]] ; then
+if [[ -z "${2:-}" || "${2:-}" == -* ]] ; then
   cmd="automatic"
   shift 1
 else
   cmd="${2:-}"
   shift 2
 fi
-
-
 
 case "$cmd" in
   automatic)
@@ -40,7 +38,6 @@ case "$cmd" in
     run_quietly automatic
     ;;
   status)
-    shopt -u nocasematch
     while [[ $# -gt 0 ]] ; do
       if _parse_standard_flags "$1" ; then shift ; continue ; fi
       case "$1" in
@@ -63,7 +60,6 @@ case "$cmd" in
     execute_with_metrics run_quietly global_status "${rest[@]}"
     ;;
   backup)
-    shopt -u nocasematch
     while [[ $# -gt 0 ]] ; do
       if _parse_standard_flags "$1" ; then shift ; continue ; fi
       case "$1" in
@@ -95,7 +91,6 @@ case "$cmd" in
     time_end
     ;;
   cleanup)
-    shopt -u nocasematch
     while [[ $# -gt 0 ]] ; do
       if _parse_standard_flags "$1" ; then shift ; continue ; fi
       case "$1" in
@@ -134,7 +129,6 @@ case "$cmd" in
     time_end
     ;;
   diff)
-    shopt -u nocasematch
     parse_generic_args "diff-help" "$@"
     execute_with_metrics run_quietly differ
     ;;
@@ -157,7 +151,6 @@ case "$cmd" in
     usage
     ;;
   next)
-    shopt -u nocasematch
     while [[ $# -gt 0 ]] ; do
       case "$1" in
         -h|--help) next-help ; exit 0 ;;
@@ -174,12 +167,10 @@ case "$cmd" in
     fi
     ;;
   extract)
-    shopt -u nocasematch
     parse_generic_args "extract-help" "$@"
     execute_with_metrics run_quietly extract
     ;;
   info)
-    shopt -u nocasematch
     while [[ $# -gt 0 ]] ; do
       if _parse_standard_flags "$1" ; then shift ; continue ; fi
       case "$1" in
@@ -199,7 +190,6 @@ case "$cmd" in
     execute_with_metrics run_quietly statinfo
     ;;
   size)
-    shopt -u nocasematch
     while [[ $# -gt 0 ]] ; do
       if _parse_standard_flags "$1" ; then shift ; continue ; fi
       case "$1" in
@@ -239,7 +229,6 @@ case "$cmd" in
     execute_with_metrics run_quietly mounter
     ;;
   umounter)
-    shopt -u nocasematch
     while [[ $# -gt 0 ]] ; do
       case "$1" in
         -h|--help) umounter-help ; exit 0 ;;
@@ -250,13 +239,12 @@ case "$cmd" in
     execute_with_metrics run_quietly umounter
     ;;
   restorer)
-    shopt -u nocasematch
     snap_flag=""
     host_flag=""
     path_flag=""
     tag_flag=""
     interactive_flag=""
-    if [[ ! "${1:-}" ]] ; then
+    if [[ -z "${1:-}" ]] ; then
       echo "You have not indicated any option..."
       echo ""
       restorer-help
@@ -301,7 +289,6 @@ case "$cmd" in
     execute_with_metrics run_quietly restorer
     ;;
   search|history)
-    shopt -u nocasematch
     parse_generic_args "$cmd-help" "$@"
     execute_with_metrics run_quietly "$cmd"
     ;;
@@ -318,7 +305,6 @@ case "$cmd" in
     execute_with_metrics run_quietly upgrade_repo
     ;;
   init)
-    shopt -u nocasematch
     while [[ $# -gt 0 ]] ; do
       if _parse_standard_flags "$1" ; then shift ; continue ; fi
       case "$1" in
@@ -338,7 +324,6 @@ case "$cmd" in
     exit 1
     ;;
   *)
-    shopt -u nocasematch
     rest=("$cmd")
     for arg in "$@"; do
       if _parse_standard_flags "$arg" ; then continue ; fi
@@ -361,8 +346,6 @@ job_done
 if [[ "$simulate_flag" == "true" ]]; then
   echo -e "${c_yellow}SIMULATE: End of simulation.${c_reset}"
 fi
-
-shopt -u nocasematch
 
 # Allow async logging processes (like tee) to finish flushing before returning to shell
 sleep 0.1

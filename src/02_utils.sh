@@ -504,7 +504,7 @@ function wait_with_spinner {
 
 function _require_sudo {
   local action_desc="${1:-operation}"
-  if [[ "$(whoami)" != "root" ]]; then
+  if [[ "$EUID" -ne 0 ]]; then
     # Check if sudo requires a password
     if ! sudo -n true 2>/dev/null; then
       echo -e "\n${c_yellow}The $action_desc requires elevated privileges.${c_reset}"
@@ -674,7 +674,6 @@ function _run_post_actions {
     run_quietly run_restic_with_retry check --cleanup-cache
   fi
   if [[ "$info_flag" = "true" ]] ; then
-    print_line
     run_quietly statinfo
   fi
 }
@@ -750,7 +749,7 @@ if [[ -n "${RESCRIPT_EDITOR:-}" ]]; then
   rescript_editor="$RESCRIPT_EDITOR"
   rm -f "$config_dir/.editor" 2>/dev/null || true
 elif [[ -s "$config_dir/.editor" ]]; then
-  rescript_editor="$(<"$config_dir/.editor")"
+  rescript_editor=$(<"$config_dir/.editor")
   if [[ -f "$config_global" ]]; then
     grep -v "^RESCRIPT_EDITOR=" "$config_global" > "${config_global}.tmp" 2>/dev/null || true
     echo "RESCRIPT_EDITOR=\"$rescript_editor\"" >> "${config_global}.tmp"

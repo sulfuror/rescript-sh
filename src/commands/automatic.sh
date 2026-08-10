@@ -82,7 +82,6 @@ function automatic {
   # Stats
   case "${SHOW_STATS:-}" in
     y|yes) 
-      print_line
       statinfo 
       ;;
   esac
