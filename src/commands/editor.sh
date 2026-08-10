@@ -44,7 +44,16 @@ function select_editor {
   esac
 
   if command -v "$chosen" >/dev/null 2>&1 ; then
-    echo "$chosen" > "$config_dir/.editor"
+    if [[ ! -f "$config_global" ]]; then
+      global_config_template > "$config_global"
+      chmod 600 "$config_global"
+    fi
+    grep -v "^RESCRIPT_EDITOR=" "$config_global" > "${config_global}.tmp" 2>/dev/null || true
+    echo "RESCRIPT_EDITOR=\"$chosen\"" >> "${config_global}.tmp"
+    mv "${config_global}.tmp" "$config_global"
+    
+    # Just in case they had a rogue legacy file
+    rm -f "$config_dir/.editor" 2>/dev/null || true
     echo "You have selected [$chosen] as your default text editor."
   else
     echo "Error: The editor [$chosen] is not installed or not found in your PATH."

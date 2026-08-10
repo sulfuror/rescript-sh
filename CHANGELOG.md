@@ -21,6 +21,13 @@
 * **Network Connectivity Check:** Fixed a major silent bug in the connectivity check logic (`ping` and `rclone about`) where connection errors were ignored due to a trailing `|| true`, always resulting in an exit code of 0. Connectivity failures are now properly caught and reported before executing commands.
 * **Global Router Duplication:** Refactored the core command router (`04_core.sh`) to condense duplicated repository verification logic into a single block, fixing edge cases where some commands failed to display their help menus if no repository was specified.
 * **Scope Leak Fixes:** Fixed critical variable leaks across the codebase (e.g., `$repo` leaking into the environment during the `status` command, and interactive variables in `config`, `uninstall`, and `editor`). Fully encapsulated loop iterators and temporary variables using `local` across 11 source files.
+* **Interactive TTY Isolation:** Removed global I/O redirections (`2> /dev/null` and `execute_with_metrics`) from the `config` and `editor` wizard commands. This prevents complete terminal freezing and TTY detachment when users open interactive editors like `nano` or `vim`.
+* **Legacy Editor Migration:** Implemented seamless, automatic migration of the deprecated `~/.rescript/config/.editor` file. Its value is now natively exported into `global.conf` and the old dotfile is purged.
+* **Global Configuration Initialization:** Fixed a circular dependency crash by forcing `config` and `editor` commands to automatically generate `global.conf` from its template if it is missing, before attempting to append values to it.
+* **Update Trap Scoping:** Fixed a critical "unbound variable" crash in the `update` command by removing redundant local `trap` declarations that leaked scope when executed under strict mode (`set -u`).
+* **Multi-line Array Parsing:** Rewrote the configuration parser in `env_conf.sh` (the `env` command) using a stateful, multi-line `awk` logic. It now gracefully formats and outputs Bash arrays (like the new `BACKUP_DIR` specification) instead of breaking on multi-line definitions.
+* **Bash Redirection Silent Bug:** Fixed a massive, hidden Bash 5+ quirk where using `$(<file 2>/dev/null)` silently evaluated to an empty string. This broke the entire core PID locking system (`02_utils.sh`) and background mount validations, allowing dangerous concurrency. Replaced with robust `$(cat file 2>/dev/null)`.
+* **Orchestrator Validation Routing:** Extracted internal argument parsing from the `status` command and moved it to the global orchestrator (`05_main.sh`). Bash syntax errors for unknown flags are now reported immediately, preventing the metadata context table from printing prematurely.
 
 #### 🛠️ Architecture & Security
 

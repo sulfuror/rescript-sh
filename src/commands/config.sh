@@ -37,7 +37,7 @@ function config_menu {
         global_config_template > "$config_global"
         chmod 600 "$config_global"
       fi
-      "$rescript_editor" "$config_global" 2> /dev/null
+      "$rescript_editor" "$config_global"
       clear ; config_menu ;;
     4|delete) clear ; delete_config_file ;;
     5|back) clear ; main_menu ;;
@@ -54,7 +54,7 @@ function edit_config_files {
     2|exit) echo "Exiting..." ; exit ;;
     *)
       if [[ -e "$config_dir/$conf.conf" ]] ; then
-        "$rescript_editor" "$config_dir/$conf.conf" 2> /dev/null
+        "$rescript_editor" "$config_dir/$conf.conf"
         clear
         edit_config_files
       else
@@ -84,7 +84,7 @@ function new_config_file {
     echo "file to proceed."
     read -rp "Would you like to open [$repo_name] config file now? y/n " answer
     case $answer in
-      y|yes) "$rescript_editor" "$config_dir/$repo_name.conf" 2> /dev/null ; clear ; config_menu ;;
+      y|yes) "$rescript_editor" "$config_dir/$repo_name.conf" ; clear ; config_menu ;;
       n|no) echo "Remember to configure your repo file before continuing!" ; exit ;;
       *) clear ; echo "Invalid action..." ; config_menu ;;
     esac
@@ -261,7 +261,7 @@ function edit_exclusions {
     2|exit) echo "Exiting..." ; exit ;;
     *)
       if [[ -e "$config_dir/$excl_edit-exclusions" ]] ; then
-        "$rescript_editor" "$config_dir/$excl_edit-exclusions" 2> /dev/null
+        "$rescript_editor" "$config_dir/$excl_edit-exclusions"
         clear
         edit_exclusions
       else
@@ -334,7 +334,11 @@ function rescript_config {
     exit 0
   elif [[ "${1:-}" == "-g" || "${1:-}" == "--global" ]]; then
     if [[ -z "$rescript_editor" ]] ; then
-      select_editor
+      rescript_editor_cmd
+      if [[ -f "$config_global" ]]; then
+        source_config "$config_global"
+      fi
+      rescript_editor="${RESCRIPT_EDITOR:-}"
       echo "Please type [rescript config --global] again to edit"
       echo "your global configuration."
       exit
@@ -343,13 +347,17 @@ function rescript_config {
       global_config_template > "$config_global"
       chmod 600 "$config_global"
     fi
-    "$rescript_editor" "$config_global" 2> /dev/null
+    "$rescript_editor" "$config_global"
     exit 0
   elif [[ -n "${1:-}" ]]; then
     echo "Invalid option [${1:-}]..." ; echo "" ; config-help ; exit 1
   fi
   if [[ -z "$rescript_editor" ]] ; then
-    select_editor
+    rescript_editor_cmd
+    if [[ -f "$config_global" ]]; then
+      source_config "$config_global"
+    fi
+    rescript_editor="${RESCRIPT_EDITOR:-}"
     echo "Please type [rescript config] again to set/edit"
     echo "your configuration/exclusion files."
     exit

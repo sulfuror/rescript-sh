@@ -257,7 +257,7 @@ case "${1:-}" in
     ;;
   config)
     parse_generic_args config-help "${@:2}"
-    execute_with_metrics run_quietly rescript_config "${rest[@]}"
+    rescript_config "${rest[@]}"
     exit 0
     ;;
   editor)

@@ -40,7 +40,26 @@ case "$cmd" in
     run_quietly automatic
     ;;
   status)
-    parse_generic_args status-help "$@"
+    shopt -u nocasematch
+    while [[ $# -gt 0 ]] ; do
+      if _parse_standard_flags "$1" ; then shift ; continue ; fi
+      case "$1" in
+        -F|--full|--stats) rest+=( "$1" ) ;;
+        -X|--ignore-repo)
+          if [[ -n "${2:-}" ]]; then
+            rest+=( "$1" "$2" )
+            shift
+          else
+            echo "Error: -X/--ignore-repo requires a repository name."
+            exit 1
+          fi
+          ;;
+        -h|--help) status-help ; exit 0 ;;
+        -*) echo "Invalid option [$1]..." ; echo "" ; status-help ; exit 1 ;;
+        *) echo "Invalid option [$1]..." ; echo "" ; status-help ; exit 1 ;;
+      esac
+      shift
+    done
     execute_with_metrics run_quietly global_status "${rest[@]}"
     ;;
   backup)

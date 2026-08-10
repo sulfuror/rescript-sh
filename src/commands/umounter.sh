@@ -9,11 +9,19 @@ function umounter {
 
   if [[ -f "$pid_file" ]]; then
     local pid_info
-    pid_info=$(<"$pid_file" 2>/dev/null || true)
+    pid_info=$(<"$pid_file")
+    
+    if [[ -z "$pid_info" || "$pid_info" != *":"* ]]; then
+      echo "INFO: Invalid or empty mount file found. Assuming already unmounted."
+      rm -f "$pid_file"
+      debug_stop
+      exit 0
+    fi
+    
     local mount_pid="${pid_info%%:*}"
     local mount_point="${pid_info##*:}"
     
-    if [[ -d "$mount_point" ]]; then
+    if [[ -n "$mount_point" && -d "$mount_point" ]]; then
       if mountpoint -q "$mount_point"; then
         echo -e "${c_cyan}Unmounting repository from:${c_reset} ${c_white}$mount_point${c_reset}"
         if ! fusermount -u "$mount_point" 2>/dev/null; then

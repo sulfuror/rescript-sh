@@ -28,8 +28,7 @@ function update {
     rm -f "$rescript_latest"
     exit 1
   fi
-  trap 'rm -rf "$rescript_latest" 2> /dev/null; cleanup_on_exit; exit 130' INT QUIT TERM
-  trap 'rm -rf "$rescript_latest" 2> /dev/null; cleanup_on_exit' EXIT
+
 
   local rescript_bin
   rescript_bin=$(command -v rescript || echo "$0")

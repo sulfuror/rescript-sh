@@ -53,12 +53,7 @@ trap 'cleanup_on_exit' EXIT
 # Create the rescript directories if they are not present
 mkdir -p "$rescript_dir" "$config_dir" "$lock_dir" "$logs_dir"
 
-# Create "editor" file if not present
-if [[ ! -f "$config_dir/.editor" ]] ; then
-  touch "$config_dir/.editor"
-fi
 
-rescript_editor="$(<"$config_dir/.editor")"
 
 # Set PATH so it includes user's private bin if it exists (cron jobs may require this)
 PATH="$HOME/bin:$HOME/.local/bin:$PATH"
@@ -474,7 +469,7 @@ function now_next {
   # Seamless migration for existing users
   if [[ ! -f "$state_file" && -f "$old_datefile" ]]; then
     local old_val
-    old_val=$(<"$old_datefile" 2>/dev/null || echo "0")
+    old_val=$(cat "$old_datefile" 2>/dev/null || echo "0")
     set_state "NEXT_CLEANUP" "$old_val" "$state_file"
     rm -f "$old_datefile"
   fi
@@ -618,7 +613,7 @@ function rescript_lock {
   if [[ "${rescript_lock_created:-}" == "true" ]]; then return 0; fi
   if [ -e "$lock" ]; then
     local existing_pid=""
-    existing_pid=$(<"$lock" 2>/dev/null || true)
+    existing_pid=$(cat "$lock" 2>/dev/null || true)
     
     if is_pid_alive "$existing_pid"; then
       echo "WARNING: [$repo] repo is already running (PID: $existing_pid)..."
@@ -742,3 +737,27 @@ function execute_with_metrics {
   "$@"
   time_end
 }
+
+# -----------------------------------------------------------------------------
+# Editor Migration and Just-in-Time Initialization
+# -----------------------------------------------------------------------------
+config_global="$HOME/.rescript/config/global.conf"
+if [[ -f "$config_global" ]]; then
+  source_config "$config_global"
+fi
+
+if [[ -n "${RESCRIPT_EDITOR:-}" ]]; then
+  rescript_editor="$RESCRIPT_EDITOR"
+  rm -f "$config_dir/.editor" 2>/dev/null || true
+elif [[ -s "$config_dir/.editor" ]]; then
+  rescript_editor="$(<"$config_dir/.editor")"
+  if [[ -f "$config_global" ]]; then
+    grep -v "^RESCRIPT_EDITOR=" "$config_global" > "${config_global}.tmp" 2>/dev/null || true
+    echo "RESCRIPT_EDITOR=\"$rescript_editor\"" >> "${config_global}.tmp"
+    mv "${config_global}.tmp" "$config_global"
+  fi
+  rm -f "$config_dir/.editor"
+else
+  rm -f "$config_dir/.editor" 2>/dev/null || true
+  rescript_editor=""
+fi

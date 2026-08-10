@@ -45,5 +45,8 @@ ONE_FILE_SYSTEM=""
 SHOW_SNAPS="yes"
 SHOW_STATS="yes"
 SKIP_OFFICE=""
+
+# -- System Preferences --
+RESCRIPT_EDITOR=""
 EOF
 }

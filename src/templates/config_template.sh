@@ -75,5 +75,8 @@ TAG=""
 # SHOW_SNAPS=""
 # SHOW_STATS=""
 # SKIP_OFFICE=""
+#
+# -- System Preferences --
+# RESCRIPT_EDITOR=""
 EOF
 }
