@@ -13,6 +13,17 @@ function umounter {
     local mount_pid="${pid_info%%:*}"
     local mount_point="${pid_info##*:}"
     
+    if [[ -d "$mount_point" ]]; then
+      if mountpoint -q "$mount_point"; then
+        echo -e "${c_cyan}Unmounting repository from:${c_reset} ${c_white}$mount_point${c_reset}"
+        if ! fusermount -u "$mount_point" 2>/dev/null; then
+          umount "$mount_point" 2>/dev/null
+        fi
+      fi
+      rmdir "$mount_point" 2>/dev/null
+      echo -e "${c_green}Mount point cleaned up.${c_reset}"
+    fi
+
     if ! is_pid_alive "$mount_pid"; then
       echo "INFO: Stale mount file found (PID $mount_pid is dead). Assuming already unmounted."
       rm -f "$pid_file"
@@ -24,17 +35,6 @@ function umounter {
         kill -9 "$mount_pid" 2>/dev/null
       fi
       echo -e "${c_green}Mounter process stopped.${c_reset}"
-    fi
-
-    if [[ -d "$mount_point" ]]; then
-      if mountpoint -q "$mount_point"; then
-        echo -e "${c_cyan}Unmounting repository from:${c_reset} ${c_white}$mount_point${c_reset}"
-        if ! fusermount -u "$mount_point" 2>/dev/null; then
-          umount "$mount_point" 2>/dev/null
-        fi
-      fi
-      rmdir "$mount_point" 2>/dev/null
-      echo -e "${c_green}Mount point cleaned up.${c_reset}"
     fi
     rm -f "$pid_file"
   else

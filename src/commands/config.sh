@@ -170,27 +170,27 @@ function config_wizard {
     local g_conf="$config_global"
     
     if [[ -n "$w_email" ]]; then
-      sed -i "s|^EMAIL=\"\"|EMAIL=\"$w_email\"|" "$g_conf"
+      safe_sed "s|^EMAIL=\"\"|EMAIL=\"$w_email\"|" "$g_conf"
     fi
     if [[ -n "$w_confirm" ]]; then
-      sed -i "s|^CONFIRMATION_EMAIL=\"\"|CONFIRMATION_EMAIL=\"$w_confirm\"|" "$g_conf"
+      safe_sed "s|^CONFIRMATION_EMAIL=\"\"|CONFIRMATION_EMAIL=\"$w_confirm\"|" "$g_conf"
     fi
     if [[ -n "$w_web" ]]; then
-      sed -i "s|^WEBHOOK_URL=\"\"|WEBHOOK_URL=\"$w_web\"|" "$g_conf"
+      safe_sed "s|^WEBHOOK_URL=\"\"|WEBHOOK_URL=\"$w_web\"|" "$g_conf"
     fi
     
-    sed -i "s|^LOGGING=\"yes\"|LOGGING=\"$w_log\"|" "$g_conf"
+    safe_sed "s|^LOGGING=\"yes\"|LOGGING=\"$w_log\"|" "$g_conf"
     
     if [[ -n "$w_log_ret" ]]; then
-      sed -i "s|^LOG_RETENTION=\"\"|LOG_RETENTION=\"$w_log_ret\"|" "$g_conf"
+      safe_sed "s|^LOG_RETENTION=\"\"|LOG_RETENTION=\"$w_log_ret\"|" "$g_conf"
     fi
     
-    if [[ -n "$w_k_last" ]]; then sed -i "s|^KEEP_LAST=\"\"|KEEP_LAST=\"$w_k_last\"|" "$g_conf" ; fi
-    if [[ -n "$w_k_hourly" ]]; then sed -i "s|^KEEP_HOURLY=\"8\"|KEEP_HOURLY=\"$w_k_hourly\"|" "$g_conf" ; fi
-    if [[ -n "$w_k_daily" ]]; then sed -i "s|^KEEP_DAILY=\"7\"|KEEP_DAILY=\"$w_k_daily\"|" "$g_conf" ; fi
-    if [[ -n "$w_k_weekly" ]]; then sed -i "s|^KEEP_WEEKLY=\"4\"|KEEP_WEEKLY=\"$w_k_weekly\"|" "$g_conf" ; fi
-    if [[ -n "$w_k_monthly" ]]; then sed -i "s|^KEEP_MONTHLY=\"12\"|KEEP_MONTHLY=\"$w_k_monthly\"|" "$g_conf" ; fi
-    if [[ -n "$w_k_yearly" ]]; then sed -i "s|^KEEP_YEARLY=\"10\"|KEEP_YEARLY=\"$w_k_yearly\"|" "$g_conf" ; fi
+    if [[ -n "$w_k_last" ]]; then safe_sed "s|^KEEP_LAST=\"\"|KEEP_LAST=\"$w_k_last\"|" "$g_conf" ; fi
+    if [[ -n "$w_k_hourly" ]]; then safe_sed "s|^KEEP_HOURLY=\"8\"|KEEP_HOURLY=\"$w_k_hourly\"|" "$g_conf" ; fi
+    if [[ -n "$w_k_daily" ]]; then safe_sed "s|^KEEP_DAILY=\"7\"|KEEP_DAILY=\"$w_k_daily\"|" "$g_conf" ; fi
+    if [[ -n "$w_k_weekly" ]]; then safe_sed "s|^KEEP_WEEKLY=\"4\"|KEEP_WEEKLY=\"$w_k_weekly\"|" "$g_conf" ; fi
+    if [[ -n "$w_k_monthly" ]]; then safe_sed "s|^KEEP_MONTHLY=\"12\"|KEEP_MONTHLY=\"$w_k_monthly\"|" "$g_conf" ; fi
+    if [[ -n "$w_k_yearly" ]]; then safe_sed "s|^KEEP_YEARLY=\"10\"|KEEP_YEARLY=\"$w_k_yearly\"|" "$g_conf" ; fi
     
     echo -e "Global configuration saved.\n"
   fi
@@ -210,9 +210,9 @@ function config_wizard {
   local new_conf="$config_dir/$w_name.conf"
   config_file > "$new_conf"
   
-  sed -i "s|RESTIC_REPO=\"\"|RESTIC_REPO=\"$w_repo\"|" "$new_conf"
-  sed -i "s|RESTIC_PASSWORD=\"\"|RESTIC_PASSWORD=\"$w_pass\"|" "$new_conf"
-  sed -i "s|^BACKUP_DIR=.*|BACKUP_DIR=\"$w_dir\"|" "$new_conf"
+  safe_sed "s|RESTIC_REPO=\"\"|RESTIC_REPO=\"$w_repo\"|" "$new_conf"
+  safe_sed "s|RESTIC_PASSWORD=\"\"|RESTIC_PASSWORD=\"$w_pass\"|" "$new_conf"
+  safe_sed "s|^BACKUP_DIR=.*|BACKUP_DIR=\"$w_dir\"|" "$new_conf"
   
   chmod 600 "$new_conf"
   touch "$config_dir/$w_name-exclusions"

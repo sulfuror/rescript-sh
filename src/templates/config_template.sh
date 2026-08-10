@@ -17,7 +17,7 @@ cat <<EOF
 RESTIC_PASSWORD=""
 RESTIC_PASSWORD_COMMAND=""
 RESTIC_REPO=""
-BACKUP_DIR="$HOME"
+BACKUP_DIR=("$HOME")
 
 # ------------------------------------------------------------------------------- #
 # REPOSITORY SETTINGS (Optional)

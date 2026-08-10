@@ -19,10 +19,23 @@ function handle_interrupt {
 function cleanup_on_exit {
   if [[ "${rescript_lock_created:-}" == "true" ]]; then
     rm -f "${lock:?}" 2>/dev/null
+    rescript_lock_created="false"
   fi
-  if [[ -n "${tmplog:-}" ]]; then rm -f "${tmplog:?}" 2>/dev/null; fi
+  if [[ -n "${tmplog:-}" ]]; then 
+    rm -f "${tmplog:?}" 2>/dev/null
+    tmplog=""
+  fi
   if [[ -n "${session_tmp:-}" && -d "$session_tmp" ]]; then
     rm -rf "${session_tmp:?}" 2>/dev/null
+    session_tmp=""
+  fi
+}
+
+function safe_sed {
+  if [[ "$unix_name" == "Darwin" ]]; then
+    sed -i '' "$@"
+  else
+    sed -i "$@"
   fi
 }
 
@@ -377,15 +390,16 @@ function duration {
     echo "0 seconds"
     return
   fi
-  declare -a dur=()
-  d="$((SECONDS/60/60/24))"
-  h="$((SECONDS/60/60%24))"
-  m="$((SECONDS/60%60))"
-  s="$((SECONDS%60))"
-  days="days"
-  hrs="hours"
-  min="minutes"
-  sec="seconds"
+  local dur=()
+  local d="$((SECONDS/60/60/24))"
+  local h="$((SECONDS/60/60%24))"
+  local m="$((SECONDS/60%60))"
+  local s="$((SECONDS%60))"
+  local days="days"
+  local hrs="hours"
+  local min="minutes"
+  local sec="seconds"
+  local ndur=0
   if [[ "$d" = "1" ]] ; then
     days="day"
   fi
@@ -425,14 +439,16 @@ function set_state {
   local value="$2"
   local state_file="$3"
   
-  if [[ ! -f "$state_file" ]]; then
-    echo "${key}=${value}" > "$state_file"
-    return
-  fi
-  
-  grep -F -v "^${key}=" "$state_file" > "${state_file}.tmp" 2>/dev/null || true
-  echo "${key}=${value}" >> "${state_file}.tmp"
-  mv "${state_file}.tmp" "$state_file"
+  (
+    flock -x 200
+    if [[ ! -f "$state_file" ]]; then
+      echo "${key}=${value}" > "$state_file"
+    else
+      grep -F -v "^${key}=" "$state_file" > "${state_file}.tmp" 2>/dev/null || true
+      echo "${key}=${value}" >> "${state_file}.tmp"
+      mv "${state_file}.tmp" "$state_file"
+    fi
+  ) 200> "${state_file}.lock"
 }
 
 function get_state {

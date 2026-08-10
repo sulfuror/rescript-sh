@@ -108,9 +108,10 @@ function extract {
   local restic_args=( "dump" "-a" "zip" "$snap_id" "$file" "${extract_rest[@]}" )
   
   local err_file="$session_tmp/extract_err"
+  local tmp_dest="$session_tmp/$dest_name"
   (
     debug_start
-    run_restic_with_retry "${restic_args[@]}" > "./$dest_name" 2> "$err_file"
+    run_restic_with_retry "${restic_args[@]}" > "$tmp_dest" 2> "$err_file"
     debug_stop
   ) &
   local pid=$!
@@ -125,7 +126,7 @@ function extract {
   printf "\r\e[K"
   
   if [[ $exit_code -eq 0 ]] ; then
-    
+    mv "$tmp_dest" "./$dest_name"
     # Check if restic dumped a directory as a zip archive
     if file "./$dest_name" 2>/dev/null | grep -qi "zip archive data"; then
       if [[ ! "$dest_name" == *.zip ]]; then
@@ -142,7 +143,7 @@ function extract {
   else
     echo -ne "\n${c_red}Extraction failed. Restic error:${c_reset}\n"
     cat "$err_file" 2>/dev/null
-    rm -f "./$dest_name"
+    rm -f "$tmp_dest"
   fi
   
 }

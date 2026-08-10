@@ -33,6 +33,7 @@ function automatic {
     *)
       echo -e "${c_cyan}Taking a Snapshot...${c_reset}" ; backup ;;
   esac
+  local exclusions
   exclusions=$(grep -E -v -n -c '(^#|^\s*$|^\s*\t*#)' "$excludes" 2>/dev/null || true)
   if [[ "$exclusions" -gt "0" ]] ; then
     echo -e "${c_green}There are $exclusions exclusion rules...${c_reset}"
@@ -55,8 +56,8 @@ function automatic {
     else 
       _run_auto_cleanup
       if [[ -n "${CLEAN:-}" ]] ; then
-        clean_num="${CLEAN//[A-Za-z]/}"
-        clean_unit="${CLEAN//[0-9]/}"
+        local clean_num="${CLEAN//[A-Za-z]/}"
+        local clean_unit="${CLEAN//[0-9]/}"
         local add_seconds=0
         case "$clean_unit" in
           days|day|d) add_seconds=$((clean_num * 86400)) ;;
@@ -89,8 +90,8 @@ function automatic {
   time_end
 
   if [[ -n "${CLEAN:-}" && -z "${policies[*]}" ]] ; then
-    clean_num="${CLEAN//[A-Za-z]/}"
-    clean_unit="${CLEAN//[0-9]/}"
+    local clean_num="${CLEAN//[A-Za-z]/}"
+    local clean_unit="${CLEAN//[0-9]/}"
     echo "[rescript] noted that your CLEAN variable is ${CLEAN:-}, so [rescript] assumes that"
     echo "you want to perform a 'cleanup' (forget, prune and check) every $clean_num $clean_unit but"
     echo "it can't execute it if you have not set the KEEP variables; please set your"

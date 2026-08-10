@@ -217,13 +217,21 @@ function _check_help_or_error {
   if [[ "$arg" ]] ; then
     case "$arg" in
       -h|--help|help)
-        "$cmd-help"
+        if type "$cmd-help" &>/dev/null; then
+          "$cmd-help"
+        else
+          usage
+        fi
         exit 0
         ;;
       *)
         echo "Invalid option [$arg]..."
         echo ""
-        "$cmd-help"
+        if type "$cmd-help" &>/dev/null; then
+          "$cmd-help"
+        else
+          usage | sed -ne '/Usage/,/EOF/p'
+        fi
         exit 1
         ;;
     esac
@@ -231,11 +239,15 @@ function _check_help_or_error {
 }
 
 case "${1:-}" in
-  backup|cleanup|diff|extract|search|init|history|info|logs|mounter|restorer|size|snaps|umounter|unlocker)
+  automatic|backup|cleanup|diff|env|extract|history|info|init|logs|mounter|next|restorer|search|size|snaps|umounter|unlocker|upgrade)
     _check_help_or_error "${1:-}" "${2:-}"
     echo "You have not indicated any repo for [$1]..."
     echo ""
-    "${1:-}"-help
+    if type "${1:-}-help" &>/dev/null; then
+      "${1:-}-help"
+    else
+      usage | sed -ne '/Usage/,/EOF/p'
+    fi
     exit 1
     ;;
   status)

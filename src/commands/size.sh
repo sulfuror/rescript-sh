@@ -31,8 +31,12 @@ function size {
   local tmp_size="$session_tmp/size"
   (
     debug_start
-    run_restic_with_retry ls -l --recursive "${host_args[@]}" "$snapshot_id" "${rest[@]}" 2>/dev/null | awk '
-      /^[-dcbp](r|-)[w|-](x|-)(r|-)[w|-](x|-)(r|-)[w|-](x|-)/ { sum += $4 }
+    run_restic_with_retry ls --json --recursive "${host_args[@]}" "$snapshot_id" "${rest[@]}" 2>/dev/null | awk '
+      match($0, /"size": *[0-9]+/) {
+        val = substr($0, RSTART, RLENGTH)
+        sub(/"size": */, "", val)
+        sum += val
+      }
       END {
         if (sum >= 1024^3) printf "%.2f GB\n", sum / (1024^3)
         else if (sum >= 1024^2) printf "%.2f MB\n", sum / (1024^2)

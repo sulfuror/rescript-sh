@@ -3,7 +3,7 @@
 # ============================================================== #
 
 function update {
-  if [[ ! $(command -v curl) ]] ; then
+  if ! command -v curl >/dev/null ; then
     echo "***$(basename "$0") warning***"
     echo "[curl] not found..."
     echo ""
@@ -22,7 +22,7 @@ function update {
     exit 1
   fi
 
-  rescript_latest="$tmp_dir/rescript"
+  local rescript_latest="$tmp_dir/rescript"
   if ! curl -s -L "https://github.com/sulfuror/rescript-sh/releases/download/${latest_release}/rescript" -o "$rescript_latest" || ! grep -q "^#!/usr/bin/env bash" "$rescript_latest" 2>/dev/null; then
     echo -e "\n${c_red}Failed to download the latest release or the file is corrupted.${c_reset}"
     rm -f "$rescript_latest"
@@ -51,6 +51,7 @@ function update {
     exit 0
   else
     chmod 755 "$rescript_latest"
+    local updater
     read -rp "rescript version $remote_version is available; do you want to install it? (y/n): " updater
     case "$updater" in
       y|yes)

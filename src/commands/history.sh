@@ -19,39 +19,49 @@ function history {
   print_line "="
   
   debug_start
-  run_restic_with_retry find -l "${rest[@]}" | awk '
-  {
-    gsub(/\x1b\[[0-9;]*[a-zA-Z]/, "")
-    gsub(/\r/, "")
+  run_restic_with_retry find --json "${rest[@]}" 2>/dev/null | awk '
+  /"snapshot":/ {
+    match($0, /"snapshot": *"([^"]+)"/)
+    snap = substr($0, RSTART, RLENGTH)
+    sub(/"snapshot": *"/, "", snap)
+    sub(/"/, "", snap)
+    snap = substr(snap, 1, 8)
   }
-  /Found matching entries in snapshot/ {
-      for(i=1; i<=NF; i++) {
-          if ($i == "snapshot") {
-              snap = substr($(i+1), 1, 8)
-              break
-          }
-      }
-      next
+  /"path":/ {
+    match($0, /"path": *"([^"]+)"/)
+    path = substr($0, RSTART, RLENGTH)
+    sub(/"path": *"/, "", path)
+    sub(/"/, "", path)
   }
-  /^[-dcbp](r|-)[w|-](x|-)(r|-)[w|-](x|-)(r|-)[w|-](x|-)/ {
-      size_val = $4
-      date = $5 " " $6
-      path = $7
-      for (j=8; j<=NF; j++) {
-          path = path " " $j
-      }
-      
-      if (size_val != last_size || date != last_date) {
-          if (size_val >= 1024^3) size_str = sprintf("%.1fG", size_val / (1024^3))
-          else if (size_val >= 1024^2) size_str = sprintf("%.1fM", size_val / (1024^2))
-          else if (size_val >= 1024) size_str = sprintf("%.1fK", size_val / 1024)
-          else size_str = sprintf("%dB", size_val)
-          
-          count++
-          printf "%-4d | %-10s | %-21s | %-12s | %s\n", count, snap, date, size_str, path
-          last_size = size_val
-          last_date = date
-      }
+  /"mtime":/ {
+    match($0, /"mtime": *"([^"]+)"/)
+    date = substr($0, RSTART, RLENGTH)
+    sub(/"mtime": *"/, "", date)
+    sub(/"/, "", date)
+    sub(/T/, " ", date)
+    date = substr(date, 1, 19)
+  }
+  /"size":/ {
+    match($0, /"size": *([0-9]+)/)
+    size_val = substr($0, RSTART, RLENGTH)
+    sub(/"size": */, "", size_val)
+    has_size = 1
+  }
+  /}/ {
+    if (has_size) {
+        if (size_val != last_size || date != last_date) {
+            if (size_val >= 1024^3) size_str = sprintf("%.1fG", size_val / (1024^3))
+            else if (size_val >= 1024^2) size_str = sprintf("%.1fM", size_val / (1024^2))
+            else if (size_val >= 1024) size_str = sprintf("%.1fK", size_val / 1024)
+            else size_str = sprintf("%dB", size_val)
+            
+            count++
+            printf "%-4d | %-10s | %-21s | %-12s | %s\n", count, snap, date, size_str, path
+            last_size = size_val
+            last_date = date
+        }
+        has_size = 0
+    }
   }'
   local pipe_status=("${PIPESTATUS[@]}")
   debug_stop

@@ -41,10 +41,9 @@ function backup {
   debug_start
   set_sim_flag "Backup"
   if [[ "$skip_flag" = "true" ]] ; then
-    run_restic_with_retry backup "${sim_flags[@]}" --verbose "${bu_opts[@]}" --exclude-file=<(find "${BACKUP_DIR[@]}" -iname ".~lock.*" 2> /dev/null | sed -e 's/.~lock.//g' | sed -e 's/#//g') --exclude=".~lock.*" "${rest[@]}" "${BACKUP_DIR[@]}"
-  else
-    run_restic_with_retry backup "${sim_flags[@]}" --verbose "${bu_opts[@]}" "${rest[@]}" "${BACKUP_DIR[@]}"
+    bu_opts+=( --exclude="**/.~lock.*" )
   fi
+  run_restic_with_retry backup "${sim_flags[@]}" --verbose "${bu_opts[@]}" "${rest[@]}" "${BACKUP_DIR[@]}"
   local restic_rc=$?
   check_restic_error $restic_rc
   debug_stop
