@@ -439,16 +439,19 @@ function set_state {
   local value="$2"
   local state_file="$3"
   
+  local state_name
+  state_name=$(basename "$state_file")
+  
   (
     flock -x 200
     if [[ ! -f "$state_file" ]]; then
       echo "${key}=${value}" > "$state_file"
     else
-      grep -F -v "^${key}=" "$state_file" > "${state_file}.tmp" 2>/dev/null || true
+      grep -v "^${key}=" "$state_file" > "${state_file}.tmp" 2>/dev/null || true
       echo "${key}=${value}" >> "${state_file}.tmp"
       mv "${state_file}.tmp" "$state_file"
     fi
-  ) 200> "${state_file}.lock"
+  ) 200> "${lock_dir}/${state_name}.lock"
 }
 
 function get_state {
@@ -456,14 +459,13 @@ function get_state {
   local state_file="$2"
   
   if [[ -f "$state_file" ]]; then
-    grep -F "^${key}=" "$state_file" | cut -d'=' -f2
+    grep "^${key}=" "$state_file" | cut -d'=' -f2
   else
     echo "0"
   fi
 }
 
 function now_next {
-  local now
   now=$(date +"%s")
 
   local state_file="$config_dir/$repo.state"
@@ -477,7 +479,6 @@ function now_next {
     rm -f "$old_datefile"
   fi
 
-  local next
   next=$(get_state "NEXT_CLEANUP" "$state_file")
   
   if ! [[ "$next" =~ ^[0-9]+$ ]] ; then

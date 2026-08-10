@@ -116,7 +116,13 @@ function global_status {
   # shellcheck disable=SC2064
   trap "kill ${pids[*]} 2>/dev/null; cleanup_on_exit; exit 130" INT
   
-  wait_with_spinner "Calculating status for ${#repos[@]} repositories..." "${pids[@]}"
+  local status_msg=""
+  if [[ ${#repos[@]} -eq 1 ]]; then
+    status_msg="Calculating status for [${repos[0]}]..."
+  else
+    status_msg="Calculating status for ${#repos[@]} repositories..."
+  fi
+  wait_with_spinner "$status_msg" "${pids[@]}"
   
   wait "${pids[@]}" 2>/dev/null || true
   trap - INT
