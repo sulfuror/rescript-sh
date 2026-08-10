@@ -493,6 +493,12 @@ function wait_with_spinner {
 function _require_sudo {
   local action_desc="${1:-operation}"
   if [[ "$(whoami)" != "root" ]]; then
+    # Check if sudo requires a password
+    if ! sudo -n true 2>/dev/null; then
+      echo -e "\n${c_yellow}The $action_desc requires elevated privileges.${c_reset}"
+      echo "Please enter your sudo password to proceed."
+      echo ""
+    fi
     return 1
   fi
   return 0
