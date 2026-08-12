@@ -205,7 +205,7 @@ case "${RESTIC_REPO:-}" in
   /*) ping_code=0; [[ -d "$RESTIC_REPO" ]] || ping_code=1 ;;
 esac
 
-if [[ "$ping_code" -gt "0" ]] ; then
+if [[ "$ping_code" -gt "0" && "${2:-}" != "init" ]] ; then
   error_message="Cannot access to: ${RESTIC_REPO:-} \nPlease check your connection. If your repository is not \ninitializated run [rescript $repo init]."
   report_errors
   exit "$ping_code"
