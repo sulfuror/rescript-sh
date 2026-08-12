@@ -19,11 +19,10 @@ restic_alone() {
   latest_error
 }
 
-if [[ "${1:-}" == "all" ]]; then
-  shift 1
-  excluded_repos=()
-  forward_args=()
-  parallel_execution="false"
+command_all() {
+  local excluded_repos=()
+  local forward_args=()
+  local parallel_execution="false"
   
   while [[ $# -gt 0 ]]; do
     case "${1:-}" in
@@ -51,7 +50,8 @@ if [[ "${1:-}" == "all" ]]; then
     esac
   done
 
-  has_help=false
+  local has_help=false
+  local arg
   for arg in "${forward_args[@]}"; do
     if [[ "$arg" == "-h" || "$arg" == "--help" || "$arg" == "help" ]]; then
       has_help=true
@@ -78,6 +78,7 @@ if [[ "${1:-}" == "all" ]]; then
     fi
   fi
   
+  local has_quiet
   if [[ "$parallel_execution" == "true" ]]; then
     has_quiet=false
     for arg in "${forward_args[@]}"; do
@@ -89,7 +90,6 @@ if [[ "${1:-}" == "all" ]]; then
     if [[ "$has_quiet" == "false" ]]; then
       forward_args+=("-Q")
     fi
-    
   fi
   
   if [[ ! -d "$config_dir" ]]; then
@@ -97,6 +97,7 @@ if [[ "${1:-}" == "all" ]]; then
     exit 1
   fi
   
+  local repos=()
   get_repo_list repos "${excluded_repos[@]}"
   
   if [[ ${#repos[@]} -eq 0 ]]; then
@@ -104,14 +105,15 @@ if [[ "${1:-}" == "all" ]]; then
     exit 0
   fi
   
+  local repo_list
   if [[ "$parallel_execution" == "true" ]]; then
     repo_list=$(IFS=', '; printf "%s\n" "${repos[*]}")
     printf "%b\n" "${c_cyan}Running on repositories: ${c_white}$repo_list${c_cyan} (in parallel, enforcing quiet mode)${c_reset}"
   fi
   
-  has_metadata=false
-  is_automatic=false
-  is_simulate=false
+  local has_metadata=false
+  local is_automatic=false
+  local is_simulate=false
   for arg in "${forward_args[@]}"; do
     if [[ "$arg" == "-S" || "$arg" == "--simulate" ]]; then
       is_simulate=true
@@ -142,11 +144,12 @@ if [[ "${1:-}" == "all" ]]; then
     is_automatic=true
   fi
 
-  config_global="$HOME/.rescript/config/global.conf"
+  local config_global="$HOME/.rescript/config/global.conf"
   if [[ -f "$config_global" ]]; then
     source_config "$config_global"
   fi
   
+  local spinner_rc
   if [[ -n "${PRE_CMD:-}" ]] ; then
     if [[ "$is_simulate" == "true" ]]; then
       printf "%b\n" "${c_cyan}Running Global PRE_CMD...${c_reset}"
@@ -163,7 +166,8 @@ if [[ "${1:-}" == "all" ]]; then
   
   export RESCRIPT_SKIP_HOOKS="true"
 
-  pids=()
+  local pids=()
+  local r_name
   for r_name in "${repos[@]}"; do
     if [[ "$has_metadata" == "false" && "$is_automatic" == "false" && "$parallel_execution" == "false" ]]; then
       if [[ "$has_help" == "false" ]]; then
@@ -185,6 +189,7 @@ if [[ "${1:-}" == "all" ]]; then
     fi
   done
   
+  local action_msg
   if [[ "$parallel_execution" == "true" ]]; then
     action_msg="automatic"
     if [[ ${#forward_args[@]} -gt 0 ]]; then
@@ -207,7 +212,11 @@ if [[ "${1:-}" == "all" ]]; then
       fi
     fi
   fi
-  
+}
+
+if [[ "${1:-}" == "all" ]]; then
+  shift 1
+  command_all "$@"
   exit 0
 fi
 
