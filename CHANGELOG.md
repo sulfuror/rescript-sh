@@ -1,5 +1,18 @@
 # Rescript Changelog
 
+## [Unreleased]
+
+#### 🛠️ Architecture & Security
+
+* **POSIX Print Standardization:** Replaced hundreds of `echo` and `echo -e` statements with strict `printf` invocations across the entire codebase. This guarantees cross-shell portability, predictable formatting, and eliminates arbitrary behavior during bash expansions.
+* **Function Syntax Standardization:** Refactored over 100 bash function declarations from the bash-specific `function name {` to the strictly POSIX-compliant `name() {`, fully aligning the architecture with the Google Shell Style Guide.
+* **Secure Temporary Directories:** Enforced strict `umask 077` permissions during the creation of temporary session directories (`mktemp -d`), guaranteeing that sensitive transient operations are exclusively readable and writable by the executing user.
+* **PID Locking Robustness:** Refactored the core background task tracker to use native bash file redirection `$(<"$pid_file" 2>/dev/null || true)` instead of `cat`, fortifying the script against missing files while lowering process-forking overhead.
+
+#### 🐛 Bugfixes
+
+* **Trap Destruction Bug:** Fixed a silent logic flaw in interactive commands (`extract`, `history`, `size`, `search`, `mounter`, `statinfo`, `status`) where resetting `trap - INT` inadvertently destroyed the global interruption handlers. Handlers are now properly restored, preventing the script from terminating abruptly without cleaning up session files.
+
 ## v7.1.1
 
 ### August 10, 2026
