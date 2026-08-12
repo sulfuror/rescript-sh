@@ -42,7 +42,7 @@ backup() {
   if [[ "$skip_flag" = "true" ]] ; then
     bu_opts+=( --exclude="**/.~lock.*" )
   fi
-  run_restic_with_retry backup "${sim_flags[@]}" --verbose "${bu_opts[@]}" "${rest[@]}" "${BACKUP_DIR[@]}"
+  run_restic_with_retry backup ${sim_flags[@]:+"${sim_flags[@]}"} --verbose ${bu_opts[@]:+"${bu_opts[@]}"} ${rest[@]:+"${rest[@]}"} "${BACKUP_DIR[@]}"
   local restic_rc=$?
   check_restic_error $restic_rc
   debug_stop

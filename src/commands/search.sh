@@ -14,7 +14,7 @@ search() {
     local snaps_output
     snaps_output=$(run_restic_with_retry snapshots -q 2>/dev/null || true)
     
-    run_restic_with_retry find "${rest[@]}" 2>/dev/null | awk -v snaps="$snaps_output" '
+    run_restic_with_retry find ${rest[@]:+"${rest[@]}"} 2>/dev/null | awk -v snaps="$snaps_output" '
     BEGIN {
       n = split(snaps, lines, "\n")
       for (i=1; i<=n; i++) {

@@ -420,7 +420,10 @@ set_state() {
   state_name=$(basename "$state_file")
   
   (
-    flock -x 200
+    if command -v flock >/dev/null 2>&1; then
+      flock -x 200
+    fi
+    
     if [[ ! -f "$state_file" ]]; then
       printf "%s\n" "${key}=${value}" > "$state_file"
     else
@@ -495,17 +498,17 @@ _require_sudo() {
   return 0
 }
 get_repo_list() {
-  local -n _result=$1
+  local _arr_name="$1"
   shift
   local excluded=("$@")
-  _result=()
+  eval "$_arr_name=()"
   for conf in "$config_dir"/*.conf; do
     [ -e "$conf" ] || continue
     local name
     name=$(basename "$conf" .conf)
     [[ "$name" == "global" ]] && continue
-    if ! array_contains "$name" "${excluded[@]}"; then
-      _result+=("$name")
+    if ! array_contains "$name" ${excluded[@]:+"${excluded[@]}"}; then
+      eval "$_arr_name+=(\"\$name\")"
     fi
   done
 }
@@ -560,7 +563,7 @@ logger() {
     else
       exec > >(tee -a "$log") 2>&1
     fi
-    if [[ -n "$LOG_RETENTION" && "$LOG_RETENTION" -gt 0 ]] 2>/dev/null ; then
+    if [[ "$LOG_RETENTION" =~ ^[0-9]+$ ]] && [ "$LOG_RETENTION" -gt 0 ]; then
       find "$logs_dir" \( -name "$repo-*.log" -o -name "$repo-*.log.gz" \) -type f -mtime +"$LOG_RETENTION" -exec rm -f {} +
     fi
   else
@@ -704,10 +707,7 @@ execute_with_metrics() {
 # -----------------------------------------------------------------------------
 # Editor Migration and Just-in-Time Initialization
 # -----------------------------------------------------------------------------
-config_global="$HOME/.rescript/config/global.conf"
-if [[ -f "$config_global" ]]; then
-  source_config "$config_global"
-fi
+
 
 if [[ -n "${RESCRIPT_EDITOR:-}" ]]; then
   rescript_editor="$RESCRIPT_EDITOR"

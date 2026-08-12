@@ -48,12 +48,12 @@ restorer() {
   if [[ "${snap_id:-}" ]] ; then
     debug_start
     # shellcheck disable=SC2086
-    run_restic_with_retry restore "$snap_id" --target "$restore_dir" "${sim_flags[@]}"
+    run_restic_with_retry restore "$snap_id" --target "$restore_dir" ${sim_flags[@]:+"${sim_flags[@]}"}
     check_restic_error $?
     debug_stop
   else
     debug_start
-    run_restic_with_retry restore latest --target "$restore_dir" "${restore_opts[@]}" "${sim_flags[@]}"
+    run_restic_with_retry restore latest --target "$restore_dir" ${restore_opts[@]:+"${restore_opts[@]}"} ${sim_flags[@]:+"${sim_flags[@]}"}
     check_restic_error $?
     debug_stop
   fi

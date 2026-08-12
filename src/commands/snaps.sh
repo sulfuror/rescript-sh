@@ -8,14 +8,14 @@ snaps() {
   rescript_lock
   debug_start
   local group_by=0 arg
-  for arg in "${rest[@]}"; do
+  for arg in ${rest[@]:+"${rest[@]}"}; do
     if [[ "$arg" == "--group-by" || "$arg" == "--group-by="* ]]; then
       group_by=1
       break
     fi
   done
 
-  run_restic_with_retry snapshots --compact "${rest[@]}" | awk -v w="$cols" -v cw="${c_white}" -v cr="${c_reset}" -v cg="${c_gray}" -v gb="$group_by" '
+  run_restic_with_retry snapshots --compact ${rest[@]:+"${rest[@]}"} | awk -v w="$cols" -v cw="${c_white}" -v cr="${c_reset}" -v cg="${c_gray}" -v gb="$group_by" '
     { gsub(/\r/, "") }
     gb == 1 { print; next }
     /^-+$/ {

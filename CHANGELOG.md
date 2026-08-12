@@ -10,12 +10,16 @@
 * **Orchestrator Encapsulation:** Refactored the `all` command orchestrator from a globally exposed block in `04_core.sh` into a dedicated function `command_all()` housed in `src/commands/all.sh`. This strictly encapsulates its variables using `local` to prevent global namespace pollution and unifies the command structure.
 * **Test Expressions:** Upgraded legacy `[ ]` POSIX tests to Bash's advanced `[[ ]]` conditional commands in `history` and `mounter` modules for safer string evaluation.
 * **Strict ANSI Interpolation:** Hardened `printf` formatting in UI functions (`wait_with_spinner`) by passing ANSI color codes via `%b` arguments instead of directly embedding them, preventing parsing ambiguity.
+* **Nameref Compatibility:** Replaced Bash 4.3+ `local -n` nameref declarations with strict `eval` pointer emulation in the `get_repo_list` array builder, ensuring backward compatibility with macOS (Bash 3.2).
+* **Conditional File Locking:** Made the `flock` binary dependency conditional in the `set_state` core function, guaranteeing execution safety on BSD and macOS systems where `flock` is not installed natively.
 
 #### 🐛 Bugfixes
 
 * **Trap Destruction Bug:** Fixed a silent logic flaw in interactive commands (`extract`, `history`, `size`, `search`, `mounter`, `statinfo`, `status`) where resetting `trap - INT` inadvertently destroyed the global interruption handlers. Handlers are now properly restored, preventing the script from terminating abruptly without cleaning up session files.
 * **State File Crashes:** Replaced `$(<file)` built-in reads with safe `$(cat file || true)` fallbacks across `rescript_lock`, `now_next`, `size`, `mounter`, and `umounter`. This prevents the `set -e` strict mode from crashing the script when attempting to read non-existent lock or state files.
 * **Variable Leaks:** Fixed variables in `now_next` and `latest_error` escaping into the global scope by explicitly declaring them with `local`, safeguarding the execution environment.
+* **macOS Unbound Array Crashes:** Eliminated all direct empty array expansions (`"${rest[@]}"`, `"${sim_flags[@]}"`, etc.) across `mounter`, `search`, `size`, `snaps`, `upgrade_repo`, and `all` modules, replacing them with conditionally expanded POSIX forms (e.g. `${rest[@]:+"${rest[@]}"}`). This completely resolves fatal `set -u` unbound variable crashes on Bash 3.x systems.
+* **Empty Password Injection:** Fixed a bug where exporting an empty `RESTIC_PASSWORD_COMMAND` environment variable caused Restic to attempt to execute a blank string, leading to fatal execution errors. Password variables are now explicitly validated before being exported to the subshell.
 
 ## v7.1.1
 

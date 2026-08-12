@@ -34,7 +34,7 @@ command_all() {
 
   local has_help=false
   local arg
-  for arg in "${forward_args[@]}"; do
+  for arg in ${forward_args[@]:+"${forward_args[@]}"}; do
     if [[ "$arg" == "-h" || "$arg" == "--help" || "$arg" == "help" ]]; then
       has_help=true
       break
@@ -63,7 +63,7 @@ command_all() {
   local has_quiet
   if [[ "$parallel_execution" == "true" ]]; then
     has_quiet=false
-    for arg in "${forward_args[@]}"; do
+    for arg in ${forward_args[@]:+"${forward_args[@]}"}; do
       if [[ "$arg" == "-Q" || "$arg" == "--quiet" ]]; then
         has_quiet=true
         break
@@ -96,7 +96,7 @@ command_all() {
   local has_metadata=false
   local is_automatic=false
   local is_simulate=false
-  for arg in "${forward_args[@]}"; do
+  for arg in ${forward_args[@]:+"${forward_args[@]}"}; do
     if [[ "$arg" == "-S" || "$arg" == "--simulate" ]]; then
       is_simulate=true
     fi
@@ -160,10 +160,10 @@ command_all() {
     fi
     
     if [[ "$parallel_execution" == "true" ]]; then
-      "$0" "$r_name" "${forward_args[@]}" &
+      "$0" "$r_name" ${forward_args[@]:+"${forward_args[@]}"} &
       pids+=($!)
     else
-      "$0" "$r_name" "${forward_args[@]}" || true
+      "$0" "$r_name" ${forward_args[@]:+"${forward_args[@]}"} || true
       if [[ "$has_help" == "true" ]]; then
         exit 0
       fi

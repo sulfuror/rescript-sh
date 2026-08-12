@@ -9,11 +9,11 @@ cleanup() {
 
   if [[ -n "${policies[*]}" ]] ; then
     debug_start
-    run_restic_with_retry forget "${sim_flags[@]}" "${policies[@]}" "${rest[@]}"
+    run_restic_with_retry forget ${sim_flags[@]:+"${sim_flags[@]}"} "${policies[@]}" ${rest[@]:+"${rest[@]}"}
     check_restic_error $?
     debug_stop
     debug_start
-    run_restic_with_retry prune "${sim_flags[@]}" --cleanup-cache
+    run_restic_with_retry prune ${sim_flags[@]:+"${sim_flags[@]}"} --cleanup-cache
     check_restic_error $?
     debug_stop
   else

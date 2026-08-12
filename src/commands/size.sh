@@ -30,7 +30,7 @@ size() {
   local tmp_size="$session_tmp/size"
   (
     debug_start
-    run_restic_with_retry ls --json --recursive "${host_args[@]}" "$snapshot_id" "${rest[@]}" 2>/dev/null | awk '
+    run_restic_with_retry ls --json --recursive ${host_args[@]:+"${host_args[@]}"} "$snapshot_id" ${rest[@]:+"${rest[@]}"} 2>/dev/null | awk '
       match($0, /"size": *[0-9]+/) {
         val = substr($0, RSTART, RLENGTH)
         sub(/"size": */, "", val)

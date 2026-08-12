@@ -32,7 +32,7 @@ mounter() {
   
   if [[ "$bg" == "true" ]]; then
     # Use setsid and redirect stdin to completely detach from the TTY and avoid EOF/exit issues
-    setsid restic mount "${clean_rest[@]}" "$rmount" </dev/null >/dev/null 2>&1 &
+    setsid restic mount ${clean_rest[@]:+"${clean_rest[@]}"} "$rmount" </dev/null >/dev/null 2>&1 &
     local pid=$!
     sleep 0.5
     if ! is_pid_alive "$pid"; then
@@ -52,7 +52,7 @@ mounter() {
     stty -echoctl 2>/dev/null # Hide ^C from terminal
     trap 'mounter_stopped=true; stty echoctl 2>/dev/null' INT
     
-    restic mount "${clean_rest[@]}" "$rmount" >/dev/null
+    restic mount ${clean_rest[@]:+"${clean_rest[@]}"} "$rmount" >/dev/null
     
     trap "cleanup_on_exit; handle_interrupt" INT HUP QUIT TERM
     stty echoctl 2>/dev/null # Restore terminal behavior
