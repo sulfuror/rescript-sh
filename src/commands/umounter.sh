@@ -1,8 +1,7 @@
 # ============================================================== #
 #                        COMMAND:UMOUNTER                        #
 # ============================================================== #
-
-function umounter {
+umounter() {
   rescript_lock
   debug_start
   local pid_file="$lock_dir/mount_${repo}.pid"
@@ -12,7 +11,7 @@ function umounter {
     pid_info=$(cat "$pid_file" 2>/dev/null || true)
     
     if [[ -z "$pid_info" || "$pid_info" != *":"* ]]; then
-      echo "INFO: Invalid or empty mount file found. Assuming already unmounted."
+      printf "%s\n" "INFO: Invalid or empty mount file found. Assuming already unmounted."
       rm -f "$pid_file"
       debug_stop
       exit 0
@@ -33,7 +32,7 @@ function umounter {
     fi
 
     if ! is_pid_alive "$mount_pid"; then
-      echo "INFO: Stale mount file found (PID $mount_pid is dead). Assuming already unmounted."
+      printf "%s\n" "INFO: Stale mount file found (PID $mount_pid is dead). Assuming already unmounted."
       rm -f "$pid_file"
     else
       printf "%b\n" "${c_cyan}Stopping mounter process (PID: $mount_pid)...${c_reset}"

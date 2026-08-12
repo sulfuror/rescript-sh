@@ -1,19 +1,18 @@
 # ============================================================== #
 #                             MAIN                               #
 # ============================================================== #
-
-function main {
+main() {
 if ! command -v restic &>/dev/null ; then
-  echo "This script is made to work with [restic]. Please, install"
-  echo "[restic] package to proceed. If you have [restic] binary"
-  echo "saved in some custom directory, move it to '/usr/bin' or"
-  echo "to your PATH so this script can recognize it. You can usually"
-  echo "install it via your system's package manager, for example:"
-  echo ""
-  echo "  sudo apt install restic"
-  echo ""
-  echo "You can also download the standalone binary in the [restic]"
-  echo "release page: https://github.com/restic/restic/releases"
+  printf "%s\n" "This script is made to work with [restic]. Please, install"
+  printf "%s\n" "[restic] package to proceed. If you have [restic] binary"
+  printf "%s\n" "saved in some custom directory, move it to '/usr/bin' or"
+  printf "%s\n" "to your PATH so this script can recognize it. You can usually"
+  printf "%s\n" "install it via your system's package manager, for example:"
+  printf "\n"
+  printf "%s\n" "  sudo apt install restic"
+  printf "\n"
+  printf "%s\n" "You can also download the standalone binary in the [restic]"
+  printf "%s\n" "release page: https://github.com/restic/restic/releases"
   exit
 fi
 
@@ -32,7 +31,7 @@ case "$cmd" in
       case "$1" in
         -S|--simulate) simulate_flag="true" ;;
         -h|--help|help) usage ; exit 0 ;;
-        *) echo "Invalid option [$1]..." ; echo "" ; exit 1 ;;
+        *) printf "%s\n" "Invalid option [$1]..." ; printf "\n" ; exit 1 ;;
       esac
       shift
     done
@@ -48,13 +47,13 @@ case "$cmd" in
             rest+=( "$1" "$2" )
             shift
           else
-            echo "Error: -X/--ignore-repo requires a repository name."
+            printf "%s\n" "Error: -X/--ignore-repo requires a repository name."
             exit 1
           fi
           ;;
         -h|--help) status-help ; exit 0 ;;
-        -*) echo "Invalid option [$1]..." ; echo "" ; status-help ; exit 1 ;;
-        *) echo "Invalid option [$1]..." ; echo "" ; status-help ; exit 1 ;;
+        -*) printf "%s\n" "Invalid option [$1]..." ; printf "\n" ; status-help ; exit 1 ;;
+        *) printf "%s\n" "Invalid option [$1]..." ; printf "\n" ; status-help ; exit 1 ;;
       esac
       shift
     done
@@ -102,15 +101,15 @@ case "$cmd" in
 
         --reset)
           if [[ -f "$config_dir/$repo.state" ]] ; then
-            echo "Removing state file for [$repo]:"
+            printf "%s\n" "Removing state file for [$repo]:"
             rm -v "${config_dir:?}/$repo.state"
             exit 0
           elif [[ -f "$config_dir/$repo-datefile" ]] ; then
-            echo "Removing datefile for [$repo]:"
+            printf "%s\n" "Removing datefile for [$repo]:"
             rm -v "${config_dir:?}/$repo-datefile"
             exit 0
           else
-            echo "There is no state file for [$repo]... nothing to do."
+            printf "%s\n" "There is no state file for [$repo]... nothing to do."
             exit 0
           fi
           ;;
@@ -137,12 +136,12 @@ case "$cmd" in
     while [[ $# -gt 0 ]] ; do
       if _parse_standard_flags "$1" ; then shift ; continue ; fi
       case "$1" in
-        -S|--simulate) echo "[$1] is not a valid option..." ; echo "" ; env-help ; exit 1 ;;
+        -S|--simulate) printf "%s\n" "[$1] is not a valid option..." ; printf "\n" ; env-help ; exit 1 ;;
         -h|--help) env-help ; exit 0 ;;
         -V) var_flag="${2:-}" ; shift ;;
         --var=*) var_flag="${1#*=}" ;;
         --var) var_flag="${2:-}" ; shift ;;
-        -*) echo "Invalid option [$1]..." ; echo "" ; env-help ; exit 1 ;;
+        -*) printf "%s\n" "Invalid option [$1]..." ; printf "\n" ; env-help ; exit 1 ;;
       esac
       shift
     done
@@ -155,14 +154,14 @@ case "$cmd" in
     while [[ $# -gt 0 ]] ; do
       case "$1" in
         -h|--help) next-help ; exit 0 ;;
-        *) echo "Invalid option [$1]..." ; echo "" ; next-help ; exit 1 ;;
+        *) printf "%s\n" "Invalid option [$1]..." ; printf "\n" ; next-help ; exit 1 ;;
       esac
       shift
     done
     if [[ -z "${CLEAN:-}" ]] ; then
-      echo "You have not configured a policy for the CLEAN variable..."
-      echo "For more information, please visit:"
-      echo "https://github.com/sulfuror/rescript-sh/wiki/Configuration-Files#optional-variables"
+      printf "%s\n" "You have not configured a policy for the CLEAN variable..."
+      printf "%s\n" "For more information, please visit:"
+      printf "%s\n" "https://github.com/sulfuror/rescript-sh/wiki/Configuration-Files#optional-variables"
     else
       cleanup_next
     fi
@@ -180,8 +179,8 @@ case "$cmd" in
         --host=*) host_flag="${1#*=}" ;;
         --host) host_flag="${2:-}" ; shift ;;
         *) 
-          echo "[$1] is not a valid option..."
-          echo ""
+          printf "%s\n" "[$1] is not a valid option..."
+          printf "\n"
           info-help
           exit 1 
           ;;
@@ -194,12 +193,12 @@ case "$cmd" in
     while [[ $# -gt 0 ]] ; do
       if _parse_standard_flags "$1" ; then shift ; continue ; fi
       case "$1" in
-        -S|--simulate) echo "[$1] is not a valid option..." ; echo "" ; size-help ; exit 1 ;;
+        -S|--simulate) printf "%s\n" "[$1] is not a valid option..." ; printf "\n" ; size-help ; exit 1 ;;
         -h|--help) size-help ; exit 0 ;;
         -H) host_flag="${2:-}" ; shift ;;
         --host=*) host_flag="${1#*=}" ;;
         --host) host_flag="${2:-}" ; shift ;;
-        -*) echo "Invalid option [$1]..." ; echo "" ; size-help ; exit 1 ;;
+        -*) printf "%s\n" "Invalid option [$1]..." ; printf "\n" ; size-help ; exit 1 ;;
         *) rest+=( "$1" ) ;;
       esac
       shift
@@ -213,13 +212,13 @@ case "$cmd" in
         -V) catlogs="true" ; logfile="${2:-}" ; shift ;;
         --view=*) catlogs="true" ; logfile="${1#*=}" ;;
         --view) catlogs="true" ; logfile="${2:-}" ; shift ;;
-        -S|--simulate) echo "[$1] is not a valid option..." ; echo "" ; logs-help ; exit 1 ;;
+        -S|--simulate) printf "%s\n" "[$1] is not a valid option..." ; printf "\n" ; logs-help ; exit 1 ;;
         -h|--help) logs-help ; exit 0 ;;
         -R) removelogs="true" ; logfile="${2:-}" ; shift ;;
         --remove=*) removelogs="true" ; logfile="${1#*=}" ;;
         --remove) removelogs="true" ; logfile="${2:-}" ; shift ;;
-        -*) echo "Invalid option [$1]..." ; echo "" ; logs-help ; exit 1 ;;
-        *) echo "Invalid argument [$1]..." ; echo "" ; logs-help ; exit 1 ;;
+        -*) printf "%s\n" "Invalid option [$1]..." ; printf "\n" ; logs-help ; exit 1 ;;
+        *) printf "%s\n" "Invalid argument [$1]..." ; printf "\n" ; logs-help ; exit 1 ;;
       esac
       shift
     done
@@ -233,7 +232,7 @@ case "$cmd" in
     while [[ $# -gt 0 ]] ; do
       case "$1" in
         -h|--help) umounter-help ; exit 0 ;;
-        *) echo "Invalid option [$1]..." ; echo "" ; umounter-help ; exit 1 ;;
+        *) printf "%s\n" "Invalid option [$1]..." ; printf "\n" ; umounter-help ; exit 1 ;;
       esac
       shift
     done
@@ -246,8 +245,8 @@ case "$cmd" in
     tag_flag=""
     interactive_flag=""
     if [[ -z "${1:-}" ]] ; then
-      echo "You have not indicated any option..."
-      echo ""
+      printf "%s\n" "You have not indicated any option..."
+      printf "\n"
       restorer-help
       exit 1
     fi
@@ -269,8 +268,8 @@ case "$cmd" in
         -i|--interactive) interactive_flag="true" ;;
         -S|--simulate) simulate_flag="true" ;;
         -*) 
-          echo "[$1] is not a valid option..."
-          echo ""
+          printf "%s\n" "[$1] is not a valid option..."
+          printf "\n"
           restorer-help
           exit 1 
           ;;
@@ -278,8 +277,8 @@ case "$cmd" in
           if [[ -z "$snap_flag" ]] ; then
             snap_flag="$1"
           else
-            echo "[$1] is not a valid option..."
-            echo ""
+            printf "%s\n" "[$1] is not a valid option..."
+            printf "\n"
             restorer-help
             exit 1
           fi
@@ -319,8 +318,8 @@ case "$cmd" in
     run_quietly init
     ;;
   config|editor|install|uninstall|update|version)
-    echo "[$cmd] is a global command..."
-    echo ""
+    printf "%s\n" "[$cmd] is a global command..."
+    printf "\n"
     "$cmd-help"
     exit 1
     ;;
@@ -329,7 +328,7 @@ case "$cmd" in
     for arg in "$@"; do
       if _parse_standard_flags "$arg" ; then continue ; fi
       case "$arg" in
-        -S|--simulate) echo "[$arg] is not a valid option..." ; echo "" ; exit 1 ;;
+        -S|--simulate) printf "%s\n" "[$arg] is not a valid option..." ; printf "\n" ; exit 1 ;;
       esac
       rest+=("$arg")
     done

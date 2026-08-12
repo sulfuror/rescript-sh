@@ -1,8 +1,7 @@
 # ============================================================== #
 #                            STATUS                              #
 # ============================================================== #
-
-function global_status {
+global_status() {
   local full_mode="false"
   local excluded_repos=()
   
@@ -17,13 +16,13 @@ function global_status {
           excluded_repos+=("$2")
           shift 2
         else
-          echo "Error: -X/--ignore-repo requires a repository name."
+          printf "%s\n" "Error: -X/--ignore-repo requires a repository name."
           exit 1
         fi
         ;;
       *)
-        echo "Invalid option [$1]..."
-        echo ""
+        printf "%s\n" "Invalid option [$1]..."
+        printf "\n"
         status-help
         exit 1
         ;;
@@ -32,7 +31,7 @@ function global_status {
   
 
   if [[ ! -d "$config_dir" ]]; then
-    echo "No repositories configured."
+    printf "%s\n" "No repositories configured."
     exit 1
   fi
   
@@ -44,7 +43,7 @@ function global_status {
   fi
   
   if [[ ${#repos[@]} -eq 0 ]]; then
-    echo "No repositories found."
+    printf "%s\n" "No repositories found."
     exit 0
   fi
   
@@ -74,7 +73,7 @@ function global_status {
       
       if [[ -n "$raw_snapshots" ]]; then
         local snap_count_str
-        snap_count_str=$(echo "$raw_snapshots" | awk '/snapshots/{print $1}' | tail -n1 || true)
+        snap_count_str=$(printf "%s\n" "$raw_snapshots" | awk '/snapshots/{print $1}' | tail -n1 || true)
         if [[ -n "$snap_count_str" && "$snap_count_str" -gt 0 ]] 2>/dev/null; then
           num_snaps="$snap_count_str"
           debug_start
@@ -91,7 +90,7 @@ function global_status {
         debug_stop
         if [[ -n "$raw_stats" ]]; then
           local size_raw
-          size_raw=$(echo "$raw_stats" | awk '/Total Size:/{print $3$4}')
+          size_raw=$(printf "%s\n" "$raw_stats" | awk '/Total Size:/{print $3$4}')
           if [[ -n "$size_raw" ]]; then
             size_str="$size_raw"
           fi
@@ -104,9 +103,9 @@ function global_status {
         fi
         debug_stop
         
-        echo "$repo|$num_snaps|$latest_date|$size_str|$health_str" > "$tmp_file"
+        printf "%s\n" "$repo|$num_snaps|$latest_date|$size_str|$health_str" > "$tmp_file"
       else
-        echo "$repo|$num_snaps|$latest_date" > "$tmp_file"
+        printf "%s\n" "$repo|$num_snaps|$latest_date" > "$tmp_file"
       fi
     ) &
     pids+=($!)
@@ -125,7 +124,7 @@ function global_status {
   wait_with_spinner "$status_msg" "${pids[@]}"
   
   wait "${pids[@]}" 2>/dev/null || true
-  trap - INT
+  trap "cleanup_on_exit; handle_interrupt" INT HUP QUIT TERM
   
   printf "\r\e[K"
   show_cursor

@@ -1,11 +1,10 @@
 # ============================================================== #
 #                       COMMAND: SEARCH                          #
 # ============================================================== #
-
-function search {
+search() {
   rescript_lock
   if [[ ${#rest[@]} -eq 0 ]] ; then
-    echo "You must provide a search pattern."
+    printf "%s\n" "You must provide a search pattern."
     exit 1
   fi
   
@@ -54,7 +53,7 @@ function search {
   wait_with_spinner "Searching for [${rest[*]}]..." "$pid"
   
   wait "$pid" 2>/dev/null || true
-  trap - INT
+  trap "cleanup_on_exit; handle_interrupt" INT HUP QUIT TERM
   
   printf "\r\e[K"
   

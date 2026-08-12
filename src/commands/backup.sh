@@ -1,8 +1,7 @@
 # ============================================================== #
 #                           BACKUP                               #
 # ============================================================== #
-
-function backup {
+backup() {
   print_context
   declare -a bu_opts=()
   if [[ "${EXCLUDE_CACHE:-}" = "yes" || "${EXCLUDE_CACHE:-}" = "y" || -z "${EXCLUDE_CACHE:-}" ]] ; then

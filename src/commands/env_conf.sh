@@ -1,8 +1,7 @@
 # ============================================================== #
 #                        COMMAND: ENV                            #
 # ============================================================== #
-
-function env_conf {
+env_conf() {
   local title
   local padding
 
@@ -68,7 +67,7 @@ function env_conf {
       }
     }' "$config_repo" || {
       printf "%b\n" "\nThere is no var named [$var_flag]..."
-      echo ""
+      printf "\n"
       env-help
       exit 1
     }

@@ -1,11 +1,10 @@
 # ============================================================== #
 #                      COMMAND: UNLOCKER                         #
 # ============================================================== #
-
-function unlocker {
+unlocker() {
   if [[ ${#rest[@]} -gt 0 ]]; then
-    echo "Invalid option [${rest[0]}]..."
-    echo ""
+    printf "%s\n" "Invalid option [${rest[0]}]..."
+    printf "\n"
     unlocker-help
     exit 1
   fi

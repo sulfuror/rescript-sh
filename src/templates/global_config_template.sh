@@ -1,8 +1,7 @@
 # ============================================================== #
 #                GLOBAL CONFIGURATION TEMPLATE                   #
 # ============================================================== #
-
-function global_config_template {
+global_config_template() {
 cat <<EOF
 # =============================================================================== #
 #             G L O B A L    R E S C R I P T    C O N F I G U R A T I O N         #

@@ -1,8 +1,7 @@
 # ============================================================== #
 #                        COMMAND: CLEANUP                        #
 # ============================================================== #
-
-function cleanup {
+cleanup() {
   print_context
   rescript_lock
 
@@ -18,9 +17,9 @@ function cleanup {
     check_restic_error $?
     debug_stop
   else
-    echo "You have not indicated any policy value..."
-    echo "If you want to use [cleanup] option you need to set the [KEEP] variables."
-    echo "For more information about the usage check out the following link:"
-    echo "https://github.com/sulfuror/rescript-sh/blob/master/README.md#usage"
+    printf "%s\n" "You have not indicated any policy value..."
+    printf "%s\n" "If you want to use [cleanup] option you need to set the [KEEP] variables."
+    printf "%s\n" "For more information about the usage check out the following link:"
+    printf "%s\n" "https://github.com/sulfuror/rescript-sh/blob/master/README.md#usage"
   fi
 }

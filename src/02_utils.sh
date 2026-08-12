@@ -1,22 +1,19 @@
 # ============================================================== #
 #                           UTILS                                #
 # ============================================================== #
-
-function hide_cursor {
+hide_cursor() {
   tput civis 2> /dev/null || true
 }
-
-function show_cursor {
+show_cursor() {
   tput cnorm 2> /dev/null || true
 }
-
-function handle_interrupt {
-  echo ""
-  echo "################ Process interrupted ################"
-  echo ""
+handle_interrupt() {
+  printf "\n"
+  printf "%s\n" "################ Process interrupted ################"
+  printf "\n"
   exit 130
 }
-function cleanup_on_exit {
+cleanup_on_exit() {
   if [[ "${rescript_lock_created:-}" == "true" ]]; then
     rm -f "${lock:?}" 2>/dev/null
     rescript_lock_created="false"
@@ -30,16 +27,14 @@ function cleanup_on_exit {
     session_tmp=""
   fi
 }
-
-function safe_sed {
+safe_sed() {
   if [[ "$unix_name" == "Darwin" ]]; then
     sed -i '' "$@"
   else
     sed -i "$@"
   fi
 }
-
-function is_pid_alive {
+is_pid_alive() {
   local target_pid="$1"
   if [[ -n "$target_pid" ]] && kill -0 "$target_pid" 2>/dev/null; then
     return 0
@@ -58,7 +53,7 @@ mkdir -p "$rescript_dir" "$config_dir" "$lock_dir" "$logs_dir"
 # Set PATH so it includes user's private bin if it exists (cron jobs may require this)
 PATH="$HOME/bin:$HOME/.local/bin:$PATH"
 
-tput_columns=$(tput cols 2>/dev/null || echo "")
+tput_columns=$(tput cols 2>/dev/null || printf "\n")
 
 if [[ -n "$tput_columns" && "$tput_columns" -gt "0" ]] ; then
   cols="$tput_columns"
@@ -71,8 +66,7 @@ if [[ -t 1 ]] ; then
 else
   int="false"
 fi
-
-function array_contains {
+array_contains() {
   local target="$1"
   shift
   for element in "$@"; do
@@ -82,8 +76,7 @@ function array_contains {
   done
   return 1
 }
-
-function print_line {
+print_line() {
   local char=${1:--}
   local current_cols="${cols:-80}"
   
@@ -91,15 +84,13 @@ function print_line {
   for (( i=0; i<current_cols; i++ )); do
     line="${line}${char}"
   done
-  echo -ne "${c_gray}${line}${c_reset}\n"
+  printf "%b" "${c_gray}${line}${c_reset}\n"
 }
-
-function format_log_output {
+format_log_output() {
   local target_log="$1"
   sed -E "s/$(printf '\033')\[[0-9;?]*[a-zA-Z]//g" "$target_log" | sed 's/.*\r//' | tr -d '\r' | sed -E -e 's/={60,}/============================================================/g' -e 's/-{60,}/------------------------------------------------------------/g' -e 's/^[ \t]+(Rescript Execution Context)/                          \1/'
 }
-
-function _send_email {
+_send_email() {
   local subject="${1:-}"
   local logmessage catlog
   if [[ -n "$EMAIL" ]] ; then
@@ -127,12 +118,11 @@ function _send_email {
         fi
       fi
     else
-      echo "[rescript] can't send emails; install [mailutils] package to do so."
+      printf "%s\n" "[rescript] can't send emails; install [mailutils] package to do so."
     fi
   fi
 }
-
-function _send_webhook {
+_send_webhook() {
   local subject="${1:-}"
   if [[ -n "${WEBHOOK_URL:-}" ]] ; then
     if [[ "$int" = "false" || "${force_webhook:-}" = "true" ]] ; then
@@ -173,8 +163,7 @@ function _send_webhook {
     fi
   fi
 }
-
-function print_context {
+print_context() {
   if [[ "${context_flag:-}" != "true" || "$context_printed" == "true" ]] ; then
     return 0
   fi
@@ -184,9 +173,9 @@ function print_context {
   local padding=$(( (cols - ${#title}) / 2 ))
   
   print_line "="
-  echo -ne "${c_blue}"
+  printf "%b" "${c_blue}"
   printf "%*s%s\n" "$padding" "" "$title"
-  echo -ne "${c_reset}"
+  printf "%b" "${c_reset}"
   print_line "="
   
   local date_time
@@ -253,10 +242,9 @@ function print_context {
       ;;
   esac
   print_line "="
-  echo ""
+  printf "\n"
 }
-
-function job_done {
+job_done() {
   cmd="${cmd:-backup}"
   
   if [[ ! "$cmd" =~ ^(automatic|backup|cleanup)$ && "${force_email:-}" != "true" && "${force_webhook:-}" != "true" ]]; then
@@ -275,8 +263,7 @@ function job_done {
     fi
   fi
 }
-
-function report_errors {
+report_errors() {
   cmd="${cmd:-backup}"
 
   if [[ ! "$cmd" =~ ^(automatic|backup|cleanup)$ && "${force_email:-}" != "true" && "${force_webhook:-}" != "true" ]]; then
@@ -287,7 +274,7 @@ function report_errors {
     if [[ "$ping_code" -gt "0" ]] ; then
       printf "%b\n" "${c_red}$error_message${c_reset}"
     else
-      echo ""
+      printf "\n"
       printf "%b\n" "${c_red}${c_white}WARNING!${c_reset}"
       printf "%b\n" "${c_red}$error_message${c_reset}"
     fi
@@ -297,8 +284,7 @@ function report_errors {
     _send_webhook "$error_msg"
   fi
 }
-
-function run_restic_with_retry {
+run_restic_with_retry() {
   local max_attempts=3
   local attempt=1
   local exit_code=0
@@ -322,14 +308,12 @@ function run_restic_with_retry {
   
   return $exit_code
 }
-
-function check_restic_error {
+check_restic_error() {
   exit_code="${1:-0}"
   latest_cmd="${prev_cmd:-}"
   latest_error
 }
-
-function latest_error {
+latest_error() {
   if [[ "$exit_code" != "0" ]] ; then
     if [[ -n "$rest_cmd" ]] ; then
       error_message="[$rest_cmd] failed; exit code $exit_code"
@@ -346,8 +330,7 @@ function latest_error {
     exit "${exit_code:-$?}"
   fi
 }
-
-function opsys {
+opsys() {
   case "$unix_name" in
     Linux|GNU)
       if [[ "$(uname -o)" = "Android" ]] ; then
@@ -358,11 +341,11 @@ function opsys {
         if command -v lsb_release >/dev/null 2>&1 ; then
           lsb_release -ds
         elif [[ -s /etc/os-release ]] ; then
-          (source /etc/os-release 2>/dev/null && echo "$PRETTY_NAME")
+          (source /etc/os-release 2>/dev/null && printf "%s\n" "$PRETTY_NAME")
         elif [[ -s /etc/issue.net ]] ; then
           cat /etc/issue.net
         else
-          echo "Unknown Linux OS ($(uname -m))"
+          printf "%s\n" "Unknown Linux OS ($(uname -m))"
         fi
       fi
       ;;
@@ -379,10 +362,9 @@ function opsys {
       ;;
   esac
 }
-
-function duration {
+duration() {
   if [[ "$SECONDS" -eq 0 ]] ; then
-    echo "0 seconds"
+    printf "%s\n" "0 seconds"
     return
   fi
   local dur=()
@@ -421,15 +403,14 @@ function duration {
   fi
   ndur=${#dur[@]}
   case "$ndur" in
-    4) echo "${dur[0]}, ${dur[1]}, ${dur[2]} and ${dur[3]}" ;;
-    3) echo "${dur[0]}, ${dur[1]} and ${dur[2]}" ;;
-    2) echo "${dur[0]} and ${dur[1]}" ;;
-    1) echo "${dur[0]}" ;;
-    0) echo "Too fast!" ;;
+    4) printf "%s\n" "${dur[0]}, ${dur[1]}, ${dur[2]} and ${dur[3]}" ;;
+    3) printf "%s\n" "${dur[0]}, ${dur[1]} and ${dur[2]}" ;;
+    2) printf "%s\n" "${dur[0]} and ${dur[1]}" ;;
+    1) printf "%s\n" "${dur[0]}" ;;
+    0) printf "%s\n" "Too fast!" ;;
   esac
 }
-
-function set_state {
+set_state() {
   local key="$1"
   local value="$2"
   local state_file="$3"
@@ -440,27 +421,25 @@ function set_state {
   (
     flock -x 200
     if [[ ! -f "$state_file" ]]; then
-      echo "${key}=${value}" > "$state_file"
+      printf "%s\n" "${key}=${value}" > "$state_file"
     else
       grep -v "^${key}=" "$state_file" > "${state_file}.tmp" 2>/dev/null || true
-      echo "${key}=${value}" >> "${state_file}.tmp"
+      printf "%s\n" "${key}=${value}" >> "${state_file}.tmp"
       mv "${state_file}.tmp" "$state_file"
     fi
   ) 200> "${lock_dir}/${state_name}.lock"
 }
-
-function get_state {
+get_state() {
   local key="$1"
   local state_file="$2"
   
   if [[ -f "$state_file" ]]; then
     grep "^${key}=" "$state_file" | cut -d'=' -f2
   else
-    echo "0"
+    printf "%s\n" "0"
   fi
 }
-
-function now_next {
+now_next() {
   now=$(date +"%s")
 
   local state_file="$config_dir/$repo.state"
@@ -469,7 +448,7 @@ function now_next {
   # Seamless migration for existing users
   if [[ ! -f "$state_file" && -f "$old_datefile" ]]; then
     local old_val
-    old_val=$(cat "$old_datefile" 2>/dev/null || echo "0")
+    old_val=$(cat "$old_datefile" 2>/dev/null || printf "%s\n" "0")
     set_state "NEXT_CLEANUP" "$old_val" "$state_file"
     rm -f "$old_datefile"
   fi
@@ -482,8 +461,7 @@ function now_next {
 }
 
 # UI and Progress Utilities
-
-function wait_with_spinner {
+wait_with_spinner() {
   local label="$1"
   shift
   local pids=("$@")
@@ -501,22 +479,20 @@ function wait_with_spinner {
   done
   wait "${pids[@]}" 2>/dev/null || true
 }
-
-function _require_sudo {
+_require_sudo() {
   local action_desc="${1:-operation}"
   if [[ "$EUID" -ne 0 ]]; then
     # Check if sudo requires a password
     if ! sudo -n true 2>/dev/null; then
       printf "%b\n" "\n${c_yellow}The $action_desc requires elevated privileges.${c_reset}"
-      echo "Please enter your sudo password to proceed."
-      echo ""
+      printf "%s\n" "Please enter your sudo password to proceed."
+      printf "\n"
     fi
     return 1
   fi
   return 0
 }
-
-function get_repo_list {
+get_repo_list() {
   local -n _result=$1
   shift
   local excluded=("$@")
@@ -531,8 +507,7 @@ function get_repo_list {
     fi
   done
 }
-
-function run_with_spinner {
+run_with_spinner() {
   local cmd="$1"
   local label="${2:-Working}"
   
@@ -575,8 +550,7 @@ function run_with_spinner {
   
   return $exit_code
 }
-
-function logger {
+logger() {
   if [[ "$log_flag" = "true" ]] ; then
     log="$logs_dir/$repo-$(date +%Y-%m-%d-%H%M%S).log"
     if [[ "$quiet_flag" == "true" ]]; then
@@ -595,67 +569,61 @@ function logger {
     fi
   fi
 }
-
-function time_start {
+time_start() {
   if [[ "$time_flag" = "true" ]] ; then
     SECONDS=0
   fi
 }
-
-function time_end {
+time_end() {
   if [[ "$time_flag" = "true" ]] ; then
     print_line
     printf "%b\n" "${c_white}Duration:${c_reset} ${c_green}$(duration)${c_reset}"
   fi
 }
-
-function rescript_lock {
+rescript_lock() {
   if [[ "${rescript_lock_created:-}" == "true" ]]; then return 0; fi
   if [ -e "$lock" ]; then
     local existing_pid=""
     existing_pid=$(cat "$lock" 2>/dev/null || true)
     
     if is_pid_alive "$existing_pid"; then
-      echo "WARNING: [$repo] repo is already running (PID: $existing_pid)..."
-      echo "If you are sure $repo is not running, type"
-      echo " "
-      echo "  rescript $repo unlocker"
-      echo " "
-      echo "This will remove the lock for [$repo] repository."
+      printf "%s\n" "WARNING: [$repo] repo is already running (PID: $existing_pid)..."
+      printf "%s\n" "If you are sure $repo is not running, type"
+      printf "%s\n" " "
+      printf "%s\n" "  rescript $repo unlocker"
+      printf "%s\n" " "
+      printf "%s\n" "This will remove the lock for [$repo] repository."
       latest_cmd="$cmd"
       exit_code="1"
       latest_error
     else
-      echo "INFO: Found stale lock file for [$repo] (PID: $existing_pid is dead). Overwriting..."
+      printf "%s\n" "INFO: Found stale lock file for [$repo] (PID: $existing_pid is dead). Overwriting..."
       rm -f "$lock" 2>/dev/null
     fi
   fi
   
   # Atomic lock creation with PID
   set -C
-  if echo "$$" > "$lock" 2>/dev/null; then
+  if printf "%s\n" "$$" > "$lock" 2>/dev/null; then
     set +C
     rescript_lock_created="true"
   else
     set +C
-    echo "ERROR: Failed to acquire lock for [$repo]."
+    printf "%s\n" "ERROR: Failed to acquire lock for [$repo]."
     exit 1
   fi
 }
-
-function debug_start {
+debug_start() {
   if [[ "$debug_flag" = "true" ]] ; then
     set -xv
   fi
 }
-
-function debug_stop {
+debug_stop() {
   if [[ "$debug_flag" = "true" ]] ; then
     set +xv
   fi
 }
-
-function set_sim_flag {
+set_sim_flag() {
   local cmd_name="${1:-}"
   sim_flags=()
   if [[ -n "${2:-}" ]]; then
@@ -666,8 +634,7 @@ function set_sim_flag {
     sim_flags=( --dry-run )
   fi
 }
-
-function _run_post_actions {
+_run_post_actions() {
   if [[ "$check_flag" = "true" ]] ; then
     print_line
     printf "%b\n" "${c_cyan}Starting check...${c_reset}"
@@ -677,8 +644,7 @@ function _run_post_actions {
     run_quietly statinfo
   fi
 }
-
-function source_config {
+source_config() {
   local conf_file="$1"
   local bash_err
   if ! bash_err=$(bash -n "$conf_file" 2>&1); then
@@ -690,8 +656,7 @@ function source_config {
   fi
   source "$conf_file"
 }
-
-function _parse_standard_flags {
+_parse_standard_flags() {
   case "$1" in
     -D|--debug) debug_flag="true" ; return 0 ;;
     -E|--email) force_email="true" ; CONFIRMATION_EMAIL="y" ; return 0 ;;
@@ -703,8 +668,7 @@ function _parse_standard_flags {
     *) return 1 ;;
   esac
 }
-
-function parse_generic_args {
+parse_generic_args() {
   local help_func="$1"
   shift
   while [[ $# -gt 0 ]] ; do
@@ -712,8 +676,8 @@ function parse_generic_args {
     case "$1" in
       -h|--help) "$help_func" ; exit 0 ;;
       -S|--simulate) 
-        echo "[$1] is not a valid option..."
-        echo ""
+        printf "%s\n" "[$1] is not a valid option..."
+        printf "\n"
         "$help_func"
         exit 1
         ;;
@@ -724,12 +688,10 @@ function parse_generic_args {
     shift
   done
 }
-
-function run_quietly {
+run_quietly() {
   "$@"
 }
-
-function execute_with_metrics {
+execute_with_metrics() {
   logger
   print_context
   time_start
@@ -752,7 +714,7 @@ elif [[ -s "$config_dir/.editor" ]]; then
   rescript_editor=$(cat "$config_dir/.editor" 2>/dev/null || true)
   if [[ -f "$config_global" ]]; then
     grep -v "^RESCRIPT_EDITOR=" "$config_global" > "${config_global}.tmp" 2>/dev/null || true
-    echo "RESCRIPT_EDITOR=\"$rescript_editor\"" >> "${config_global}.tmp"
+    printf "%s\n" "RESCRIPT_EDITOR=\"$rescript_editor\"" >> "${config_global}.tmp"
     mv "${config_global}.tmp" "$config_global"
   fi
   rm -f "$config_dir/.editor"

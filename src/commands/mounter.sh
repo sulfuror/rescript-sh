@@ -1,8 +1,7 @@
 # ============================================================== #
 #                     COMMAND: MOUNTER                           #
 # ============================================================== #
-
-function mounter {
+mounter() {
   rescript_lock
   local bg=false arg
   local clean_rest=()
@@ -41,7 +40,7 @@ function mounter {
       printf "%b\n" "${c_red}Failed to mount repository in background. See 'restic mount' logs for details.${c_reset}"
       exit 1
     fi
-    echo "$pid:$rmount" > "$lock_dir/mount_${repo}.pid"
+    printf "%s\n" "$pid:$rmount" > "$lock_dir/mount_${repo}.pid"
     printf "%b\n" "${c_green}Repository mounted in background at:${c_reset} ${c_white}$rmount${c_reset}"
     printf "%b\n" "${c_cyan}Use [rescript $repo umounter] to unmount.${c_reset}"
   else
@@ -55,7 +54,7 @@ function mounter {
     
     restic mount "${clean_rest[@]}" "$rmount" >/dev/null
     
-    trap - INT
+    trap "cleanup_on_exit; handle_interrupt" INT HUP QUIT TERM
     stty echoctl 2>/dev/null # Restore terminal behavior
     
     # Allow Restic to unmount FUSE gracefully

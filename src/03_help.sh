@@ -1,8 +1,7 @@
 # ============================================================== #
 #                            HELP                                #
 # ============================================================== #
-
-function usage {
+usage() {
 cat <<EOF
 Name        : rescript
 Author      : Sulfuror, Copyright (c) 2018 <sulfuror@gmail.com>
@@ -76,8 +75,7 @@ Commands usage:
 
 EOF
 }
-
-function backup-help {
+backup-help() {
 cat <<EOF
 [backup] is for [backup] command in restic
 
@@ -111,8 +109,7 @@ Make use of restic flags/options as follows:
 
 EOF
 }
-
-function cleanup-help {
+cleanup-help() {
 cat <<EOF
 [cleanup] is for [forget] and [prune] commands in restic
 
@@ -146,8 +143,7 @@ Make use of restic flags/options as follows:
 
 EOF
 }
-
-function next-help {
+next-help() {
 cat <<EOF
 [next] displays the next scheduled automatic cleanup time.
 
@@ -162,10 +158,7 @@ Global flags:
   -h, --help            Display usage.
 EOF
 }
-
-
-
-function config-help {
+config-help() {
 cat <<EOF
 [config] is an interactive command to make it easy to set up rescript
 configuration and exclusions files. You can create, edit, list
@@ -183,8 +176,7 @@ Global flags:
 
 EOF
 }
-
-function diff-help {
+diff-help() {
 cat <<EOF
 [diff] compares the two latest snapshots in your repository to show what
 files were added, modified, or removed. You can also pass specific
@@ -208,8 +200,7 @@ Make use of restic flags/options as follows:
 
 EOF
 }
-
-function editor-help {
+editor-help() {
 cat <<EOF
 [editor] is to select or change the default text editor
 to be used to open the rescript configuration and
@@ -225,8 +216,7 @@ Global flags:
 
 EOF
 }
-
-function env-help {
+env-help() {
 cat <<EOF
 [env] is to display the variables values in your
 configuration file.
@@ -242,8 +232,7 @@ Global flags:
 
 EOF
 }
-
-function extract-help {
+extract-help() {
 cat <<EOF
 [extract] allows you to quickly dump a specific file or directory from
 a snapshot directly to your current working directory.
@@ -271,8 +260,7 @@ Make use of restic flags/options natively:
 
 EOF
 }
-
-function info-help {
+info-help() {
 cat <<EOF
 [info] is for [stats] command in restic
 
@@ -297,8 +285,7 @@ Global flags:
 
 EOF
 } 
-
-function install-help {
+install-help() {
 cat <<EOF
 [install] is to simply copy the script to your PATH directory
 inside your HOME and install the bash autocompletion feature.
@@ -322,8 +309,7 @@ Global flags:
 
 EOF
 }
-
-function uninstall-help {
+uninstall-help() {
 cat <<EOF
 [uninstall] removes rescript and its autocompletion script.
 
@@ -340,8 +326,7 @@ Global flags:
 
 EOF
 }
-
-function logs-help {
+logs-help() {
 cat <<EOF
 [logs] is for log files saved by rescript
 
@@ -363,8 +348,7 @@ it will delete all logfiles related to the [repo_name].
 
 EOF
 }
-
-function mounter-help {
+mounter-help() {
 cat <<EOF
 [mounter] is to automatically mount your repository in your HOME
 directory so you can browse and restore your files.
@@ -391,8 +375,7 @@ Make use of restic flags/options as follows:
 
 EOF
 }
-
-function restorer-help {
+restorer-help() {
 cat <<EOF
 [restorer] is for [restore] command in restic
 
@@ -427,8 +410,7 @@ Global flags:
 
 EOF
 }
-
-function search-help {
+search-help() {
 cat <<EOF
 [search] allows you to find a specific file or directory across all
 snapshots in your repository, showing the snapshot ID and the date.
@@ -454,8 +436,7 @@ Make use of restic flags/options as follows:
 
 EOF
 }
-
-function snaps-help {
+snaps-help() {
 cat <<EOF
 [snaps] is is for [snapshots] command in restic
 
@@ -481,8 +462,7 @@ Make use of restic flags/options as follows:
 
 EOF
 }
-
-function unlocker-help {
+unlocker-help() {
 cat <<EOF
 [unlocker] is to remove the temporary lock created by rescript.
 When rescript is running it will create a temporary lock file
@@ -507,8 +487,7 @@ Global flags:
 
 EOF
 }
-
-function update-help {
+update-help() {
 cat <<EOF
 [update] is to update the rescript script itself.
 
@@ -520,8 +499,7 @@ Global flags:
 
 EOF
 }
-
-function upgrade-help {
+upgrade-help() {
 cat <<EOF
 [upgrade] is to update the restic repository to the latest format (v2).
 
@@ -543,8 +521,7 @@ Global flags:
 
 EOF
 }
-
-function size-help {
+size-help() {
 cat <<EOF
 [size] calculates the total size of a specific directory within
 a snapshot, parsing restic ls output. If no snapshot is specified,
@@ -571,8 +548,7 @@ Make use of restic flags/options as follows:
 
 EOF
 }
-
-function history-help {
+history-help() {
 cat <<EOF
 [history] searches for a specific file across all snapshots
 and displays a chronological table showing only the snapshots
@@ -600,8 +576,7 @@ Make use of restic flags/options as follows:
 
 EOF
 }
-
-function umounter-help {
+umounter-help() {
 cat <<EOF
 [umounter] unmounts a repository previously mounted with
 [mounter --background] and cleans up the mount point.
@@ -614,8 +589,7 @@ Global flags:
 
 EOF
 }
-
-function status-help {
+status-help() {
 cat <<EOF
 [status] prints a dashboard showing the state of your repositories.
 
@@ -645,13 +619,12 @@ Global flags:
 
 EOF
 }
-
-function version-help {
-  echo "[version] displays the current version of the rescript wrapper."
-  echo ""
-  echo "Usage:"
-  echo "  rescript version"
-  echo ""
-  echo "Global flags:"
-  echo "  -h, --help            Display usage."
+version-help() {
+  printf "%s\n" "[version] displays the current version of the rescript wrapper."
+  printf "\n"
+  printf "%s\n" "Usage:"
+  printf "%s\n" "  rescript version"
+  printf "\n"
+  printf "%s\n" "Global flags:"
+  printf "%s\n" "  -h, --help            Display usage."
 }

@@ -1,8 +1,7 @@
 # ============================================================== #
 #                     EXCLUSION TEMPLATES                        #
 # ============================================================== #
-
-function simple_exclusions {
+simple_exclusions() {
 cat <<EOF
 # These are the default rescript exclusions:
 $HOME/.cache/*
@@ -15,8 +14,7 @@ $HOME/.ecryptfs
 # Write your custom exclusions below:
 EOF
 }
-
-function long_exclusions {
+long_exclusions() {
 cat <<EOF
 # These are the default rescript exclusions for your home directory:
 $HOME/.cache/*
@@ -72,8 +70,7 @@ $HOME/Downloads
 # Write your custom exclusions below:
 EOF
 }
-
-function sys_exclusions {
+sys_exclusions() {
 cat <<EOF
 # These are the default rescript exclusions for your system:
 /home/*

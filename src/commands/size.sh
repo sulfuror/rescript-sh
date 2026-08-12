@@ -1,8 +1,7 @@
 # ============================================================== #
 #                        COMMAND: SIZE                           #
 # ============================================================== #
-
-function size {
+size() {
   rescript_lock
   local target_host="$rhost"
   if [[ -n "$host_flag" ]] ; then
@@ -16,7 +15,7 @@ function size {
   fi
   
   if [[ ${#rest[@]} -eq 0 ]] ; then
-    echo "You must provide a path inside the repository."
+    printf "%s\n" "You must provide a path inside the repository."
     exit 1
   fi
   
@@ -54,7 +53,7 @@ function size {
   
   local exit_code=0
   wait "$pid" || exit_code=$?
-  trap - INT
+  trap "cleanup_on_exit; handle_interrupt" INT HUP QUIT TERM
   
   local total_size=""
   if [[ -s "$tmp_size" ]]; then

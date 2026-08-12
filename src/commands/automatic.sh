@@ -1,8 +1,7 @@
 # ============================================================== #
 #                       COMMAND: AUTOMATIC                       #
 # ============================================================== #
-
-function _run_auto_cleanup {
+_run_auto_cleanup() {
   if [[ -n "${policies[*]}" ]] ; then
     print_line
     printf "%b\n" "${c_cyan}Cleaning Repo...${c_reset}"
@@ -13,8 +12,7 @@ function _run_auto_cleanup {
     check_restic_error $?
   fi
 }
-
-function automatic {
+automatic() {
   rescript_lock
   case "${LOGGING:-}" in
     y|yes)
@@ -91,15 +89,15 @@ function automatic {
   if [[ -n "${CLEAN:-}" && -z "${policies[*]}" ]] ; then
     local clean_num="${CLEAN//[A-Za-z]/}"
     local clean_unit="${CLEAN//[0-9]/}"
-    echo "[rescript] noted that your CLEAN variable is ${CLEAN:-}, so [rescript] assumes that"
-    echo "you want to perform a 'cleanup' (forget, prune and check) every $clean_num $clean_unit but"
-    echo "it can't execute it if you have not set the KEEP variables; please set your"
-    echo "desired KEEP values in order to perform the 'cleanup' every $clean_num $clean_unit. If you"
-    echo "don't want [rescript] to 'cleanup' your repo automatically every $clean_num $clean_unit,"
-    echo "just leave the CLEAN variable blank in your configuration file and this"
-    echo "message will not appear again."
-    echo ""
-    echo "For more info about this subject:"
-    echo "https://github.com/sulfuror/rescript-sh/blob/master/README.md#usage"
+    printf "%s\n" "[rescript] noted that your CLEAN variable is ${CLEAN:-}, so [rescript] assumes that"
+    printf "%s\n" "you want to perform a 'cleanup' (forget, prune and check) every $clean_num $clean_unit but"
+    printf "%s\n" "it can't execute it if you have not set the KEEP variables; please set your"
+    printf "%s\n" "desired KEEP values in order to perform the 'cleanup' every $clean_num $clean_unit. If you"
+    printf "%s\n" "don't want [rescript] to 'cleanup' your repo automatically every $clean_num $clean_unit,"
+    printf "%s\n" "just leave the CLEAN variable blank in your configuration file and this"
+    printf "%s\n" "message will not appear again."
+    printf "\n"
+    printf "%s\n" "For more info about this subject:"
+    printf "%s\n" "https://github.com/sulfuror/rescript-sh/blob/master/README.md#usage"
   fi
 }

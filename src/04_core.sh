@@ -1,8 +1,7 @@
 # ============================================================== #
 #                             CORE                               #
 # ============================================================== #
-
-function restic_alone {
+restic_alone() {
   rescript_lock
   debug_start
   print_context
@@ -37,7 +36,7 @@ if [[ "${1:-}" == "all" ]]; then
           excluded_repos+=("${2:-}")
           shift 2
         else
-          echo "Error: --ignore-repo requires a repository name."
+          printf "%s\n" "Error: --ignore-repo requires a repository name."
           exit 1
         fi
         ;;
@@ -62,19 +61,19 @@ if [[ "${1:-}" == "all" ]]; then
 
   if [[ "$has_help" == "true" ]]; then
     if [[ ${#forward_args[@]} -eq 1 ]]; then
-      echo "Usage: rescript all [command] [flags] ..."
-      echo ""
-      echo "The 'all' keyword executes a command across ALL configured"
-      echo "repositories sequentially (or in parallel with -P)."
-      echo ""
-      echo "Flags specific to 'all':"
-      echo "  -P, --parallel              Execute on all repositories in parallel."
-      echo "  -X, --ignore-repo <repo>    Exclude a repository. Can be used multiple times."
-      echo ""
-      echo "Examples:"
-      echo "  rescript all backup -q"
-      echo "  rescript all cleanup --simulate --ignore-repo [repo_name]"
-      echo "  rescript all backup --parallel"
+      printf "%s\n" "Usage: rescript all [command] [flags] ..."
+      printf "\n"
+      printf "%s\n" "The 'all' keyword executes a command across ALL configured"
+      printf "%s\n" "repositories sequentially (or in parallel with -P)."
+      printf "\n"
+      printf "%s\n" "Flags specific to 'all':"
+      printf "%s\n" "  -P, --parallel              Execute on all repositories in parallel."
+      printf "%s\n" "  -X, --ignore-repo <repo>    Exclude a repository. Can be used multiple times."
+      printf "\n"
+      printf "%s\n" "Examples:"
+      printf "%s\n" "  rescript all backup -q"
+      printf "%s\n" "  rescript all cleanup --simulate --ignore-repo [repo_name]"
+      printf "%s\n" "  rescript all backup --parallel"
       exit 0
     fi
   fi
@@ -94,19 +93,19 @@ if [[ "${1:-}" == "all" ]]; then
   fi
   
   if [[ ! -d "$config_dir" ]]; then
-    echo "No repositories configured."
+    printf "%s\n" "No repositories configured."
     exit 1
   fi
   
   get_repo_list repos "${excluded_repos[@]}"
   
   if [[ ${#repos[@]} -eq 0 ]]; then
-    echo "No repositories found or all were excluded."
+    printf "%s\n" "No repositories found or all were excluded."
     exit 0
   fi
   
   if [[ "$parallel_execution" == "true" ]]; then
-    repo_list=$(IFS=', '; echo "${repos[*]}")
+    repo_list=$(IFS=', '; printf "%s\n" "${repos[*]}")
     printf "%b\n" "${c_cyan}Running on repositories: ${c_white}$repo_list${c_cyan} (in parallel, enforcing quiet mode)${c_reset}"
   fi
   
@@ -125,14 +124,14 @@ if [[ "${1:-}" == "all" ]]; then
     fi
     case "$arg" in
       status)
-        echo "Invalid option for [all]: [$arg]..."
-        echo ""
+        printf "%s\n" "Invalid option for [all]: [$arg]..."
+        printf "\n"
         status-help
         exit 1
         ;;
       config|editor|install|uninstall|update|version)
-        echo "[$arg] is a global command..."
-        echo ""
+        printf "%s\n" "[$arg] is a global command..."
+        printf "\n"
         "$arg-help"
         exit 1
         ;;
@@ -180,7 +179,7 @@ if [[ "${1:-}" == "all" ]]; then
       if [[ "$has_help" == "true" ]]; then
         exit 0
       fi
-      echo ""
+      printf "\n"
     fi
   done
   
@@ -210,8 +209,7 @@ if [[ ! "${1:-}"  ]] ; then
   usage
   exit 1
 fi
-
-function _check_help_or_error {
+_check_help_or_error() {
   local cmd="${1:-}"
   local arg="${2:-}"
   if [[ "$arg" ]] ; then
@@ -225,8 +223,8 @@ function _check_help_or_error {
         exit 0
         ;;
       *)
-        echo "Invalid option [$arg]..."
-        echo ""
+        printf "%s\n" "Invalid option [$arg]..."
+        printf "\n"
         if type "$cmd-help" &>/dev/null; then
           "$cmd-help"
         else
@@ -241,8 +239,8 @@ function _check_help_or_error {
 case "${1:-}" in
   automatic|backup|cleanup|diff|env|extract|history|info|init|logs|mounter|next|restorer|search|size|snaps|umounter|unlocker|upgrade)
     _check_help_or_error "${1:-}" "${2:-}"
-    echo "You have not indicated any repo for [$1]..."
-    echo ""
+    printf "%s\n" "You have not indicated any repo for [$1]..."
+    printf "\n"
     if type "${1:-}-help" &>/dev/null; then
       "${1:-}-help"
     else
@@ -276,7 +274,7 @@ case "${1:-}" in
         exit 1
         ;;
       *)  
-        echo "You have not indicated a valid option..."
+        printf "%s\n" "You have not indicated a valid option..."
         usage | sed -ne '/Usage/,/EOF/p'
         exit 1
         ;;
@@ -306,14 +304,14 @@ case "${1:-}" in
     ;;
   -v|--version|version)
     usage | sed -ne '/Name/,/Version/p'
-    echo ""
+    printf "\n"
     printf "%b\n" 'Redistribution and use in source and binary forms, with or without \nmodification, are permitted provided that the BSD 2-Clause License \nconditions are met.'
     exit
     ;;
   *)
     if [[ ! -e "$config_dir/$1.conf" && ! -e "$config_dir/$1.conf.gpg" ]] ; then
-      echo "There is no repo or command for [$1]. Indicate a valid"
-      echo "repo name or command to proceed. Use [rescript help] for usage."
+      printf "%s\n" "There is no repo or command for [$1]. Indicate a valid"
+      printf "%s\n" "repo name or command to proceed. Use [rescript help] for usage."
       exit
     fi
     ;;

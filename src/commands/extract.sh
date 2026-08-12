@@ -1,11 +1,10 @@
 # ============================================================== #
 #                        COMMAND: EXTRACT                        #
 # ============================================================== #
-
-function extract {
+extract() {
   rescript_lock
   if [[ ${#rest[@]} -eq 0 ]] ; then
-    echo "You must provide a file path to extract."
+    printf "%s\n" "You must provide a file path to extract."
     exit 1
   fi
   
@@ -39,13 +38,13 @@ function extract {
   fi
 
   if [[ -z "$file" ]] ; then
-    echo "You must provide a file path to extract."
-    echo "Note: Positional arguments (snapshot ID and file path) must be placed BEFORE any restic flags."
+    printf "%s\n" "You must provide a file path to extract."
+    printf "%s\n" "Note: Positional arguments (snapshot ID and file path) must be placed BEFORE any restic flags."
     exit 1
   fi
   
   if [[ -z "$snap_id" ]] ; then
-    echo "Auto-detecting latest snapshot for this file..."
+    printf "%s\n" "Auto-detecting latest snapshot for this file..."
     
     local has_host=false
     for arg in "${extract_rest[@]}"; do
@@ -65,11 +64,11 @@ function extract {
     snap_id=$(run_restic_with_retry find "${find_flags[@]}" "$file" 2>/dev/null | tr -d '\r' | sed 's/\x1B\[[0-9;]*[a-zA-Z]//g' | awk '/Found matching entries in snapshot/ { for(i=1;i<=NF;i++) if($i=="snapshot") { print $(i+1); exit } }' || true)
     debug_stop
     if [[ -z "$snap_id" ]] ; then
-      echo "Extraction failed. File [$file] not found in any snapshot."
+      printf "%s\n" "Extraction failed. File [$file] not found in any snapshot."
       exit 1
     fi
   else
-    echo "Using provided snapshot ID [${snap_id}]..."
+    printf "%s\n" "Using provided snapshot ID [${snap_id}]..."
   fi
 
   local dest_name
@@ -103,7 +102,7 @@ function extract {
     done
   fi
   
-  echo "Extracting [$file] to [./$dest_name]..."
+  printf "%s\n" "Extracting [$file] to [./$dest_name]..."
   
   local restic_args=( "dump" "-a" "zip" "$snap_id" "$file" "${extract_rest[@]}" )
   
@@ -121,7 +120,7 @@ function extract {
   local exit_code=0
   wait_with_spinner "Extracting file..." "$pid"
   wait "$pid" || exit_code=$?
-  trap - INT
+  trap "cleanup_on_exit; handle_interrupt" INT HUP QUIT TERM
   
   printf "\r\e[K"
   
@@ -139,9 +138,9 @@ function extract {
     else
       printf "%b\n" "${c_green}Extraction complete.${c_reset}"
     fi
-    echo "Saved to: ./$dest_name"
+    printf "%s\n" "Saved to: ./$dest_name"
   else
-    echo -ne "\n${c_red}Extraction failed. Restic error:${c_reset}\n"
+    printf "%b" "\n${c_red}Extraction failed. Restic error:${c_reset}\n"
     cat "$err_file" 2>/dev/null
     rm -f "$tmp_dest"
   fi

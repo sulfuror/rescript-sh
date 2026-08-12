@@ -1,11 +1,10 @@
 # ============================================================== #
 #                         COMMAND: HISTORY                       #
 # ============================================================== #
-
-function history {
+history() {
   rescript_lock
   if [[ ${#rest[@]} -eq 0 ]] ; then
-    echo "You must provide a pattern or file path to search history for."
+    printf "%s\n" "You must provide a pattern or file path to search history for."
     exit 1
   fi
   
@@ -75,7 +74,7 @@ function history {
   
   local exit_code=0
   wait "$pid" || exit_code=$?
-  trap - INT
+  trap "cleanup_on_exit; handle_interrupt" INT HUP QUIT TERM
   
   printf "\r\e[K"
   

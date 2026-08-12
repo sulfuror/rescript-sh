@@ -1,8 +1,7 @@
 # ============================================================== #
 #                          COMMAND: INFO                         #
 # ============================================================== #
-
-function statinfo {
+statinfo() {
   local target_host="${host_flag:-$rhost}"
   hide_cursor
   
@@ -27,7 +26,7 @@ function statinfo {
   wait $pid2; local e2=$?
   wait $pid3; local e3=$?
   wait $pid4; local e4=$?
-  trap - INT
+  trap "cleanup_on_exit; handle_interrupt" INT HUP QUIT TERM
   
   if [[ $e1 -ne 0 ]]; then check_restic_error $e1; fi
   if [[ $e2 -ne 0 ]]; then check_restic_error $e2; fi
@@ -39,10 +38,10 @@ function statinfo {
   local stat_restore_size
   local stat_raw_data
   
-  latest_host_stat=$(awk -F': ' '/Total Size/{print $2}' "$tmp1" 2>/dev/null || echo "N/A")
-  host_stat=$(awk -F': ' '/Total Size/{print $2}' "$tmp2" 2>/dev/null || echo "N/A")
-  stat_restore_size=$(awk -F': ' '/Total Size/{print $2}' "$tmp3" 2>/dev/null || echo "N/A")
-  stat_raw_data=$(awk -F': ' '/Total Size/{print $2}' "$tmp4" 2>/dev/null || echo "N/A")
+  latest_host_stat=$(awk -F': ' '/Total Size/{print $2}' "$tmp1" 2>/dev/null || printf "%s\n" "N/A")
+  host_stat=$(awk -F': ' '/Total Size/{print $2}' "$tmp2" 2>/dev/null || printf "%s\n" "N/A")
+  stat_restore_size=$(awk -F': ' '/Total Size/{print $2}' "$tmp3" 2>/dev/null || printf "%s\n" "N/A")
+  stat_raw_data=$(awk -F': ' '/Total Size/{print $2}' "$tmp4" 2>/dev/null || printf "%s\n" "N/A")
   
   
   

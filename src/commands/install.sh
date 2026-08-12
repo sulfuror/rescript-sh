@@ -1,8 +1,7 @@
 # ============================================================== #
 #                      COMMAND: INSTALL                          #
 # ============================================================== #
-
-function install_autocomplete {
+install_autocomplete() {
   local target_dir="$1"
   local target_file="$target_dir/rescript"
   
@@ -125,34 +124,33 @@ EOF
     printf "%b\n" " \033[1;32m*\033[0m Bash autocompletion installed at: \033[1;37m$target_file\033[0m"
   fi
 }
-
-function install {
+install() {
   if [[ "${1:-}" == "--autocomplete-only" ]]; then
     local target="${2:-}"
     if [[ -z "$target" ]]; then
-      echo "$ui_line_eq"
-      echo "  Autocomplete Installation   "
-      echo "$ui_line_eq"
-      echo " [1] System-wide              "
-      echo " [2] For this user            "
-      echo "$ui_line_eq"
+      printf "%s\n" "$ui_line_eq"
+      printf "%s\n" "  Autocomplete Installation   "
+      printf "%s\n" "$ui_line_eq"
+      printf "%s\n" " [1] System-wide              "
+      printf "%s\n" " [2] For this user            "
+      printf "%s\n" "$ui_line_eq"
       read -rp "Select an option [ 1 - 2 ]: " target_opt
       case "$target_opt" in
         1|system) target="system" ;;
         2|user) target="user" ;;
-        *) echo "No valid action indicated; exiting..."; exit 1 ;;
+        *) printf "%s\n" "No valid action indicated; exiting..."; exit 1 ;;
       esac
     fi
 
     if [[ "$target" == "system" ]]; then
       if [[ "$EUID" -ne 0 ]]; then
-        echo ""
-        echo "The system-wide installation copies files to protected system"
-        echo "directories (like /usr/bin and /etc/bash_completion.d)."
-        echo "Administrative privileges are required to complete these actions."
-        echo ""
-        echo "Please enter your sudo password to proceed."
-        echo ""
+        printf "\n"
+        printf "%s\n" "The system-wide installation copies files to protected system"
+        printf "%s\n" "directories (like /usr/bin and /etc/bash_completion.d)."
+        printf "%s\n" "Administrative privileges are required to complete these actions."
+        printf "\n"
+        printf "%s\n" "Please enter your sudo password to proceed."
+        printf "\n"
         sudo "$0" install --autocomplete-only system
         exit $?
       fi
@@ -167,13 +165,13 @@ function install {
     exit 0
   fi
 
-  echo "$ui_line_eq"
-  echo "     Installation     "
-  echo "$ui_line_eq"
-  echo " [1] System-wide      "
-  echo " [2] For this user    "
-  echo " [3] Exit             "
-  echo "$ui_line_eq"
+  printf "%s\n" "$ui_line_eq"
+  printf "%s\n" "     Installation     "
+  printf "%s\n" "$ui_line_eq"
+  printf "%s\n" " [1] System-wide      "
+  printf "%s\n" " [2] For this user    "
+  printf "%s\n" " [3] Exit             "
+  printf "%s\n" "$ui_line_eq"
   read -rp "Select an option and press Enter [ 1 - 3 ]: " installation
   case "$installation" in
     1|system)
@@ -186,8 +184,8 @@ function install {
           cp "$0" /usr/bin/rescript
           install_autocomplete "/etc/bash_completion.d"
         fi
-        echo "Installation successful!"
-        echo "Run [rescript config] to configure your repository."
+        printf "%s\n" "Installation successful!"
+        printf "%s\n" "Run [rescript config] to configure your repository."
         exit
       else
         if [[ "$unix_name" = "Darwin" ]] ; then
@@ -198,9 +196,9 @@ function install {
           sudo /usr/bin/rescript install --autocomplete-only system
         fi
         
-        echo ""
-        echo "Installation successful!"
-        echo "Run [rescript config] to configure your repository."
+        printf "\n"
+        printf "%s\n" "Installation successful!"
+        printf "%s\n" "Run [rescript config] to configure your repository."
         exit
       fi
       ;;
@@ -209,41 +207,41 @@ function install {
       if [[ -d "$HOME/bin" ]] ; then
         cp "$0" "$HOME/bin/rescript"
         install_autocomplete "$HOME/.local/share/bash-completion/completions"
-        echo "Installation successful!"
-        echo "Run [rescript config] to configure your repository."
+        printf "%s\n" "Installation successful!"
+        printf "%s\n" "Run [rescript config] to configure your repository."
         exit
       elif [[ -d "$HOME/.local/bin" ]] ; then
         cp "$0" "$HOME/.local/bin/rescript"
         install_autocomplete "$HOME/.local/share/bash-completion/completions"
-        echo "Installation successful!"
-        echo "Run [rescript config] to configure your repository."
+        printf "%s\n" "Installation successful!"
+        printf "%s\n" "Run [rescript config] to configure your repository."
         exit
       else
-        echo "There is no [$HOME/.local/bin] directory present."
+        printf "%s\n" "There is no [$HOME/.local/bin] directory present."
         read -rp "Do you wish to create it now? y/n: " ans_install
         case $ans_install in
           y|yes)
             mkdir -p "$HOME/.local/bin"
             cp "$0" "$HOME/.local/bin/rescript"
             install_autocomplete "$HOME/.local/share/bash-completion/completions"
-            echo "Installation successful!"
-            echo "Run [rescript config] to configure your repository."
-            echo ""
-            echo "Remember to include $HOME/.local/bin in your PATH."
+            printf "%s\n" "Installation successful!"
+            printf "%s\n" "Run [rescript config] to configure your repository."
+            printf "\n"
+            printf "%s\n" "Remember to include $HOME/.local/bin in your PATH."
             exit
             ;;
           n|no)
-            echo "Nothing done; exiting..."
+            printf "%s\n" "Nothing done; exiting..."
             exit
             ;;
           *)
-            echo "No valid action indicated; exiting..."
+            printf "%s\n" "No valid action indicated; exiting..."
             exit
             ;;
         esac
       fi
       ;;
-    3|exit) echo "Exiting..." ; exit ;;
-    *) clear ; echo "No valid action indicated..." ; install ;;
+    3|exit) printf "%s\n" "Exiting..." ; exit ;;
+    *) clear ; printf "%s\n" "No valid action indicated..." ; install ;;
   esac
 }
