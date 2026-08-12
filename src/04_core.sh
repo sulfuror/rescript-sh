@@ -163,6 +163,7 @@ if [[ "${1:-}" == "all" ]]; then
   
   export RESCRIPT_SKIP_HOOKS="true"
 
+  pids=()
   for r_name in "${repos[@]}"; do
     if [[ "$has_metadata" == "false" && "$is_automatic" == "false" && "$parallel_execution" == "false" ]]; then
       if [[ "$has_help" == "false" ]]; then
@@ -174,6 +175,7 @@ if [[ "${1:-}" == "all" ]]; then
     
     if [[ "$parallel_execution" == "true" ]]; then
       "$0" "$r_name" "${forward_args[@]}" &
+      pids+=($!)
     else
       "$0" "$r_name" "${forward_args[@]}" || true
       if [[ "$has_help" == "true" ]]; then
@@ -184,8 +186,12 @@ if [[ "${1:-}" == "all" ]]; then
   done
   
   if [[ "$parallel_execution" == "true" ]]; then
-    wait
-    printf "%b\n" "${c_green}All parallel jobs finished!${c_reset}"
+    action_msg="automatic"
+    if [[ ${#forward_args[@]} -gt 0 ]]; then
+      action_msg="${forward_args[0]}"
+    fi
+    wait_with_spinner "Running [${action_msg}] in parallel for all repositories..." "${pids[@]}"
+    printf "\n%b\n" "${c_green}All parallel jobs finished!${c_reset}"
   fi
   
   if [[ -n "${POST_CMD:-}" ]] ; then
