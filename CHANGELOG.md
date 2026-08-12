@@ -1,6 +1,6 @@
 # Rescript Changelog
 
-## v7.1.1
+## v7.1.2
 
 ### August 12, 2026
 
