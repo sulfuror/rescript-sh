@@ -1,6 +1,7 @@
 # ============================================================== #
-#                             MAIN                               #
+#                              MAIN                              #
 # ============================================================== #
+
 main() {
 if ! command -v restic >/dev/null 2>&1 ; then
   printf "%s\n" "This script is made to work with [restic]. Please, install"
@@ -354,4 +355,3 @@ exit "${exit_code:-$?}"
 }
 
 main "$@"
-

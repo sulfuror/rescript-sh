@@ -1,6 +1,7 @@
 # ============================================================== #
-#                       COMMAND: UPDATE                          #
+#                        COMMAND: UPDATE                         #
 # ============================================================== #
+
 update() {
   if ! command -v curl >/dev/null 2>&1 ; then
     printf "%s\n" "***$(basename "$0") warning***"
@@ -27,7 +28,6 @@ update() {
     rm -f "$rescript_latest"
     exit 1
   fi
-
 
   local rescript_bin
   rescript_bin=$(command -v rescript || printf "%s\n" "$0")

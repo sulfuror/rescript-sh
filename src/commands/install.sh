@@ -1,6 +1,7 @@
 # ============================================================== #
-#                      COMMAND: INSTALL                          #
+#                        COMMAND: INSTALL                        #
 # ============================================================== #
+
 install_autocomplete() {
   local target_dir="$1"
   local target_file="$target_dir/rescript"

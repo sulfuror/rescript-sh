@@ -1,6 +1,7 @@
 # ============================================================== #
-#                             CORE                               #
+#                              CORE                              #
 # ============================================================== #
+
 restic_alone() {
   rescript_lock
   debug_start
@@ -18,7 +19,6 @@ restic_alone() {
   fi
   latest_error
 }
-
 
 if [[ ! "${1:-}"  ]] ; then
   usage
@@ -132,9 +132,9 @@ case "${1:-}" in
     ;;
 esac
 
-# ============================================================== #
-# Configuration & Variables                                      #
-# ============================================================== #
+# -------------------------------------------------------------- #
+#                   CONFIGURATION & VARIABLES                    #
+# -------------------------------------------------------------- #
 
 if [[ -f "$config_global" ]]; then
   source_config "$config_global"
@@ -178,8 +178,6 @@ if [[ -n "${RESTIC_PASSWORD_COMMAND:-}" ]]; then
 fi
 export RESTIC_COMPRESSION="${RESTIC_COMPRESSION:-auto}"
 SECONDS=0
-
-
 
 case "${RESTIC_REPO:-}" in
   sftp*) ping_target=${RESTIC_REPO#sftp*@} ; ping_target=${ping_target%:*} ; ping_code=0; ping -c 1 "$ping_target" > /dev/null 2>&1 || ping_code=$? ;;

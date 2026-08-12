@@ -1,6 +1,7 @@
 # ============================================================== #
-#                            STATUS                              #
+#                             STATUS                             #
 # ============================================================== #
+
 global_status() {
   local full_mode="false"
   local excluded_repos=()
@@ -29,7 +30,6 @@ global_status() {
     esac
   done
   
-
   if [[ ! -d "$config_dir" ]]; then
     printf "%s\n" "No repositories configured."
     exit 1

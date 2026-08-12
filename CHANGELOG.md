@@ -12,8 +12,11 @@
 * **Strict ANSI Interpolation:** Hardened `printf` formatting in UI functions (`wait_with_spinner`) by passing ANSI color codes via `%b` arguments instead of directly embedding them, preventing parsing ambiguity.
 * **Nameref Compatibility:** Replaced Bash 4.3+ `local -n` nameref declarations with strict `eval` pointer emulation in the `get_repo_list` array builder, ensuring backward compatibility with macOS (Bash 3.2).
 * **Conditional File Locking:** Made the `flock` binary dependency conditional in the `set_state` core function, guaranteeing execution safety on BSD and macOS systems where `flock` is not installed natively.
+* **Codebase Formatting Standardization:** Enforced a strict, universal visual standard across all `src/` modules. Every file now uses exactly 66-character wide, centered, and uppercase block headers (`===` for primary headers, `---` for internal sections) with precise one-line padding, massively improving code navigability.
 
 #### 🐛 Bugfixes
+
+* **macOS/BSD Exclusion Regex:** Fixed a silent bug in the `automatic` and `02_utils.sh` UI where exclusions were incorrectly counted on macOS and BSD systems. Replaced the non-standard GNU grep `\s` metacharacter with the POSIX `[[:space:]]` character class for universal regex evaluation.
 
 * **Trap Destruction Bug:** Fixed a silent logic flaw in interactive commands (`extract`, `history`, `size`, `search`, `mounter`, `statinfo`, `status`) where resetting `trap - INT` inadvertently destroyed the global interruption handlers. Handlers are now properly restored, preventing the script from terminating abruptly without cleaning up session files.
 * **State File Crashes:** Replaced `$(<file)` built-in reads with safe `$(cat file || true)` fallbacks across `rescript_lock`, `now_next`, `size`, `mounter`, and `umounter`. This prevents the `set -e` strict mode from crashing the script when attempting to read non-existent lock or state files.
@@ -49,7 +52,7 @@
 * **Sudo Prompt Spam:** Rebuilt the `_require_sudo` utility to silently probe the OS sudo cache (`sudo -n true`) before redundantly prompting the user for a password they had already entered in the same session.
 * **Network Connectivity Check:** Fixed a major silent bug in the connectivity check logic (`ping` and `rclone about`) where connection errors were ignored due to a trailing `|| true`, always resulting in an exit code of 0. Connectivity failures are now properly caught and reported before executing commands.
 * **Global Router Duplication:** Refactored the core command router (`04_core.sh`) to condense duplicated repository verification logic into a single block, fixing edge cases where some commands failed to display their help menus if no repository was specified.
-* **Scope Leak Fixes:** Fixed critical variable leaks across the codebase (e.g., `$repo` leaking into the environment during the `status` command, and interactive variables in `config`, `uninstall`, and `editor`). Fully encapsulated loop iterators and temporary variables using `local` across 11 source files.
+* **Scope Leak Fixes:** Fixed critical variable leaks across the codebase (e.g., `$repo` leaking into the environment during the `status` command, and interactive variables in `config`, `uninstall`, `differ`, and `editor`). Fully encapsulated loop iterators and temporary variables using `local` across 11 source files.
 * **Interactive TTY Isolation:** Removed global I/O redirections (`2> /dev/null` and `execute_with_metrics`) from the `config` and `editor` wizard commands. This prevents complete terminal freezing and TTY detachment when users open interactive editors like `nano` or `vim`.
 * **Legacy Editor Migration:** Implemented seamless, automatic migration of the deprecated `~/.rescript/config/.editor` file. Its value is now natively exported into `global.conf` and the old dotfile is purged.
 * **Global Configuration Initialization:** Fixed a circular dependency crash by forcing `config` and `editor` commands to automatically generate `global.conf` from its template if it is missing, before attempting to append values to it.

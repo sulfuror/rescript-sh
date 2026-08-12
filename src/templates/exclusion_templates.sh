@@ -1,6 +1,7 @@
 # ============================================================== #
-#                     EXCLUSION TEMPLATES                        #
+#                      EXCLUSION TEMPLATES                       #
 # ============================================================== #
+
 simple_exclusions() {
 cat <<EOF
 # These are the default rescript exclusions:

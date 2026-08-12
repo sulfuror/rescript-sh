@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
+
 # ============================================================== #
 #                            GLOBALS                             #
 # ============================================================== #
+
 # Initialize internal variables to prevent unbound variable errors
 version="7.1.2-dev"
 context_flag="false"

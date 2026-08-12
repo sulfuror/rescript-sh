@@ -1,6 +1,7 @@
 # ============================================================== #
-#                          COMMAND: INFO                         #
+#                         COMMAND: INFO                          #
 # ============================================================== #
+
 statinfo() {
   local target_host="${host_flag:-$rhost}"
   hide_cursor
@@ -42,8 +43,6 @@ statinfo() {
   host_stat=$(awk -F': ' '/Total Size/{print $2}' "$tmp2" 2>/dev/null || printf "%s\n" "N/A")
   stat_restore_size=$(awk -F': ' '/Total Size/{print $2}' "$tmp3" 2>/dev/null || printf "%s\n" "N/A")
   stat_raw_data=$(awk -F': ' '/Total Size/{print $2}' "$tmp4" 2>/dev/null || printf "%s\n" "N/A")
-  
-  
   
   show_cursor
   printf "\r\e[K"

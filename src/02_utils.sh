@@ -1,6 +1,11 @@
 # ============================================================== #
-#                           UTILS                                #
+#                             UTILS                              #
 # ============================================================== #
+
+# -------------------------------------------------------------- #
+#                  SYSTEM, CLEANUP AND SIGNALS                   #
+# -------------------------------------------------------------- #
+
 hide_cursor() {
   tput civis 2> /dev/null || true
 }
@@ -48,8 +53,6 @@ trap 'cleanup_on_exit' EXIT
 # Create the rescript directories if they are not present
 mkdir -p "$rescript_dir" "$config_dir" "$lock_dir" "$logs_dir"
 
-
-
 # Set PATH so it includes user's private bin if it exists (cron jobs may require this)
 PATH="$HOME/bin:$HOME/.local/bin:$PATH"
 
@@ -76,6 +79,11 @@ array_contains() {
   done
   return 1
 }
+
+# -------------------------------------------------------------- #
+#                TEXT FORMATTING AND COLLECTIONS                 #
+# -------------------------------------------------------------- #
+
 print_line() {
   local char=${1:--}
   local current_cols="${cols:-80}"
@@ -90,6 +98,11 @@ format_log_output() {
   local target_log="$1"
   sed -E "s/$(printf '\033')\[[0-9;?]*[a-zA-Z]//g" "$target_log" | sed 's/.*\r//' | tr -d '\r' | sed -E -e 's/={60,}/============================================================/g' -e 's/-{60,}/------------------------------------------------------------/g' -e 's/^[ \t]+(Rescript Execution Context)/                          \1/'
 }
+
+# -------------------------------------------------------------- #
+#                    NOTIFICATIONS AND ALERTS                    #
+# -------------------------------------------------------------- #
+
 _send_email() {
   local subject="${1:-}"
   local logmessage catlog
@@ -163,6 +176,11 @@ _send_webhook() {
     fi
   fi
 }
+
+# -------------------------------------------------------------- #
+#                         VISUAL CONTEXT                         #
+# -------------------------------------------------------------- #
+
 print_context() {
   if [[ "${context_flag:-}" != "true" || "$context_printed" == "true" ]] ; then
     return 0
@@ -244,6 +262,11 @@ print_context() {
   print_line "="
   printf "\n"
 }
+
+# -------------------------------------------------------------- #
+#                 ERROR HANDLING AND CORE RETRY                  #
+# -------------------------------------------------------------- #
+
 job_done() {
   cmd="${cmd:-backup}"
   
@@ -331,6 +354,11 @@ latest_error() {
     exit "${exit_code:-$?}"
   fi
 }
+
+# -------------------------------------------------------------- #
+#                       SYSTEM INFORMATION                       #
+# -------------------------------------------------------------- #
+
 opsys() {
   case "$unix_name" in
     Linux|GNU)
@@ -411,6 +439,11 @@ duration() {
     0) printf "%s\n" "Too fast!" ;;
   esac
 }
+
+# -------------------------------------------------------------- #
+#                         STATE STORAGE                          #
+# -------------------------------------------------------------- #
+
 set_state() {
   local key="$1"
   local value="$2"
@@ -464,7 +497,10 @@ now_next() {
   fi
 }
 
-# UI and Progress Utilities
+# -------------------------------------------------------------- #
+#                  UI, PROGRESS AND PRIVILEGES                   #
+# -------------------------------------------------------------- #
+
 wait_with_spinner() {
   local label="$1"
   shift
@@ -548,10 +584,13 @@ run_with_spinner() {
       printf "%b\n" "${c_yellow}--------------------${c_reset}"
     fi
   fi
-  
-  
   return $exit_code
 }
+
+# -------------------------------------------------------------- #
+#                      LOGS, TIME AND LOCKS                      #
+# -------------------------------------------------------------- #
+
 logger() {
   if [[ "$log_flag" = "true" ]] ; then
     log="$logs_dir/$repo-$(date +%Y-%m-%d-%H%M%S).log"
@@ -615,6 +654,11 @@ rescript_lock() {
     exit 1
   fi
 }
+
+# -------------------------------------------------------------- #
+#                   FLAGS AND ARGUMENT PARSING                   #
+# -------------------------------------------------------------- #
+
 debug_start() {
   if [[ "$debug_flag" = "true" ]] ; then
     set -xv
@@ -701,10 +745,9 @@ execute_with_metrics() {
   time_end
 }
 
-# -----------------------------------------------------------------------------
-# Editor Migration and Just-in-Time Initialization
-# -----------------------------------------------------------------------------
-
+# -------------------------------------------------------------- #
+#        EDITOR MIGRATION AND JUST-IN-TIME INITIALIZATION        #
+# -------------------------------------------------------------- #
 
 if [[ -n "${RESCRIPT_EDITOR:-}" ]]; then
   rescript_editor="$RESCRIPT_EDITOR"
