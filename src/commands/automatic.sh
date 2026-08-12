@@ -33,7 +33,7 @@ automatic() {
       printf "%b\n" "${c_cyan}Taking a Snapshot...${c_reset}" ; backup ;;
   esac
   local exclusions
-  exclusions=$(grep -E -v -n -c '(^#|^\s*$|^\s*\t*#)' "$excludes" 2>/dev/null || true)
+  exclusions=$(grep -E -v -n -c '(^#|^[[:space:]]*$|^[[:space:]]*#)' "$excludes" 2>/dev/null || true)
   if [[ "$exclusions" -gt "0" ]] ; then
     printf "%b\n" "${c_green}There are $exclusions exclusion rules...${c_reset}"
   fi
