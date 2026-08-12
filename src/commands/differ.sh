@@ -4,7 +4,7 @@
 differ() {
   rescript_lock
   if [[ ${#rest[@]} -eq 0 ]] ; then
-    snaps=()
+    local snaps=()
     while IFS= read -r line; do
       snaps+=("$line")
     done < <(run_restic_with_retry snapshots -q | grep -E "^[a-z0-9]{8} " | tail -n 2 | awk '{print $1}')
