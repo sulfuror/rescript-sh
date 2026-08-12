@@ -66,7 +66,7 @@ mounter() {
     
     rmdir "${rmount:?}" 2>/dev/null
     
-    if [ "$mounter_stopped" = "true" ]; then
+    if [[ "$mounter_stopped" == "true" ]]; then
       printf "%b\n" "\n${c_green}Mounter process stopped. Mount point cleaned up.${c_reset}"
     else
       printf "%b\n" "${c_green}Mounter process stopped. Mount point cleaned up.${c_reset}"

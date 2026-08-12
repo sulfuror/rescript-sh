@@ -2,7 +2,7 @@
 #                       COMMAND: UPDATE                          #
 # ============================================================== #
 update() {
-  if ! command -v curl >/dev/null ; then
+  if ! command -v curl >/dev/null 2>&1 ; then
     printf "%s\n" "***$(basename "$0") warning***"
     printf "%s\n" "[curl] not found..."
     printf "\n"

@@ -448,7 +448,7 @@ now_next() {
   # Seamless migration for existing users
   if [[ ! -f "$state_file" && -f "$old_datefile" ]]; then
     local old_val
-    old_val=$(cat "$old_datefile" 2>/dev/null || printf "%s\n" "0")
+    old_val=$(<"$old_datefile"); old_val="${old_val:-0}"
     set_state "NEXT_CLEANUP" "$old_val" "$state_file"
     rm -f "$old_datefile"
   fi
@@ -582,7 +582,7 @@ time_end() {
 }
 rescript_lock() {
   if [[ "${rescript_lock_created:-}" == "true" ]]; then return 0; fi
-  if [ -e "$lock" ]; then
+  if [[ -e "$lock" ]]; then
     local existing_pid=""
     existing_pid=$(<"$lock")
     

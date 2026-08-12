@@ -78,7 +78,7 @@ history() {
   
   printf "\r\e[K"
   
-  if [ "$exit_code" -ne 0 ]; then
+  if [[ "$exit_code" -ne 0 ]]; then
     printf "%b\n" "${c_red}History search failed due to a repository or connection error.${c_reset}"
   else
     if [[ -s "$tmp_history" ]]; then

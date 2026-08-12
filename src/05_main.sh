@@ -2,7 +2,7 @@
 #                             MAIN                               #
 # ============================================================== #
 main() {
-if ! command -v restic &>/dev/null ; then
+if ! command -v restic >/dev/null 2>&1 ; then
   printf "%s\n" "This script is made to work with [restic]. Please, install"
   printf "%s\n" "[restic] package to proceed. If you have [restic] binary"
   printf "%s\n" "saved in some custom directory, move it to '/usr/bin' or"
