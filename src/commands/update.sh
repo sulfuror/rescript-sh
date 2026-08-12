@@ -17,14 +17,14 @@ function update {
   latest_release=$(curl -s "https://api.github.com/repos/sulfuror/rescript-sh/releases/latest" | grep -o '"tag_name": *"[^"]*"' | head -n 1 | cut -d'"' -f4)
   
   if [[ -z "$latest_release" ]]; then
-    echo -e "\n${c_red}Failed to fetch the latest release from GitHub.${c_reset}"
+    printf "%b\n" "\n${c_red}Failed to fetch the latest release from GitHub.${c_reset}"
     echo "Check your internet connection or the repository status."
     exit 1
   fi
 
   local rescript_latest="$tmp_dir/rescript"
   if ! curl -s -L "https://github.com/sulfuror/rescript-sh/releases/download/${latest_release}/rescript" -o "$rescript_latest" || ! grep -q "^#!/usr/bin/env bash" "$rescript_latest" 2>/dev/null; then
-    echo -e "\n${c_red}Failed to download the latest release or the file is corrupted.${c_reset}"
+    printf "%b\n" "\n${c_red}Failed to download the latest release or the file is corrupted.${c_reset}"
     rm -f "$rescript_latest"
     exit 1
   fi

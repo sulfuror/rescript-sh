@@ -31,14 +31,14 @@ function cleanup_next {
     s="seconds"
   fi
   if [[ "$days" -gt "0" ]] ; then
-    echo -e "${c_cyan}Next cleanup and check in $days $d...${c_reset}"
+    printf "%b\n" "${c_cyan}Next cleanup and check in $days $d...${c_reset}"
   elif [[ "$hours" -gt "0" ]] ; then
-    echo -e "${c_cyan}Next cleanup and check in $hours $h...${c_reset}"
+    printf "%b\n" "${c_cyan}Next cleanup and check in $hours $h...${c_reset}"
   elif [[ "$minutes" -gt "0" ]] ; then
-    echo -e "${c_cyan}Next cleanup and check in $minutes $m...${c_reset}"
+    printf "%b\n" "${c_cyan}Next cleanup and check in $minutes $m...${c_reset}"
   elif [[ "$seconds" -gt "0" ]] ; then
-    echo -e "${c_cyan}Next cleanup and check in $seconds $s...${c_reset}"
+    printf "%b\n" "${c_cyan}Next cleanup and check in $seconds $s...${c_reset}"
   else
-    echo -e "${c_cyan}Repo will be cleaned and checked in the next run...${c_reset}"
+    printf "%b\n" "${c_cyan}Repo will be cleaned and checked in the next run...${c_reset}"
   fi
 }

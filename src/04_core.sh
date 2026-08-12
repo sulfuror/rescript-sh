@@ -107,7 +107,7 @@ if [[ "${1:-}" == "all" ]]; then
   
   if [[ "$parallel_execution" == "true" ]]; then
     repo_list=$(IFS=', '; echo "${repos[*]}")
-    echo -e "${c_cyan}Running on repositories: ${c_white}$repo_list${c_cyan} (in parallel, enforcing quiet mode)${c_reset}"
+    printf "%b\n" "${c_cyan}Running on repositories: ${c_white}$repo_list${c_cyan} (in parallel, enforcing quiet mode)${c_reset}"
   fi
   
   has_metadata=false
@@ -150,13 +150,13 @@ if [[ "${1:-}" == "all" ]]; then
   
   if [[ -n "${PRE_CMD:-}" ]] ; then
     if [[ "$is_simulate" == "true" ]]; then
-      echo -e "${c_cyan}Running Global PRE_CMD...${c_reset}"
-      echo -e "${c_yellow}SIMULATE: $PRE_CMD${c_reset}"
+      printf "%b\n" "${c_cyan}Running Global PRE_CMD...${c_reset}"
+      printf "%b\n" "${c_yellow}SIMULATE: $PRE_CMD${c_reset}"
     else
       run_with_spinner "$PRE_CMD" "${c_cyan}Running Global PRE_CMD...${c_reset}"
       spinner_rc=$?
       if [[ $spinner_rc -ne 0 ]] ; then
-        echo -e "${c_red}The Global PRE_CMD [$PRE_CMD] has failed.${c_reset}"
+        printf "%b\n" "${c_red}The Global PRE_CMD [$PRE_CMD] has failed.${c_reset}"
         exit 1
       fi
     fi
@@ -186,18 +186,18 @@ if [[ "${1:-}" == "all" ]]; then
   
   if [[ "$parallel_execution" == "true" ]]; then
     wait
-    echo -e "${c_green}All parallel jobs finished!${c_reset}"
+    printf "%b\n" "${c_green}All parallel jobs finished!${c_reset}"
   fi
   
   if [[ -n "${POST_CMD:-}" ]] ; then
     if [[ "$is_simulate" == "true" ]]; then
-      echo -e "${c_cyan}Running Global POST_CMD...${c_reset}"
-      echo -e "${c_yellow}SIMULATE: $POST_CMD${c_reset}"
+      printf "%b\n" "${c_cyan}Running Global POST_CMD...${c_reset}"
+      printf "%b\n" "${c_yellow}SIMULATE: $POST_CMD${c_reset}"
     else
       run_with_spinner "$POST_CMD" "${c_cyan}Running Global POST_CMD...${c_reset}"
       spinner_rc=$?
       if [[ $spinner_rc -ne 0 ]] ; then
-        echo -e "${c_red}The Global POST_CMD [$POST_CMD] has failed.${c_reset}"
+        printf "%b\n" "${c_red}The Global POST_CMD [$POST_CMD] has failed.${c_reset}"
         exit 1
       fi
     fi
@@ -307,7 +307,7 @@ case "${1:-}" in
   -v|--version|version)
     usage | sed -ne '/Name/,/Version/p'
     echo ""
-    echo -e 'Redistribution and use in source and binary forms, with or without \nmodification, are permitted provided that the BSD 2-Clause License \nconditions are met.'
+    printf "%b\n" 'Redistribution and use in source and binary forms, with or without \nmodification, are permitted provided that the BSD 2-Clause License \nconditions are met.'
     exit
     ;;
   *)

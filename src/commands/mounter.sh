@@ -20,8 +20,8 @@ function mounter {
     pid_info=$(cat "$pid_file" 2>/dev/null || true)
     local mount_pid="${pid_info%%:*}"
     if is_pid_alive "$mount_pid"; then
-      echo -e "${c_red}ERROR: Repository [$repo] is already mounted in the background (PID: $mount_pid).${c_reset}"
-      echo -e "${c_cyan}Use [rescript $repo umounter] to unmount it first.${c_reset}"
+      printf "%b\n" "${c_red}ERROR: Repository [$repo] is already mounted in the background (PID: $mount_pid).${c_reset}"
+      printf "%b\n" "${c_cyan}Use [rescript $repo umounter] to unmount it first.${c_reset}"
       exit 1
     else
       rm -f "$pid_file"
@@ -38,16 +38,16 @@ function mounter {
     sleep 0.5
     if ! is_pid_alive "$pid"; then
       rmdir "${rmount:?}" 2>/dev/null
-      echo -e "${c_red}Failed to mount repository in background. See 'restic mount' logs for details.${c_reset}"
+      printf "%b\n" "${c_red}Failed to mount repository in background. See 'restic mount' logs for details.${c_reset}"
       exit 1
     fi
     echo "$pid:$rmount" > "$lock_dir/mount_${repo}.pid"
-    echo -e "${c_green}Repository mounted in background at:${c_reset} ${c_white}$rmount${c_reset}"
-    echo -e "${c_cyan}Use [rescript $repo umounter] to unmount.${c_reset}"
+    printf "%b\n" "${c_green}Repository mounted in background at:${c_reset} ${c_white}$rmount${c_reset}"
+    printf "%b\n" "${c_cyan}Use [rescript $repo umounter] to unmount.${c_reset}"
   else
-    echo -e "${c_cyan}Mounting repository at:${c_reset} ${c_white}$rmount${c_reset}"
-    echo -e "${c_cyan}Use another terminal or tool to browse the contents.${c_reset}"
-    echo -e "${c_cyan}When finished, press [Ctrl-C] here to unmount.${c_reset}"
+    printf "%b\n" "${c_cyan}Mounting repository at:${c_reset} ${c_white}$rmount${c_reset}"
+    printf "%b\n" "${c_cyan}Use another terminal or tool to browse the contents.${c_reset}"
+    printf "%b\n" "${c_cyan}When finished, press [Ctrl-C] here to unmount.${c_reset}"
     
     local mounter_stopped=false
     stty -echoctl 2>/dev/null # Hide ^C from terminal
@@ -68,9 +68,9 @@ function mounter {
     rmdir "${rmount:?}" 2>/dev/null
     
     if [ "$mounter_stopped" = "true" ]; then
-      echo -e "\n${c_green}Mounter process stopped. Mount point cleaned up.${c_reset}"
+      printf "%b\n" "\n${c_green}Mounter process stopped. Mount point cleaned up.${c_reset}"
     else
-      echo -e "${c_green}Mounter process stopped. Mount point cleaned up.${c_reset}"
+      printf "%b\n" "${c_green}Mounter process stopped. Mount point cleaned up.${c_reset}"
     fi
   fi
 }

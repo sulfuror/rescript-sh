@@ -80,7 +80,7 @@ function history {
   printf "\r\e[K"
   
   if [ "$exit_code" -ne 0 ]; then
-    echo -e "${c_red}History search failed due to a repository or connection error.${c_reset}"
+    printf "%b\n" "${c_red}History search failed due to a repository or connection error.${c_reset}"
   else
     if [[ -s "$tmp_history" ]]; then
       print_line "="
@@ -88,7 +88,7 @@ function history {
       print_line "="
       cat "$tmp_history"
     else
-      echo -e "${c_red}No history found for the given pattern.${c_reset}"
+      printf "%b\n" "${c_red}No history found for the given pattern.${c_reset}"
     fi
   fi
 }

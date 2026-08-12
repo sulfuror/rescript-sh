@@ -10,9 +10,9 @@ function unlocker {
     exit 1
   fi
   if [[ ! -e "$lock" ]]; then
-    echo -e "${c_cyan}No locks found...${c_reset}"
+    printf "%b\n" "${c_cyan}No locks found...${c_reset}"
   else
     rm -f "${lock:?}"
-    echo -e "${c_green}Script unlocked...${c_reset}"
+    printf "%b\n" "${c_green}Script unlocked...${c_reset}"
   fi
 }

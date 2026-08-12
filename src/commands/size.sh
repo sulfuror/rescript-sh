@@ -23,9 +23,9 @@ function size {
   local host_args=()
   if [[ "$snapshot_id" == "latest" ]]; then
     host_args=("--host" "$target_host")
-    echo -e "${c_white}Target Host:${c_reset} ${c_cyan}${target_host}${c_reset}"
+    printf "%b\n" "${c_white}Target Host:${c_reset} ${c_cyan}${target_host}${c_reset}"
   else
-    echo -e "${c_white}Snapshot ID:${c_reset} ${c_cyan}${snapshot_id}${c_reset}"
+    printf "%b\n" "${c_white}Snapshot ID:${c_reset} ${c_cyan}${snapshot_id}${c_reset}"
   fi
   
   local tmp_size="$session_tmp/size"
@@ -58,14 +58,14 @@ function size {
   
   local total_size=""
   if [[ -s "$tmp_size" ]]; then
-    total_size=$(<"$tmp_size")
+    total_size=$(cat "$tmp_size" 2>/dev/null || true)
   fi
   
   printf "\r\e[K"
   
   if [[ -z "$total_size" || "$total_size" == "0 B" ]] ; then
-    echo -e "${c_red}Path not found or empty.${c_reset}"
+    printf "%b\n" "${c_red}Path not found or empty.${c_reset}"
   else
-    echo -e "${c_white}Total size for [${rest[*]}] in snapshot ${snapshot_id}:${c_reset} ${c_green}${total_size}${c_reset}"
+    printf "%b\n" "${c_white}Total size for [${rest[*]}] in snapshot ${snapshot_id}:${c_reset} ${c_green}${total_size}${c_reset}"
   fi
 }

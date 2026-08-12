@@ -5,10 +5,10 @@
 function _run_auto_cleanup {
   if [[ -n "${policies[*]}" ]] ; then
     print_line
-    echo -e "${c_cyan}Cleaning Repo...${c_reset}"
+    printf "%b\n" "${c_cyan}Cleaning Repo...${c_reset}"
     cleanup
     print_line
-    echo -e "${c_cyan}Checking for Errors in Repo...${c_reset}"
+    printf "%b\n" "${c_cyan}Checking for Errors in Repo...${c_reset}"
     run_restic_with_retry check --cleanup-cache
     check_restic_error $?
   fi
@@ -29,20 +29,20 @@ function automatic {
   # Backup
   case "${SKIP_OFFICE:-}" in
     y|yes)
-      echo -e "${c_cyan}Taking a Snapshot...${c_reset}" ; skip_flag="true" ; backup ;;
+      printf "%b\n" "${c_cyan}Taking a Snapshot...${c_reset}" ; skip_flag="true" ; backup ;;
     *)
-      echo -e "${c_cyan}Taking a Snapshot...${c_reset}" ; backup ;;
+      printf "%b\n" "${c_cyan}Taking a Snapshot...${c_reset}" ; backup ;;
   esac
   local exclusions
   exclusions=$(grep -E -v -n -c '(^#|^\s*$|^\s*\t*#)' "$excludes" 2>/dev/null || true)
   if [[ "$exclusions" -gt "0" ]] ; then
-    echo -e "${c_green}There are $exclusions exclusion rules...${c_reset}"
+    printf "%b\n" "${c_green}There are $exclusions exclusion rules...${c_reset}"
   fi
   # Snapshot List
   case "${SHOW_SNAPS:-}" in
     y|yes)
       print_line
-      echo -e "${c_cyan}Snapshots List...${c_reset}"
+      printf "%b\n" "${c_cyan}Snapshots List...${c_reset}"
       snaps
       check_restic_error $?
       ;;
@@ -66,13 +66,13 @@ function automatic {
           weeks|week|w) add_seconds=$((clean_num * 604800)) ;;
           months|month|M) add_seconds=$((clean_num * 2592000)) ;;
           *)
-            echo -e "WARNING: \nCLEAN is set to ${CLEAN:-} in your configuration file; please use the correct syntax as follows: \n1. CLEAN=\"${CLEAN}days\"\n2. CLEAN=\"${CLEAN}hours\"\n3. CLEAN=\"${CLEAN}minutes\""
+            printf "%b\n" "WARNING: \nCLEAN is set to ${CLEAN:-} in your configuration file; please use the correct syntax as follows: \n1. CLEAN=\"${CLEAN}days\"\n2. CLEAN=\"${CLEAN}hours\"\n3. CLEAN=\"${CLEAN}minutes\""
             ;;
         esac
         if [[ "$add_seconds" -gt 0 ]]; then
           local next_epoch=$((now + add_seconds))
           set_state "NEXT_CLEANUP" "$next_epoch" "$config_dir/$repo.state"
-          echo -e "${c_green}Done Cleaning; Next Cleanup and Check Will Be Done in $clean_num $clean_unit...${c_reset}"
+          printf "%b\n" "${c_green}Done Cleaning; Next Cleanup and Check Will Be Done in $clean_num $clean_unit...${c_reset}"
         fi
       fi
     fi

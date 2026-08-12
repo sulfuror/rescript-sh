@@ -2,6 +2,7 @@
 #                             MAIN                               #
 # ============================================================== #
 
+function main {
 if ! command -v restic &>/dev/null ; then
   echo "This script is made to work with [restic]. Please, install"
   echo "[restic] package to proceed. If you have [restic] binary"
@@ -79,12 +80,12 @@ case "$cmd" in
     logger
     time_start
     if [[ "$cleanup_flag" = "true" || "$check_flag" = "true" || "$info_flag" = "true" ]] ; then
-      echo -e "${c_cyan}Taking a Snapshot...${c_reset}"
+      printf "%b\n" "${c_cyan}Taking a Snapshot...${c_reset}"
     fi
     run_quietly backup
     if [[ "$cleanup_flag" = "true" ]] ; then
       print_line
-      echo -e "${c_cyan}Starting cleanup...${c_reset}"
+      printf "%b\n" "${c_cyan}Starting cleanup...${c_reset}"
       run_quietly cleanup
     fi
     _run_post_actions
@@ -122,7 +123,7 @@ case "$cmd" in
     logger
     time_start
     if [[ "$check_flag" = "true" || "$info_flag" = "true" ]] ; then
-      echo -e "${c_cyan}Starting cleanup...${c_reset}"
+      printf "%b\n" "${c_cyan}Starting cleanup...${c_reset}"
     fi
     run_quietly cleanup
     _run_post_actions
@@ -344,10 +345,14 @@ esac
 job_done
 
 if [[ "$simulate_flag" == "true" ]]; then
-  echo -e "${c_yellow}SIMULATE: End of simulation.${c_reset}"
+  printf "%b\n" "${c_yellow}SIMULATE: End of simulation.${c_reset}"
 fi
 
 # Allow async logging processes (like tee) to finish flushing before returning to shell
 sleep 0.1
 
 exit "${exit_code:-$?}"
+}
+
+main "$@"
+

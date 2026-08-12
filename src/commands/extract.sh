@@ -132,12 +132,12 @@ function extract {
       if [[ ! "$dest_name" == *.zip ]]; then
         mv "./$dest_name" "./$dest_name.zip"
         dest_name="$dest_name.zip"
-        echo -e "${c_green}Directory successfully extracted as a zip archive.${c_reset}"
+        printf "%b\n" "${c_green}Directory successfully extracted as a zip archive.${c_reset}"
       else
-        echo -e "${c_green}Extraction complete.${c_reset}"
+        printf "%b\n" "${c_green}Extraction complete.${c_reset}"
       fi
     else
-      echo -e "${c_green}Extraction complete.${c_reset}"
+      printf "%b\n" "${c_green}Extraction complete.${c_reset}"
     fi
     echo "Saved to: ./$dest_name"
   else

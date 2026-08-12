@@ -192,7 +192,7 @@ function config_wizard {
     if [[ -n "$w_k_monthly" ]]; then safe_sed "s|^KEEP_MONTHLY=\"12\"|KEEP_MONTHLY=\"$w_k_monthly\"|" "$g_conf" ; fi
     if [[ -n "$w_k_yearly" ]]; then safe_sed "s|^KEEP_YEARLY=\"10\"|KEEP_YEARLY=\"$w_k_yearly\"|" "$g_conf" ; fi
     
-    echo -e "Global configuration saved.\n"
+    printf "%b\n" "Global configuration saved.\n"
   fi
 
   echo "--- Repository Setup ---"
@@ -218,7 +218,7 @@ function config_wizard {
   touch "$config_dir/$w_name-exclusions"
   simple_exclusions > "$config_dir/$w_name-exclusions"
   
-  echo -e "\nConfiguration [$w_name] created successfully!"
+  printf "%b\n" "\nConfiguration [$w_name] created successfully!"
   echo "Tip: You can edit your global configuration at any time by running: rescript config --global"
   read -rp "Would you like to initialize this repository now? (y/n): " ans
   case $ans in

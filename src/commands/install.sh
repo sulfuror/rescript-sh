@@ -122,7 +122,7 @@ _rescript_completions() {
 }
 complete -F _rescript_completions rescript
 EOF
-    echo -e " \033[1;32m*\033[0m Bash autocompletion installed at: \033[1;37m$target_file\033[0m"
+    printf "%b\n" " \033[1;32m*\033[0m Bash autocompletion installed at: \033[1;37m$target_file\033[0m"
   fi
 }
 

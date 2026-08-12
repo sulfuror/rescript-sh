@@ -106,7 +106,7 @@ function _send_email {
     if command -v mail >/dev/null 2>&1 ; then
       if [[ "$int" = "false" || "${force_email:-}" = "true" ]] ; then
         if [[ "$simulate_flag" == "true" ]]; then
-          echo -e "${c_yellow}SIMULATE: Would send email to [$EMAIL] with subject: [[SIMULATION] $subject]${c_reset}"
+          printf "%b\n" "${c_yellow}SIMULATE: Would send email to [$EMAIL] with subject: [[SIMULATION] $subject]${c_reset}"
           return 0
         fi
         local text_line="============================================================"
@@ -120,10 +120,10 @@ function _send_email {
         local mail_err="$session_tmp/mail_err"
         local mail_status=0
         
-        echo -e "${logmessage}\n${catlog}" | mail -s "$subject" "$EMAIL" 2> "$mail_err" || mail_status=$?
+        printf "%b\n" "${logmessage}\n${catlog}" | mail -s "$subject" "$EMAIL" 2> "$mail_err" || mail_status=$?
         
         if [[ $mail_status -ne 0 ]]; then
-          echo -e "\n${c_yellow}WARNING: Rescript could not send the email. Make sure your system's mail agent (MTA) is installed and configured correctly.${c_reset}"
+          printf "%b\n" "\n${c_yellow}WARNING: Rescript could not send the email. Make sure your system's mail agent (MTA) is installed and configured correctly.${c_reset}"
         fi
       fi
     else
@@ -138,7 +138,7 @@ function _send_webhook {
     if [[ "$int" = "false" || "${force_webhook:-}" = "true" ]] ; then
       if command -v curl >/dev/null 2>&1 ; then
         if [[ "$simulate_flag" == "true" ]]; then
-          echo -e "${c_yellow}SIMULATE: Would send webhook to [$WEBHOOK_URL] with subject: [[SIMULATION] $subject]${c_reset}"
+          printf "%b\n" "${c_yellow}SIMULATE: Would send webhook to [$WEBHOOK_URL] with subject: [[SIMULATION] $subject]${c_reset}"
           return 0
         fi
         local target_log=""
@@ -157,18 +157,18 @@ function _send_webhook {
           local webhook_status=0
           curl -s -X POST -F "payload_json={\"content\": \"**$subject**\"}" -F "file=@$attach_file" "$WEBHOOK_URL" >/dev/null 2>&1 || webhook_status=$?
           if [[ $webhook_status -ne 0 ]]; then
-            echo -e "${c_yellow}WARNING: Rescript could not send the webhook to the provided URL.${c_reset}"
+            printf "%b\n" "${c_yellow}WARNING: Rescript could not send the webhook to the provided URL.${c_reset}"
           fi
           rm -f "$attach_file"
         else
           local webhook_status=0
           curl -s -X POST -H "Content-Type: application/json" -d "{\"content\": \"**$subject**\n\`\`\`text\nNo output captured.\n\`\`\`\"}" "$WEBHOOK_URL" >/dev/null 2>&1 || webhook_status=$?
           if [[ $webhook_status -ne 0 ]]; then
-            echo -e "${c_yellow}WARNING: Rescript could not send the webhook to the provided URL.${c_reset}"
+            printf "%b\n" "${c_yellow}WARNING: Rescript could not send the webhook to the provided URL.${c_reset}"
           fi
         fi
       else
-        echo -e "${c_yellow}[rescript] can't send webhooks; install [curl] package to do so.${c_reset}"
+        printf "%b\n" "${c_yellow}[rescript] can't send webhooks; install [curl] package to do so.${c_reset}"
       fi
     fi
   fi
@@ -285,11 +285,11 @@ function report_errors {
 
   if [[ -n "$error_message" ]] ; then
     if [[ "$ping_code" -gt "0" ]] ; then
-      echo -e "${c_red}$error_message${c_reset}"
+      printf "%b\n" "${c_red}$error_message${c_reset}"
     else
       echo ""
-      echo -e "${c_red}${c_white}WARNING!${c_reset}"
-      echo -e "${c_red}$error_message${c_reset}"
+      printf "%b\n" "${c_red}${c_white}WARNING!${c_reset}"
+      printf "%b\n" "${c_red}$error_message${c_reset}"
     fi
     local error_msg
     error_msg="❌ rescript: [$repo] $cmd failed on [$(hostname)]!"
@@ -314,7 +314,7 @@ function run_restic_with_retry {
     fi
     
     if [[ $attempt -lt $max_attempts ]]; then
-      echo -e "${c_yellow}Warning: restic failed with exit code $exit_code. Retrying in 30 seconds... (Attempt $attempt of $max_attempts)${c_reset}" >&2
+      printf "%b\n" "${c_yellow}Warning: restic failed with exit code $exit_code. Retrying in 30 seconds... (Attempt $attempt of $max_attempts)${c_reset}" >&2
       sleep 30
     fi
     ((attempt++))
@@ -353,7 +353,7 @@ function opsys {
       if [[ "$(uname -o)" = "Android" ]] ; then
         os="$(uname -o)"
         os_vers="$(getprop ro.build.version.release)"
-        echo -e "$os" "$os_vers"
+        printf "%b\n" "$os" "$os_vers"
       else
         if command -v lsb_release >/dev/null 2>&1 ; then
           lsb_release -ds
@@ -372,10 +372,10 @@ function opsys {
     Darwin)
       os="$(sw_vers -productName)"
       os_vers="$(sw_vers -productVersion)"
-      echo -e "$os" "$os_vers"
+      printf "%b\n" "$os" "$os_vers"
       ;;
     *)
-      echo -e "Unknown OS"
+      printf "%b\n" "Unknown OS"
       ;;
   esac
 }
@@ -507,7 +507,7 @@ function _require_sudo {
   if [[ "$EUID" -ne 0 ]]; then
     # Check if sudo requires a password
     if ! sudo -n true 2>/dev/null; then
-      echo -e "\n${c_yellow}The $action_desc requires elevated privileges.${c_reset}"
+      printf "%b\n" "\n${c_yellow}The $action_desc requires elevated privileges.${c_reset}"
       echo "Please enter your sudo password to proceed."
       echo ""
     fi
@@ -566,9 +566,9 @@ function run_with_spinner {
   else
     printf "\r%b %bFailed!%b \n" "$label" "$c_red" "$c_reset"
     if [[ -s "$err_file" ]]; then
-      echo -e "${c_yellow}--- Error Output ---${c_reset}"
+      printf "%b\n" "${c_yellow}--- Error Output ---${c_reset}"
       cat "$err_file"
-      echo -e "${c_yellow}--------------------${c_reset}"
+      printf "%b\n" "${c_yellow}--------------------${c_reset}"
     fi
   fi
   
@@ -605,7 +605,7 @@ function time_start {
 function time_end {
   if [[ "$time_flag" = "true" ]] ; then
     print_line
-    echo -e "${c_white}Duration:${c_reset} ${c_green}$(duration)${c_reset}"
+    printf "%b\n" "${c_white}Duration:${c_reset} ${c_green}$(duration)${c_reset}"
   fi
 }
 
@@ -662,7 +662,7 @@ function set_sim_flag {
     sim_flags=( "$2" )
   fi
   if [[ "$simulate_flag" == "true" ]]; then
-    echo -e "${c_yellow}SIMULATE: $cmd_name running in dry-run mode.${c_reset}"
+    printf "%b\n" "${c_yellow}SIMULATE: $cmd_name running in dry-run mode.${c_reset}"
     sim_flags=( --dry-run )
   fi
 }
@@ -670,7 +670,7 @@ function set_sim_flag {
 function _run_post_actions {
   if [[ "$check_flag" = "true" ]] ; then
     print_line
-    echo -e "${c_cyan}Starting check...${c_reset}"
+    printf "%b\n" "${c_cyan}Starting check...${c_reset}"
     run_quietly run_restic_with_retry check --cleanup-cache
   fi
   if [[ "$info_flag" = "true" ]] ; then
@@ -682,10 +682,10 @@ function source_config {
   local conf_file="$1"
   local bash_err
   if ! bash_err=$(bash -n "$conf_file" 2>&1); then
-    echo -e "${c_red}FATAL ERROR: Rescript found a syntax error in your configuration file!${c_reset}"
-    echo -e "${c_yellow}File: $conf_file${c_reset}"
-    echo -e "${c_yellow}Details: $bash_err${c_reset}"
-    echo -e "${c_yellow}Please verify your configuration file for missing quotes, unmatched brackets, or invalid syntax.${c_reset}"
+    printf "%b\n" "${c_red}FATAL ERROR: Rescript found a syntax error in your configuration file!${c_reset}"
+    printf "%b\n" "${c_yellow}File: $conf_file${c_reset}"
+    printf "%b\n" "${c_yellow}Details: $bash_err${c_reset}"
+    printf "%b\n" "${c_yellow}Please verify your configuration file for missing quotes, unmatched brackets, or invalid syntax.${c_reset}"
     exit 2
   fi
   source "$conf_file"
@@ -749,7 +749,7 @@ if [[ -n "${RESCRIPT_EDITOR:-}" ]]; then
   rescript_editor="$RESCRIPT_EDITOR"
   rm -f "$config_dir/.editor" 2>/dev/null || true
 elif [[ -s "$config_dir/.editor" ]]; then
-  rescript_editor=$(<"$config_dir/.editor")
+  rescript_editor=$(cat "$config_dir/.editor" 2>/dev/null || true)
   if [[ -f "$config_global" ]]; then
     grep -v "^RESCRIPT_EDITOR=" "$config_global" > "${config_global}.tmp" 2>/dev/null || true
     echo "RESCRIPT_EDITOR=\"$rescript_editor\"" >> "${config_global}.tmp"

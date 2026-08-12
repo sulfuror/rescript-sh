@@ -4,7 +4,7 @@ set -euo pipefail
 #                            GLOBALS                             #
 # ============================================================== #
 # Initialize internal variables to prevent unbound variable errors
-version="7.1.1"
+version="7.1.2-dev"
 context_flag="false"
 rescript_lock_created=""
 var_flag=""
@@ -59,7 +59,7 @@ unix_name=$(uname -s)
 
 # Create Session Temp Directory
 mkdir -p "$tmp_dir"
-session_tmp=$(mktemp -d "$tmp_dir/run_XXXXXX")
+session_tmp=$(umask 077 && mktemp -d "$tmp_dir/run_XXXXXX")
 tmplog="$session_tmp/tmplog"
 
 shopt -u nocasematch

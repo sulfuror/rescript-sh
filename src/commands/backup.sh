@@ -27,13 +27,13 @@ function backup {
   
   if [[ -n "$PRE_CMD" && "${RESCRIPT_SKIP_HOOKS:-}" != "true" ]] ; then
     if [[ "$simulate_flag" == "true" ]]; then
-      echo -e "${c_cyan}Running PRE_CMD...${c_reset}"
-      echo -e "${c_yellow}SIMULATE: $PRE_CMD${c_reset}"
+      printf "%b\n" "${c_cyan}Running PRE_CMD...${c_reset}"
+      printf "%b\n" "${c_yellow}SIMULATE: $PRE_CMD${c_reset}"
     else
       run_with_spinner "$PRE_CMD" "${c_cyan}Running PRE_CMD...${c_reset}"
       local spinner_rc=$?
       if [[ $spinner_rc -ne 0 ]] ; then
-        echo -e "${c_red}The PRE_CMD [$PRE_CMD] has failed.${c_reset}"
+        printf "%b\n" "${c_red}The PRE_CMD [$PRE_CMD] has failed.${c_reset}"
         exit 1
       fi
     fi
@@ -50,13 +50,13 @@ function backup {
 
   if [[ -n "$POST_CMD" && "${RESCRIPT_SKIP_HOOKS:-}" != "true" ]] ; then
     if [[ "$simulate_flag" == "true" ]]; then
-      echo -e "${c_cyan}Running POST_CMD...${c_reset}"
-      echo -e "${c_yellow}SIMULATE: $POST_CMD${c_reset}"
+      printf "%b\n" "${c_cyan}Running POST_CMD...${c_reset}"
+      printf "%b\n" "${c_yellow}SIMULATE: $POST_CMD${c_reset}"
     else
       run_with_spinner "$POST_CMD" "${c_cyan}Running POST_CMD...${c_reset}"
       local spinner_rc=$?
       if [[ $spinner_rc -ne 0 ]] ; then
-        echo -e "${c_red}The POST_CMD [$POST_CMD] has failed.${c_reset}"
+        printf "%b\n" "${c_red}The POST_CMD [$POST_CMD] has failed.${c_reset}"
         exit 1
       fi
     fi

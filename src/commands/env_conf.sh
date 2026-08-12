@@ -9,7 +9,7 @@ function env_conf {
   if [[ "${var_flag:-}" ]] ; then
     local upper_var="${var_flag^^}"
     print_line "="
-    echo -e "${c_white}Variable: ${c_cyan}$upper_var${c_reset}"
+    printf "%b\n" "${c_white}Variable: ${c_cyan}$upper_var${c_reset}"
     print_line "="
     
     awk -v var="${upper_var:-}" -v cw="${c_white}" -v cc="${c_cyan}" -v cr="${c_reset}" '
@@ -67,14 +67,14 @@ function env_conf {
         exit 1
       }
     }' "$config_repo" || {
-      echo -e "\nThere is no var named [$var_flag]..."
+      printf "%b\n" "\nThere is no var named [$var_flag]..."
       echo ""
       env-help
       exit 1
     }
   else
     print_line "="
-    echo -e "${c_white}Configuration Context: ${c_cyan}$repo${c_reset}"
+    printf "%b\n" "${c_white}Configuration Context: ${c_cyan}$repo${c_reset}"
     print_line "="
     
     awk -v var="" -v cw="${c_white}" -v cc="${c_cyan}" -v cr="${c_reset}" '

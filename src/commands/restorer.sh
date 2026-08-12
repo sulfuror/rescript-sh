@@ -8,13 +8,13 @@ function restorer {
   local -a snap_list=()
   local sel_snap snap_id restore_dir
   if [[ "${interactive_flag:-}" == "true" ]] ; then
-    echo -e "${c_cyan}Fetching snapshot list...${c_reset}"
+    printf "%b\n" "${c_cyan}Fetching snapshot list...${c_reset}"
     mapfile -t snap_list < <(run_restic_with_retry snapshots 2>/dev/null | grep -E '^[0-9a-f]{8}')
     if [[ ${#snap_list[@]} -eq 0 ]]; then
       echo "No snapshots found to restore."
       exit 1
     fi
-    echo -e "${c_cyan}Select a snapshot to restore:${c_reset}"
+    printf "%b\n" "${c_cyan}Select a snapshot to restore:${c_reset}"
     PS3="Enter the number of the snapshot: "
     select sel_snap in "${snap_list[@]}" "Cancel"; do
       if [[ "$sel_snap" == "Cancel" ]]; then
@@ -42,7 +42,7 @@ function restorer {
     snap_id="$snap_flag"
   fi
   print_context
-  echo -e "${c_cyan}Restoring from:${c_reset} ${c_white}$dest...${c_reset}"
+  printf "%b\n" "${c_cyan}Restoring from:${c_reset} ${c_white}$dest...${c_reset}"
 
   set_sim_flag "Restorer" "--verify"
 
