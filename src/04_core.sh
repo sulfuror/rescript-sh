@@ -20,6 +20,30 @@ restic_alone() {
   latest_error
 }
 
+if [[ -f "$config_global" ]]; then
+  source_config "$config_global"
+fi
+
+# -------------------------------------------------------------- #
+#        EDITOR MIGRATION AND JUST-IN-TIME INITIALIZATION        #
+# -------------------------------------------------------------- #
+
+if [[ -n "${RESCRIPT_EDITOR:-}" ]]; then
+  rescript_editor="$RESCRIPT_EDITOR"
+  rm -f "$config_dir/.editor" 2>/dev/null || true
+elif [[ -s "$config_dir/.editor" ]]; then
+  rescript_editor=$(<"$config_dir/.editor")
+  if [[ -f "$config_global" ]]; then
+    grep -v "^RESCRIPT_EDITOR=" "$config_global" > "${config_global}.tmp" 2>/dev/null || true
+    printf "%s\n" "RESCRIPT_EDITOR=\"$rescript_editor\"" >> "${config_global}.tmp"
+    mv "${config_global}.tmp" "$config_global"
+  fi
+  rm -f "$config_dir/.editor"
+else
+  rm -f "$config_dir/.editor" 2>/dev/null || true
+  rescript_editor=""
+fi
+
 if [[ ! "${1:-}"  ]] ; then
   usage
   exit 1
@@ -135,10 +159,6 @@ esac
 # -------------------------------------------------------------- #
 #                   CONFIGURATION & VARIABLES                    #
 # -------------------------------------------------------------- #
-
-if [[ -f "$config_global" ]]; then
-  source_config "$config_global"
-fi
 
 source_config "$config_repo"
 
