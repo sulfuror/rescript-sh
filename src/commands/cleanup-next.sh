@@ -2,6 +2,7 @@
 #                       COMMAND: NEXT                            #
 # ============================================================== #
 cleanup_next() {
+  local now next
   now_next
   local result=$((next-now))
   local days=$((result / 86400))

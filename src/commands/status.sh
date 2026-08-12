@@ -39,7 +39,7 @@ global_status() {
   if [[ -n "${repo:-}" && "${repo:-}" != "global" && -f "$config_dir/$repo.conf" ]]; then
     repos=("$repo")
   else
-    get_repo_list repos "${excluded_repos[@]}"
+    get_repo_list ${excluded_repos[@]:+"${excluded_repos[@]}"}
   fi
   
   if [[ ${#repos[@]} -eq 0 ]]; then

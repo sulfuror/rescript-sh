@@ -21,7 +21,7 @@ umounter() {
     local mount_point="${pid_info##*:}"
     
     if [[ -n "$mount_point" && -d "$mount_point" ]]; then
-      if mountpoint -q "$mount_point"; then
+      if mount | grep -qF "$mount_point" 2>/dev/null; then
         printf "%b\n" "${c_cyan}Unmounting repository from:${c_reset} ${c_white}$mount_point${c_reset}"
         if ! fusermount -u "$mount_point" 2>/dev/null; then
           umount "$mount_point" 2>/dev/null

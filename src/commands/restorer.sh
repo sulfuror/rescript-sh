@@ -8,7 +8,9 @@ restorer() {
   local sel_snap snap_id restore_dir
   if [[ "${interactive_flag:-}" == "true" ]] ; then
     printf "%b\n" "${c_cyan}Fetching snapshot list...${c_reset}"
-    mapfile -t snap_list < <(run_restic_with_retry snapshots 2>/dev/null | grep -E '^[0-9a-f]{8}')
+    while IFS= read -r line; do
+      snap_list+=("$line")
+    done < <(run_restic_with_retry snapshots 2>/dev/null | grep -E '^[0-9a-f]{8}')
     if [[ ${#snap_list[@]} -eq 0 ]]; then
       printf "%s\n" "No snapshots found to restore."
       exit 1
@@ -48,12 +50,12 @@ restorer() {
   if [[ "${snap_id:-}" ]] ; then
     debug_start
     # shellcheck disable=SC2086
-    run_restic_with_retry restore "$snap_id" --target "$restore_dir" ${sim_flags[@]:+"${sim_flags[@]}"}
+    run_restic_with_retry restore "$snap_id" --target "$restore_dir" ${sim_flags[@]:+"${sim_flags[@]}"} ${rest[@]:+"${rest[@]}"}
     check_restic_error $?
     debug_stop
   else
     debug_start
-    run_restic_with_retry restore latest --target "$restore_dir" ${restore_opts[@]:+"${restore_opts[@]}"} ${sim_flags[@]:+"${sim_flags[@]}"}
+    run_restic_with_retry restore latest --target "$restore_dir" ${restore_opts[@]:+"${restore_opts[@]}"} ${sim_flags[@]:+"${sim_flags[@]}"} ${rest[@]:+"${rest[@]}"}
     check_restic_error $?
     debug_stop
   fi

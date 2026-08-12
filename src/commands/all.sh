@@ -80,7 +80,7 @@ command_all() {
   fi
   
   local repos=()
-  get_repo_list repos "${excluded_repos[@]}"
+  get_repo_list ${excluded_repos[@]:+"${excluded_repos[@]}"}
   
   if [[ ${#repos[@]} -eq 0 ]]; then
     printf "%s\n" "No repositories found or all were excluded."

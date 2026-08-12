@@ -5,7 +5,7 @@ mounter() {
   rescript_lock
   local bg=false arg
   local clean_rest=()
-  for arg in "${rest[@]}"; do
+  for arg in ${rest[@]:+"${rest[@]}"}; do
     if [[ "$arg" == "--background" ]]; then
       bg=true
     else
@@ -50,7 +50,7 @@ mounter() {
     
     local mounter_stopped=false
     stty -echoctl 2>/dev/null # Hide ^C from terminal
-    trap 'mounter_stopped=true; stty echoctl 2>/dev/null' INT
+    trap 'mounter_stopped=true; stty echoctl 2>/dev/null' INT TERM
     
     restic mount ${clean_rest[@]:+"${clean_rest[@]}"} "$rmount" >/dev/null
     
@@ -59,7 +59,7 @@ mounter() {
     
     # Allow Restic to unmount FUSE gracefully
     sleep 0.5
-    if mountpoint -q "$rmount" 2>/dev/null; then
+    if mount | grep -qF "$rmount" 2>/dev/null; then
       fusermount -u "$rmount" 2>/dev/null || umount "$rmount" 2>/dev/null
       sleep 0.5
     fi

@@ -2,7 +2,7 @@
 #                       COMMAND: AUTOMATIC                       #
 # ============================================================== #
 _run_auto_cleanup() {
-  if [[ -n "${policies[*]}" ]] ; then
+  if [[ ${#policies[@]} -gt 0 ]] ; then
     print_line
     printf "%b\n" "${c_cyan}Cleaning Repo...${c_reset}"
     cleanup
@@ -13,6 +13,7 @@ _run_auto_cleanup() {
   fi
 }
 automatic() {
+  local now next
   rescript_lock
   case "${LOGGING:-}" in
     y|yes)
@@ -86,7 +87,7 @@ automatic() {
   # Time and Runtime
   time_end
 
-  if [[ -n "${CLEAN:-}" && -z "${policies[*]}" ]] ; then
+  if [[ -n "${CLEAN:-}" && ${#policies[@]} -eq 0 ]] ; then
     local clean_num="${CLEAN//[A-Za-z]/}"
     local clean_unit="${CLEAN//[0-9]/}"
     printf "%s\n" "[rescript] noted that your CLEAN variable is ${CLEAN:-}, so [rescript] assumes that"

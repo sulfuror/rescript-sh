@@ -5,7 +5,7 @@ restic_alone() {
   rescript_lock
   debug_start
   print_context
-  run_restic_with_retry "${rest[@]}"
+  run_restic_with_retry ${rest[@]:+"${rest[@]}"}
   latest_cmd=$prev_cmd exit_code="$?"
   debug_stop
   local rest_cmd=""
@@ -65,12 +65,12 @@ case "${1:-}" in
     ;;
   status)
     parse_generic_args status-help "${@:2}"
-    execute_with_metrics run_quietly global_status "${rest[@]}"
+    execute_with_metrics run_quietly global_status ${rest[@]:+"${rest[@]}"}
     exit 0
     ;;
   config)
     parse_generic_args config-help "${@:2}"
-    rescript_config "${rest[@]}"
+    rescript_config ${rest[@]:+"${rest[@]}"}
     exit 0
     ;;
   editor)

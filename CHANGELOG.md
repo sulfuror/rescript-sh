@@ -20,6 +20,14 @@
 * **Variable Leaks:** Fixed variables in `now_next` and `latest_error` escaping into the global scope by explicitly declaring them with `local`, safeguarding the execution environment.
 * **macOS Unbound Array Crashes:** Eliminated all direct empty array expansions (`"${rest[@]}"`, `"${sim_flags[@]}"`, etc.) across `mounter`, `search`, `size`, `snaps`, `upgrade_repo`, and `all` modules, replacing them with conditionally expanded POSIX forms (e.g. `${rest[@]:+"${rest[@]}"}`). This completely resolves fatal `set -u` unbound variable crashes on Bash 3.x systems.
 * **Empty Password Injection:** Fixed a bug where exporting an empty `RESTIC_PASSWORD_COMMAND` environment variable caused Restic to attempt to execute a blank string, leading to fatal execution errors. Password variables are now explicitly validated before being exported to the subshell.
+* **Scope Traps in Orchestrator:** Fixed a critical bug in `now_next` where declaring state variables as `local` inside the function broke the dynamic scope required by `automatic` and `cleanup-next`, leading to unbound variable crashes under `set -u`.
+* **Array Length Evaluation:** Replaced unsafe array expansion checks (`-n "${policies[*]}"`) with POSIX-compliant array length checks (`${#policies[@]} -gt 0`) across `cleanup` and `automatic` commands to prevent crashes on Bash 3.x when arrays are empty.
+* **Remaining Naked Arrays:** Hardened the remaining exposed array expansions in `extract`, `init`, and `04_core` orchestration logic with `${array[@]:+"${array[@]}"}` conditional syntax.
+* **Metadata Fallbacks:** Added empty string fallbacks (`:-`) to array expansions in `print_context` (Metadata dashboard) to prevent sudden crashes if a user's configuration file defines empty values.
+* **Dropped Restore Flags:** Fixed a bug in `restorer` where interactive restores silently dropped trailing user flags (like `--include` or `--exclude`), effectively forcing a full snapshot restoration.
+* **FUSE Unmounting on BSD/macOS:** Replaced the Linux-only `mountpoint` command dependency in `mounter` and `umounter` with a standard `mount | grep` POSIX check, ensuring background processes don't zombie when unmounting repositories on macOS/BSD.
+* **Mounter Signal Handling:** Added the `TERM` signal trap to the foreground `mounter` interactive session. Running `umounter` via a separate terminal will now properly trigger a graceful unmount and terminal cleanup instead of force-closing the session.
+* **Mapfile Incompatibility:** Removed all usages of the Bash 4.0+ `mapfile` command in the `differ` and `restorer` modules, replacing them with standard POSIX `while IFS= read -r` loops to restore full compatibility with macOS (Bash 3.2).
 
 ## v7.1.1
 
@@ -36,7 +44,7 @@
 * **Unbound Variables:** Initialized standard global flag variables in the core script to prevent `set -u` (unbound variable) crashes during generic argument parsing.
 * **Mounter Concurrency:** Fixed a bug where `mounter --background` could be executed multiple times on the same repository, leading to orphaned background processes. It now strictly enforces a single active background mount per repository via PID locks.
 * **Mounter TTY Detachment:** Fixed a critical bug where `mounter --background` failed to detach from the terminal `stdin`, causing it to inadvertently trigger an `exit` (EOF) in the user's shell session. Background mounts now use `setsid` and `</dev/null` for complete isolation.
-* **Update Command Crash:** Fixed a silent crash in the `update` command caused by strict mode (`set -e`) killing the script when older remote versions (which didn't support the native `-v` flag) exited with an error. 
+* **Update Command Crash:** Fixed a silent crash in the `update` command caused by strict mode (`set -e`) killing the script when older remote versions (which didn't support the native `-v` flag) exited with an error.
 * **Update Version Parsing:** Replaced brittle source code parsing with native binary execution (`rescript -v`) to extract the remote version safely, with a resilient fallback for older versions.
 * **Sudo Prompt Spam:** Rebuilt the `_require_sudo` utility to silently probe the OS sudo cache (`sudo -n true`) before redundantly prompting the user for a password they had already entered in the same session.
 * **Network Connectivity Check:** Fixed a major silent bug in the connectivity check logic (`ping` and `rclone about`) where connection errors were ignored due to a trailing `|| true`, always resulting in an exit code of 0. Connectivity failures are now properly caught and reported before executing commands.

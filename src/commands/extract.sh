@@ -47,7 +47,7 @@ extract() {
     printf "%s\n" "Auto-detecting latest snapshot for this file..."
     
     local has_host=false
-    for arg in "${extract_rest[@]}"; do
+    for arg in ${extract_rest[@]:+"${extract_rest[@]}"}; do
       if [[ "$arg" == "--host" || "$arg" == "-H" ]]; then
         has_host=true
         break
@@ -58,7 +58,7 @@ extract() {
     if [[ "$has_host" == false ]]; then
       find_flags+=( "--host" "$rhost" )
     fi
-    find_flags+=( "${extract_rest[@]}" )
+    find_flags+=( ${extract_rest[@]:+"${extract_rest[@]}"} )
     
     debug_start
     snap_id=$(run_restic_with_retry find "${find_flags[@]}" "$file" 2>/dev/null | tr -d '\r' | sed 's/\x1B\[[0-9;]*[a-zA-Z]//g' | awk '/Found matching entries in snapshot/ { for(i=1;i<=NF;i++) if($i=="snapshot") { print $(i+1); exit } }' || true)
@@ -104,7 +104,7 @@ extract() {
   
   printf "%s\n" "Extracting [$file] to [./$dest_name]..."
   
-  local restic_args=( "dump" "-a" "zip" "$snap_id" "$file" "${extract_rest[@]}" )
+  local restic_args=( "dump" "-a" "zip" "$snap_id" "$file" ${extract_rest[@]:+"${extract_rest[@]}"} )
   
   local err_file="$session_tmp/extract_err"
   local tmp_dest="$session_tmp/$dest_name"

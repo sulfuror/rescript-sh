@@ -210,7 +210,7 @@ print_context() {
 
   case "$cmd" in
     backup|automatic)
-      printf "  ${c_white}%-15s${c_reset}: ${c_cyan}%s${c_reset}\n" "Backup Source" "${BACKUP_DIR[*]}"
+      printf "  ${c_white}%-15s${c_reset}: ${c_cyan}%s${c_reset}\n" "Backup Source" "${BACKUP_DIR[*]:-}"
       local excl_count
       excl_count=$(grep -E -v -c '(^#|^\s*$|^\s*\t*#)' "$excludes" 2>/dev/null || true)
       excl_count="${excl_count:-0}"
@@ -444,7 +444,6 @@ get_state() {
   fi
 }
 now_next() {
-  local now next
   now=$(date +"%s")
 
   local state_file="$config_dir/$repo.state"
@@ -498,17 +497,15 @@ _require_sudo() {
   return 0
 }
 get_repo_list() {
-  local _arr_name="$1"
-  shift
   local excluded=("$@")
-  eval "$_arr_name=()"
+  repos=()
   for conf in "$config_dir"/*.conf; do
     [ -e "$conf" ] || continue
     local name
     name=$(basename "$conf" .conf)
     [[ "$name" == "global" ]] && continue
     if ! array_contains "$name" ${excluded[@]:+"${excluded[@]}"}; then
-      eval "$_arr_name+=(\"\$name\")"
+      repos+=("$name")
     fi
   done
 }

@@ -7,7 +7,7 @@ cleanup() {
 
   set_sim_flag "Cleanup"
 
-  if [[ -n "${policies[*]}" ]] ; then
+  if [[ ${#policies[@]} -gt 0 ]] ; then
     debug_start
     run_restic_with_retry forget ${sim_flags[@]:+"${sim_flags[@]}"} "${policies[@]}" ${rest[@]:+"${rest[@]}"}
     check_restic_error $?
