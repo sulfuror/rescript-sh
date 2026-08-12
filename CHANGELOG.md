@@ -1,6 +1,8 @@
 # Rescript Changelog
 
-## [Unreleased]
+## v7.1.1
+
+### August 12, 2026
 
 #### 🛠️ Architecture & Security
 

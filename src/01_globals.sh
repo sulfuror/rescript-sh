@@ -6,7 +6,7 @@ set -euo pipefail
 # ============================================================== #
 
 # Initialize internal variables to prevent unbound variable errors
-version="7.1.2-dev"
+version="7.1.2"
 context_flag="false"
 rescript_lock_created=""
 var_flag=""
