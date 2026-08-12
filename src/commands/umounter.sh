@@ -8,7 +8,7 @@ umounter() {
 
   if [[ -f "$pid_file" ]]; then
     local pid_info
-    pid_info=$(cat "$pid_file" 2>/dev/null || true)
+    pid_info=$(<"$pid_file")
     
     if [[ -z "$pid_info" || "$pid_info" != *":"* ]]; then
       printf "%s\n" "INFO: Invalid or empty mount file found. Assuming already unmounted."

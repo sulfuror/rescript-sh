@@ -57,7 +57,7 @@ size() {
   
   local total_size=""
   if [[ -s "$tmp_size" ]]; then
-    total_size=$(cat "$tmp_size" 2>/dev/null || true)
+    total_size=$(<"$tmp_size")
   fi
   
   printf "\r\e[K"

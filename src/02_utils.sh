@@ -584,7 +584,7 @@ rescript_lock() {
   if [[ "${rescript_lock_created:-}" == "true" ]]; then return 0; fi
   if [ -e "$lock" ]; then
     local existing_pid=""
-    existing_pid=$(cat "$lock" 2>/dev/null || true)
+    existing_pid=$(<"$lock")
     
     if is_pid_alive "$existing_pid"; then
       printf "%s\n" "WARNING: [$repo] repo is already running (PID: $existing_pid)..."
@@ -711,7 +711,7 @@ if [[ -n "${RESCRIPT_EDITOR:-}" ]]; then
   rescript_editor="$RESCRIPT_EDITOR"
   rm -f "$config_dir/.editor" 2>/dev/null || true
 elif [[ -s "$config_dir/.editor" ]]; then
-  rescript_editor=$(cat "$config_dir/.editor" 2>/dev/null || true)
+  rescript_editor=$(<"$config_dir/.editor")
   if [[ -f "$config_global" ]]; then
     grep -v "^RESCRIPT_EDITOR=" "$config_global" > "${config_global}.tmp" 2>/dev/null || true
     printf "%s\n" "RESCRIPT_EDITOR=\"$rescript_editor\"" >> "${config_global}.tmp"
