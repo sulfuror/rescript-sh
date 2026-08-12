@@ -1,20 +1,16 @@
 # ============================================================== #
-#                 GLOBAL CONFIGURATION TEMPLATE                  #
+#                GLOBAL CONFIGURATION TEMPLATE                   #
 # ============================================================== #
-
 global_config_template() {
 cat <<EOF
-
-# -------------------------------------------------------------- #
-#  G L O B A L    R E S C R I P T    C O N F I G U R A T I O N   #
-# -------------------------------------------------------------- #
-
+# =============================================================================== #
+#             G L O B A L    R E S C R I P T    C O N F I G U R A T I O N         #
+# =============================================================================== #
 # For detailed documentation on all available options and how to configure them,
 # please visit: https://github.com/sulfuror/rescript-sh/wiki/Configuration-Files
-
-# -------------------------------------------------------------- #
-# VARIABLES DEFINED HERE WILL ACT AS DEFAULTS FOR ALL YOUR REPOSITORY PROFILES. #
-# -------------------------------------------------------------- #
+# =============================================================================== #
+# Variables defined here will act as defaults for all your repository profiles.
+# ------------------------------------------------------------------------------- #
 
 # -- Retention --
 KEEP_LAST=""
