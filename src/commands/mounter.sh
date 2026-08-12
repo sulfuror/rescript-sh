@@ -16,7 +16,7 @@ mounter() {
   local pid_file="$lock_dir/mount_${repo}.pid"
   if [[ -f "$pid_file" ]]; then
     local pid_info
-    pid_info=$(<"$pid_file")
+    pid_info=$(cat "$pid_file" 2>/dev/null || true)
     local mount_pid="${pid_info%%:*}"
     if is_pid_alive "$mount_pid"; then
       printf "%b\n" "${c_red}ERROR: Repository [$repo] is already mounted in the background (PID: $mount_pid).${c_reset}"

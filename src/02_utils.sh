@@ -318,6 +318,7 @@ latest_error() {
     if [[ -n "$rest_cmd" ]] ; then
       error_message="[$rest_cmd] failed; exit code $exit_code"
     else
+      local cmd1 cmd2 _
       read -r cmd1 cmd2 _ <<< "$latest_cmd"
       if [[ "$cmd1" = *"restic" ]] ; then
         error_message="[$cmd2] failed; exit code $exit_code"
@@ -440,6 +441,7 @@ get_state() {
   fi
 }
 now_next() {
+  local now next
   now=$(date +"%s")
 
   local state_file="$config_dir/$repo.state"
@@ -448,7 +450,7 @@ now_next() {
   # Seamless migration for existing users
   if [[ ! -f "$state_file" && -f "$old_datefile" ]]; then
     local old_val
-    old_val=$(<"$old_datefile"); old_val="${old_val:-0}"
+    old_val=$(cat "$old_datefile" 2>/dev/null || true); old_val="${old_val:-0}"
     set_state "NEXT_CLEANUP" "$old_val" "$state_file"
     rm -f "$old_datefile"
   fi
@@ -474,7 +476,7 @@ wait_with_spinner() {
     done
     [[ "$any_running" == "true" ]] || break
     i=$(( (i+1) % 4 ))
-    printf "\r${c_cyan}%s %s${c_reset}" "$label" "${spin:$i:1}"
+    printf "\r%b%s %s%b" "$c_cyan" "$label" "${spin:$i:1}" "$c_reset"
     sleep 0.1
   done
   wait "${pids[@]}" 2>/dev/null || true
@@ -584,7 +586,7 @@ rescript_lock() {
   if [[ "${rescript_lock_created:-}" == "true" ]]; then return 0; fi
   if [[ -e "$lock" ]]; then
     local existing_pid=""
-    existing_pid=$(<"$lock")
+    existing_pid=$(cat "$lock" 2>/dev/null || true)
     
     if is_pid_alive "$existing_pid"; then
       printf "%s\n" "WARNING: [$repo] repo is already running (PID: $existing_pid)..."
