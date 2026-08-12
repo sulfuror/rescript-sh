@@ -7,10 +7,15 @@
 * **POSIX Print Standardization:** Replaced hundreds of `echo` and `echo -e` statements with strict `printf` invocations across the entire codebase. This guarantees cross-shell portability, predictable formatting, and eliminates arbitrary behavior during bash expansions.
 * **Function Syntax Standardization:** Refactored over 100 bash function declarations from the bash-specific `function name {` to the strictly POSIX-compliant `name() {`, fully aligning the architecture with the Google Shell Style Guide.
 * **Secure Temporary Directories:** Enforced strict `umask 077` permissions during the creation of temporary session directories (`mktemp -d`), guaranteeing that sensitive transient operations are exclusively readable and writable by the executing user.
+* **Orchestrator Encapsulation:** Refactored the `all` command orchestrator from a globally exposed block in `04_core.sh` into a dedicated function `command_all()` housed in `src/commands/all.sh`. This strictly encapsulates its variables using `local` to prevent global namespace pollution and unifies the command structure.
+* **Test Expressions:** Upgraded legacy `[ ]` POSIX tests to Bash's advanced `[[ ]]` conditional commands in `history` and `mounter` modules for safer string evaluation.
+* **Strict ANSI Interpolation:** Hardened `printf` formatting in UI functions (`wait_with_spinner`) by passing ANSI color codes via `%b` arguments instead of directly embedding them, preventing parsing ambiguity.
 
 #### 🐛 Bugfixes
 
 * **Trap Destruction Bug:** Fixed a silent logic flaw in interactive commands (`extract`, `history`, `size`, `search`, `mounter`, `statinfo`, `status`) where resetting `trap - INT` inadvertently destroyed the global interruption handlers. Handlers are now properly restored, preventing the script from terminating abruptly without cleaning up session files.
+* **State File Crashes:** Replaced `$(<file)` built-in reads with safe `$(cat file || true)` fallbacks across `rescript_lock`, `now_next`, `size`, `mounter`, and `umounter`. This prevents the `set -e` strict mode from crashing the script when attempting to read non-existent lock or state files.
+* **Variable Leaks:** Fixed variables in `now_next` and `latest_error` escaping into the global scope by explicitly declaring them with `local`, safeguarding the execution environment.
 
 ## v7.1.1
 
