@@ -17,9 +17,10 @@ c_reset="\033[0m"
 # This file is loaded from test_suite/tests/, so we go up two levels.
 RESCRIPT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/rescript"
 SRC_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/src"
+export SRC_DIR
 
-function setup_sandbox {
-  TEST_ENV="/tmp/rescript_test_env_$$"
+setup_sandbox() {
+  TEST_ENV=$(mktemp -d "/tmp/rescript_test_env.XXXXXX")
   
   # Override environment variables for total isolation
   export HOME="$TEST_ENV"
@@ -63,14 +64,14 @@ EOF
   $RESCRIPT test backup >/dev/null 2>&1
 }
 
-function cleanup_sandbox {
+cleanup_sandbox() {
   if [[ -d "$TEST_ENV" ]]; then
     rm -rf "$TEST_ENV"
   fi
-  exit ${MODULE_FAILED:-0}
+  exit "${MODULE_FAILED:-0}"
 }
 
-function start_test_module {
+start_test_module() {
   local module_name="$1"
   MODULE_FAILED=0
   echo "======================================"
@@ -81,7 +82,7 @@ function start_test_module {
   trap cleanup_sandbox EXIT INT TERM
 }
 
-function run_test {
+run_test() {
   local desc="$1"
   local cmd="$2"
   
@@ -91,7 +92,7 @@ function run_test {
   eval "$cmd" > "$TEST_ENV/out.log" 2>&1
   local exit_code=$?
   
-  if [ $exit_code -eq 0 ]; then
+  if [[ $exit_code -eq 0 ]]; then
     echo -e "[${c_green}PASS${c_reset}]"
   else
     echo -e "[${c_red}FAIL${c_reset}] (Exit Code: $exit_code)"

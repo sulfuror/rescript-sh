@@ -7,7 +7,6 @@
 
 c_green="\033[1;32m"
 c_red="\033[1;31m"
-c_cyan="\033[1;36m"
 c_reset="\033[0m"
 
 LOG_FILE="/tmp/rescript_run_all_$$.log"
@@ -21,16 +20,16 @@ echo "=========================================================="
 echo " Starting Rescript Universal Test Framework"
 echo "=========================================================="
 
-# Find all scripts in the tests/ directory and sort them alphabetically
-TEST_SCRIPTS=($(find "$(dirname "$0")/modules" -maxdepth 1 -name "*.sh" | sort))
+# Find all scripts in the tests/modules/ directory and sort them alphabetically
+test_dir="$(dirname "$0")"
+TEST_SCRIPTS=( "$test_dir"/modules/*.sh )
 
 total_modules=${#TEST_SCRIPTS[@]}
 modules_passed=0
 
 for script in "${TEST_SCRIPTS[@]}"; do
   chmod +x "$script"
-  "$script"
-  if [ $? -eq 0 ]; then
+  if "$script"; then
     ((modules_passed++))
   else
     echo -e "\n${c_red}CRITICAL FAILURE in module: $(basename "$script")${c_reset}"
@@ -39,7 +38,7 @@ done
 
 echo ""
 echo "=========================================================="
-if [ $modules_passed -eq $total_modules ]; then
+if [[ $modules_passed -eq $total_modules ]]; then
   echo -e " ${c_green}All $total_modules test modules PASSED!${c_reset}"
   echo -e " The codebase is POSIX compliant and mathematically sound."
   WEBHOOK_SUBJECT="✅ **Rescript Universal Test Framework**\nAll $total_modules test modules PASSED! The codebase is POSIX compliant."
