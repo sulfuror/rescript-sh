@@ -274,6 +274,10 @@ job_done() {
     return 0
   fi
 
+  if [[ -n "${error_message:-}" ]] ; then
+    return 0
+  fi
+
   local success_msg
   success_msg="✅ rescript: [$repo] $cmd finished successfully on [$(hostname)]!"
 
@@ -341,17 +345,15 @@ latest_error() {
     if [[ -n "$rest_cmd" ]] ; then
       error_message="[$rest_cmd] failed; exit code $exit_code"
     else
-      local cmd1 cmd2 _
-      read -r cmd1 cmd2 _ <<< "$latest_cmd"
-      if [[ "$cmd1" = *"restic" ]] ; then
-        error_message="[$cmd2] failed; exit code $exit_code"
-      else
-        error_message="[$cmd1] failed; exit code $exit_code"
-      fi
+      error_message="[${cmd:-restic}] failed; exit code $exit_code"
     fi
     report_errors
-    time_end
-    exit "${exit_code:-$?}"
+    if [[ "$exit_code" == "3" ]] ; then
+      return 0
+    else
+      time_end
+      exit "${exit_code:-$?}"
+    fi
   fi
 }
 
@@ -568,8 +570,8 @@ run_with_spinner() {
   done
   
   # Wait to get the exact exit code
-  wait $pid
-  local exit_code=$?
+  local exit_code=0
+  wait $pid || exit_code=$?
   
   # Restore cursor and clean spinner
   show_cursor

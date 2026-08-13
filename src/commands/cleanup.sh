@@ -10,12 +10,14 @@ cleanup() {
 
   if [[ ${#policies[@]} -gt 0 ]] ; then
     debug_start
-    run_restic_with_retry forget ${sim_flags[@]:+"${sim_flags[@]}"} "${policies[@]}" ${rest[@]:+"${rest[@]}"}
-    check_restic_error $?
+    local forget_rc=0
+    run_restic_with_retry forget ${sim_flags[@]:+"${sim_flags[@]}"} "${policies[@]}" ${rest[@]:+"${rest[@]}"} || forget_rc=$?
+    check_restic_error $forget_rc
     debug_stop
     debug_start
-    run_restic_with_retry prune ${sim_flags[@]:+"${sim_flags[@]}"} --cleanup-cache
-    check_restic_error $?
+    local prune_rc=0
+    run_restic_with_retry prune ${sim_flags[@]:+"${sim_flags[@]}"} --cleanup-cache || prune_rc=$?
+    check_restic_error $prune_rc
     debug_stop
   else
     printf "%s\n" "You have not indicated any policy value..."

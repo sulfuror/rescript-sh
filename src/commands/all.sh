@@ -138,8 +138,8 @@ command_all() {
       printf "%b\n" "${c_cyan}Running Global PRE_CMD...${c_reset}"
       printf "%b\n" "${c_yellow}SIMULATE: $PRE_CMD${c_reset}"
     else
-      run_with_spinner "$PRE_CMD" "${c_cyan}Running Global PRE_CMD...${c_reset}"
-      spinner_rc=$?
+      spinner_rc=0
+      run_with_spinner "$PRE_CMD" "${c_cyan}Running Global PRE_CMD...${c_reset}" || spinner_rc=$?
       if [[ $spinner_rc -ne 0 ]] ; then
         printf "%b\n" "${c_red}The Global PRE_CMD [$PRE_CMD] has failed.${c_reset}"
         exit 1
@@ -187,8 +187,8 @@ command_all() {
       printf "%b\n" "${c_cyan}Running Global POST_CMD...${c_reset}"
       printf "%b\n" "${c_yellow}SIMULATE: $POST_CMD${c_reset}"
     else
-      run_with_spinner "$POST_CMD" "${c_cyan}Running Global POST_CMD...${c_reset}"
-      spinner_rc=$?
+      spinner_rc=0
+      run_with_spinner "$POST_CMD" "${c_cyan}Running Global POST_CMD...${c_reset}" || spinner_rc=$?
       if [[ $spinner_rc -ne 0 ]] ; then
         printf "%b\n" "${c_red}The Global POST_CMD [$POST_CMD] has failed.${c_reset}"
         exit 1

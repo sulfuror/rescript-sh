@@ -9,8 +9,9 @@ _run_auto_cleanup() {
     cleanup
     print_line
     printf "%b\n" "${c_cyan}Checking for Errors in Repo...${c_reset}"
-    run_restic_with_retry check --cleanup-cache
-    check_restic_error $?
+    local restic_rc=0
+    run_restic_with_retry check --cleanup-cache || restic_rc=$?
+    check_restic_error ${restic_rc:-0}
   fi
 }
 automatic() {

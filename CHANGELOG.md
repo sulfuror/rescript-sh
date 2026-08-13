@@ -1,5 +1,18 @@
 # Rescript Changelog
 
+## v7.1.3
+
+### August 13, 2026
+
+#### 🐛 Bugfixes
+
+* **Graceful Degradation on Warnings:** Fixed a critical bug where Restic emitting a warning (exit code 3) caused the wrapper to crash abruptly due to Bash's `set -e` strict mode. The script now intercepts the warning, emits the webhook notification, and gracefully continues execution.
+* **Hook Execution on Warnings:** Ensured that `POST_CMD` hooks and automated cleanup operations always execute successfully even if the main backup finishes with warnings.
+* **Hook Crash Prevention:** Fixed a vulnerability in the `run_with_spinner` UI function where a failing `PRE_CMD` or `POST_CMD` would trigger a `wait` crash under strict mode, instantly killing the script without reporting the hook's failure reason.
+* **Redundant Notifications:** Fixed a logic flaw where encountering a warning would still trigger a final "Backup Successful" webhook at the end of the script. Success notifications are now silently suppressed if warnings were emitted during the run.
+* **Error Banner Formatting:** Fixed a bug where the error banner displayed `[] failed` due to command name parsing failures in the webhook dispatcher. It now strictly uses the global command variable.
+* **Error Banner Timing:** Relocated the error banner evaluation logic to the absolute end of the execution block, ensuring the red warning output appears cleanly after the `POST_CMD` finishes running.
+
 ## v7.1.2
 
 ### August 12, 2026
