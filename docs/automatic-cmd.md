@@ -10,6 +10,8 @@ rescript [repo_name] automatic
 
 *(Note: Just running `rescript [repo_name]` is functionally identical to specifying `automatic`).*
 
+> **Note on Notifications:** If the backup encounters any warnings (e.g. locked files), Rescript will gracefully handle them, execute your `POST_CMD` hooks, and send a specific Warning notification at the end of the run. To prevent notification fatigue, the standard "Success" notification is automatically suppressed in this scenario.
+
 ### Example Output
 
 ```text

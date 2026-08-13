@@ -4,7 +4,7 @@ a configuration file is created, it is created inside the user's home directory 
 so if another user is navigating through the user's files, they can see the file but not the content.
 
 > [!WARNING]
-> Because `PRE_CMD` and `POST_CMD` are executed via `eval`, it is critical that configuration files are never world-writable (i.e. permissions should be `600`). If a malicious user can write to the `.conf` file, they can inject arbitrary commands that will run with your privileges (e.g. as `root` if running from cron).
+> Because `PRE_CMD` and `POST_CMD` are executed as shell commands, it is critical that configuration files are never world-writable (i.e. permissions should be `600`). If a malicious user can write to the `.conf` file, they can inject arbitrary commands that will run with your privileges (e.g. as `root` if running from cron).
 
 If you share a computer or want to maximize security, you should not save your repository password in plain text. Instead, you can use a password manager (like `pass`, `bitwarden-cli`) or an encrypted file (via GPG).
 

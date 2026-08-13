@@ -13,6 +13,12 @@
 * **Error Banner Formatting:** Fixed a bug where the error banner displayed `[] failed` due to command name parsing failures in the webhook dispatcher. It now strictly uses the global command variable.
 * **Error Banner Timing:** Relocated the error banner evaluation logic to the absolute end of the execution block, ensuring the red warning output appears cleanly after the `POST_CMD` finishes running.
 
+#### 📚 Documentation
+
+* **Mac & BSD Systems:** Removed the strict requirement to install Homebrew (`brew`) for standard execution, reflecting the recent POSIX compliance upgrades. Updated FUSE mounting instructions to reference the modernized `macFUSE` package instead of the legacy `osxfuse`.
+* **Security Advisories:** Refined the security documentation regarding execution hooks. Clarified that `PRE_CMD` and `POST_CMD` are executed directly as shell commands (rather than via `eval`), while maintaining the critical warning about keeping configuration files secured (`chmod 600`).
+* **Command Output Examples:** Updated the `all` command documentation to accurately reflect the real-time UI parallel spinner introduced in v7.1.2. Updated the `automatic` command documentation to explicitly note the new behavior where standard success notifications are suppressed if warnings occur.
+
 ## v7.1.2
 
 ### August 12, 2026

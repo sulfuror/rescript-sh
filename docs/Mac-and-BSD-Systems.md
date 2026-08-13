@@ -1,18 +1,11 @@
 ### Mac OS
 
-1. Install [brew](https://brew.sh).
-2. **NOTE**: `nano` works great as a default text editor; choosing another one with Mac
-   could require a little tweaking with your script.
-5. **OPTIONAL**: to include `~/bin` or `~/.local/bin` in your `PATH`, edit or create
-   a file called `.bash_profile` in your `$HOME` by typing `nano .bash_profile`
-   and after pasting this following line save it and close it using Ctl+x:
-   ```
+1. **NOTE**: `nano` works great as a default text editor; choosing another one with Mac could require a little tweaking with your script.
+2. **OPTIONAL**: to include `~/bin` or `~/.local/bin` in your `PATH`, edit or create a file called `.bash_profile` in your `$HOME` by typing `nano .bash_profile` and after pasting this following line save it and close it using Ctl+x:
+   ```bash
    export PATH=$PATH:$HOME/bin:$HOME/.local/bin
    ```
-6. In order to use `mounter` (`restic mount`) you need to install a package
-   called `osxfuse` via `brew`: `brew install osxfuse`. If you're using Mojave,
-   you may need to type: `brew cask install osxfuse` or follow the instructions
-   displayed in your terminal emulator when you typed the first command.
+3. In order to use `mounter` (`restic mount`) you need to install [macFUSE](https://osxfuse.github.io/) (formerly osxfuse). You can download it directly from their website or install it via Homebrew (`brew install --cask macfuse`).
 
 ### FreeBSD
 

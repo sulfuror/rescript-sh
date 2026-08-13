@@ -50,6 +50,7 @@ rescript all backup -P
 ```text
 Running on repositories: my_repo_1, my_repo_2 (in parallel, enforcing quiet mode)
 Running Global PRE_CMD... Done!
+Running [backup] in parallel for all repositories... Done!
 All parallel jobs finished!
 Running Global POST_CMD... Done!
 ```
