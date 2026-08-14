@@ -24,6 +24,10 @@ cleanup_on_exit() {
     rescript_lock_created="false"
   fi
   if [[ -n "${tmplog:-}" ]]; then 
+    if [[ "${RESCRIPT_LOG_ON_ERROR:-}" == "true" && ${exit_code:-0} -ne 0 && -f "$tmplog" ]]; then
+      mkdir -p "$logs_dir"
+      cp "$tmplog" "$logs_dir/$repo-error-$(date +%Y-%m-%d-%H%M%S).log" 2>/dev/null || true
+    fi
     rm -f "${tmplog:?}" 2>/dev/null
     tmplog=""
   fi
@@ -509,6 +513,7 @@ wait_with_spinner() {
   local pids=("$@")
   local spin='-\|/'
   local i=0
+  printf "%b%s %b" "$c_cyan" "$label" "$c_reset"
   while true; do
     local any_running=false
     for pid in "${pids[@]}"; do
@@ -516,10 +521,10 @@ wait_with_spinner() {
     done
     [[ "$any_running" == "true" ]] || break
     i=$(( (i+1) % 4 ))
-    printf "\r%b%s %s%b" "$c_cyan" "$label" "${spin:$i:1}" "$c_reset"
+    printf "%b%s%b\b" "$c_cyan" "${spin:$i:1}" "$c_reset"
     sleep 0.1
   done
-  wait "${pids[@]}" 2>/dev/null || true
+  printf " \b"
 }
 _require_sudo() {
   local action_desc="${1:-operation}"
@@ -565,9 +570,10 @@ run_with_spinner() {
   local i=0
   while kill -0 "$pid" 2>/dev/null; do
     i=$(( (i+1) % 4 ))
-    printf "\r%b %s" "$label" "${spin:$i:1}"
+    printf "%s\b" "${spin:$i:1}"
     sleep 0.1
   done
+  printf " \b"
   
   # Wait to get the exact exit code
   local exit_code=0

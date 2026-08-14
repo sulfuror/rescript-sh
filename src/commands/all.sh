@@ -61,9 +61,8 @@ command_all() {
     fi
   fi
   
-  local has_quiet
   if [[ "$parallel_execution" == "true" ]]; then
-    has_quiet=false
+    local has_quiet=false
     for arg in ${forward_args[@]:+"${forward_args[@]}"}; do
       if [[ "$arg" == "-Q" || "$arg" == "--quiet" ]]; then
         has_quiet=true
@@ -73,6 +72,7 @@ command_all() {
     if [[ "$has_quiet" == "false" ]]; then
       forward_args+=("-Q")
     fi
+    export RESCRIPT_LOG_ON_ERROR="true"
   fi
   
   if [[ ! -d "$config_dir" ]]; then
@@ -161,7 +161,11 @@ command_all() {
     fi
     
     if [[ "$parallel_execution" == "true" ]]; then
-      "$0" "$r_name" ${forward_args[@]:+"${forward_args[@]}"} &
+      if command -v setsid >/dev/null 2>&1; then
+        setsid "$0" "$r_name" ${forward_args[@]:+"${forward_args[@]}"} < /dev/null &
+      else
+        "$0" "$r_name" ${forward_args[@]:+"${forward_args[@]}"} < /dev/null &
+      fi
       pids+=($!)
     else
       "$0" "$r_name" ${forward_args[@]:+"${forward_args[@]}"} || true
@@ -178,8 +182,27 @@ command_all() {
     if [[ ${#forward_args[@]} -gt 0 ]]; then
       action_msg="${forward_args[0]}"
     fi
-    wait_with_spinner "Running [${action_msg}] in parallel for all repositories..." "${pids[@]}"
-    printf "\n%b\n" "${c_green}All parallel jobs finished!${c_reset}"
+    printf "%bRunning [%s] in parallel for all repositories...%b\n" "$c_cyan" "$action_msg" "$c_reset"
+    wait_with_spinner "Working..." "${pids[@]}"
+
+    local fail_count=0
+    local failed_repos=()
+
+    for i in "${!pids[@]}"; do
+      if ! wait "${pids[$i]}" 2>/dev/null; then
+        fail_count=$((fail_count + 1))
+        failed_repos+=("${repos[$i]}")
+      fi
+    done
+
+    if [[ $fail_count -eq 0 ]]; then
+      printf "\r\e[K%bAll parallel jobs finished successfully!%b\n" "$c_green" "$c_reset"
+    else
+      printf "\r\e[K%bFinished with errors ($fail_count failed):%b\n" "$c_red" "$c_reset"
+      for f_repo in ${failed_repos[@]:+"${failed_repos[@]}"}; do
+        printf "%b\n" "${c_red} [$f_repo] failed. Please check its logs.${c_reset}"
+      done
+    fi
   fi
   
   if [[ -n "${POST_CMD:-}" ]] ; then

@@ -10,7 +10,9 @@ rescript all [command] [flags] ...
 - `-X, --ignore-repo`: skips a specific repository during the run.
 
 ### Limitations
-Global-scoped commands (such as `status`, `config`, `editor`, `update`, `install`, `uninstall`) cannot be used with the `all` orchestrator. If you attempt to run `rescript all status`, the CLI will gracefully intercept it and display an error.
+- **Global Commands:** Global-scoped commands (such as `status`, `config`, `editor`, `update`, `install`, `uninstall`) cannot be used with the `all` orchestrator.
+- **Interactive Prompts (Parallel Mode):** When running in parallel (`-P`), all interactive prompts (like SSH/SFTP password requests) are explicitly denied to prevent silent terminal freezes. Any repository that attempts to prompt for a password will immediately fail. Therefore, you **must** configure SSH keys (passwordless auth) or native Restic password configurations before using parallel mode.
+- **Error Logging:** To ensure transparency when running jobs in the background without cluttering your system, parallel mode will automatically preserve and save an error log (`repo-error-date.log`) exclusively for jobs that fail.
 
 ### Examples
 
@@ -50,8 +52,8 @@ rescript all backup -P
 ```text
 Running on repositories: my_repo_1, my_repo_2 (in parallel, enforcing quiet mode)
 Running Global PRE_CMD... Done!
-Running [backup] in parallel for all repositories... Done!
-All parallel jobs finished!
+Running [backup] in parallel for all repositories...
+All parallel jobs finished successfully!
 Running Global POST_CMD... Done!
 ```
 *Note: This will execute backups concurrently. A loading spinner will show while the global PRE/POST hooks run, and output is saved directly to logs.*

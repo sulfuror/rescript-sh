@@ -1,5 +1,26 @@
 # Rescript Changelog
 
+## v7.1.4
+
+### August 14, 2026
+
+#### 🚀 Features & Enhancements
+
+* **Parallel Error Tracking:** The `all` orchestrator now meticulously tracks the exit codes of background jobs during parallel execution (`-P`). At the end of the run, it generates a dynamic summary that either confirms universal success or prints an explicit red list of the specific repositories that failed.
+* **On-Demand Error Logging:** Introduced a smart logging mechanism (`RESCRIPT_LOG_ON_ERROR`) for parallel mode. Instead of forcefully creating logs for every repository and cluttering the disk, Rescript now intercepts the temporary output (`tmplog`) and permanently saves an error log *only* if the specific repository encounters a fatal error.
+
+#### 🐛 Bugfixes
+
+* **Parallel TTY Hijacking:** Fixed a critical usability bug where SSH/SFTP connections invoked by Restic during parallel mode would aggressively seize the terminal (`/dev/tty`) to prompt for passwords, effectively hanging the backup silently and garbling the UI. Parallel background jobs are now strictly wrapped in a `setsid` command (and fed `< /dev/null`) to detach them from the terminal, forcing interactive prompts to abort immediately and triggering the new error-tracking system.
+* **Exit Code Reaping Bug:** Fixed an architectural flaw in the `wait_with_spinner` UI function where a trailing `wait` command was prematurely "reaping" the background processes. This prevented the parent script from reading the actual exit codes of the failed backups.
+* **Strict Mode Math Crash:** Fixed a classic Bash pitfall where using post-increment math (`((fail_count++))`) evaluating to zero would trigger a `set -e` crash, causing the script to exit silently without printing the final error summary.
+* **Spinner UI Corruption:** Re-engineered the UI loading spinner to use line-safe backspaces (`\b`) instead of destructive carriage returns (`\r`). This guarantees that if any unexpected output leaks from background processes, the spinner gracefully shifts downwards instead of permanently destroying the terminal history.
+
+#### 📚 Documentation
+
+* **Parallel Limitations:** Updated the `all` command documentation to explicitly warn users that parallel mode strictly forbids interactive terminal prompts. It mandates the use of SSH Keys (passwordless authentication) or native configuration variables for remote backend connections.
+
+
 ## v7.1.3
 
 ### August 13, 2026
